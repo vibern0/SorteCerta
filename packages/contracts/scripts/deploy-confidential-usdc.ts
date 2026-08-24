@@ -12,7 +12,7 @@ async function deployLocalMockUSDC() {
 async function main() {
   const [deployer] = await ethers.getSigners();
   const chain = await ethers.provider.getNetwork();
-  console.log(`Deploying ConfidentialMockUSDC with: ${deployer.address}`);
+  console.log(`Deploying ConfidentialUSDC with: ${deployer.address}`);
   console.log(`Network: ${network.name} (${chain.chainId})`);
 
   const underlying =
@@ -20,14 +20,14 @@ async function main() {
     process.env.USDC_ADDRESS ??
     (network.name === "sepolia" ? CIRCLE_SEPOLIA_USDC : await deployLocalMockUSDC());
 
-  const ConfidentialMockUSDC = await ethers.getContractFactory("ConfidentialMockUSDC");
-  const confidentialUsdc = await ConfidentialMockUSDC.deploy(underlying);
+  const ConfidentialUSDC = await ethers.getContractFactory("ConfidentialUSDC");
+  const confidentialUsdc = await ConfidentialUSDC.deploy(underlying);
   await confidentialUsdc.waitForDeployment();
 
   const confidentialUsdcAddress = await confidentialUsdc.getAddress();
 
   console.log(`USDC underlying: ${underlying}`);
-  console.log(`ConfidentialMockUSDC: ${confidentialUsdcAddress}`);
+  console.log(`ConfidentialUSDC: ${confidentialUsdcAddress}`);
   console.log("\nFrontend env vars to set:");
   console.log(`  NEXT_PUBLIC_USDC_ADDRESS=${underlying}`);
   console.log(`  NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS=${confidentialUsdcAddress}`);

@@ -6,6 +6,7 @@ import { erc20Abi, erc4626Abi } from "viem";
 export const CONTRACTS = {
   usdc: (process.env.NEXT_PUBLIC_USDC_ADDRESS ?? "") as `0x${string}`,
   confidentialUsdc: (process.env.NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS ?? "") as `0x${string}`,
+  confidentialPrizePool: (process.env.NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS ?? "") as `0x${string}`,
   vault: (process.env.NEXT_PUBLIC_VAULT_ADDRESS ?? "") as `0x${string}`,
   prizePool: (process.env.NEXT_PUBLIC_PRIZE_POOL_ADDRESS ?? "") as `0x${string}`,
   zamaSpike: (process.env.NEXT_PUBLIC_ZAMA_SPIKE_ADDRESS ?? "") as `0x${string}`,
@@ -49,6 +50,66 @@ export const zamaPrimitiveSpikeAbi = [
   {
     type: "function",
     name: "getLastRandom",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+] as const;
+
+export const confidentialUsdcAbi = [
+  ...erc20Abi,
+  {
+    type: "function",
+    name: "wrap",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "confidentialBalanceOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "confidentialTransferAndCall",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "encryptedAmount", type: "bytes32" },
+      { name: "inputProof", type: "bytes" },
+      { name: "data", type: "bytes" },
+    ],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+] as const;
+
+export const confidentialPrizePoolAbi = [
+  {
+    type: "function",
+    name: "withdraw",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "encryptedAmount", type: "bytes32" },
+      { name: "inputProof", type: "bytes" },
+    ],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "encryptedPrincipalOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "encryptedTotalPrincipal",
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "bytes32" }],

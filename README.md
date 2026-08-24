@@ -123,6 +123,11 @@ Current prototype architecture:
 
 This is a **plaintext scaffold**, not a bounty-ready implementation:
 
+- **Confidential principal lifecycle is in progress.** `ConfidentialUSDC`
+  wraps USDC as ERC-7984, and `ConfidentialPrizePool` now supports encrypted
+  deposits plus encrypted-amount withdrawals for principal. Draws and prize
+  claims are still not wired into this confidential pool.
+
 - **Randomness** uses `blockhash`. Replace it with Zama FHE randomness and run
   deposit-weighted winner selection over encrypted balances.
 - **Confidentiality** is not implemented. Replace plaintext vault shares,

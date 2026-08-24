@@ -3,7 +3,7 @@ import { ethers, fhevm } from "hardhat";
 import { FhevmType } from "@fhevm/hardhat-plugin";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
-describe("ConfidentialMockUSDC", function () {
+describe("ConfidentialUSDC", function () {
   let deployer: HardhatEthersSigner;
   let alice: HardhatEthersSigner;
   let bob: HardhatEthersSigner;
@@ -24,8 +24,8 @@ describe("ConfidentialMockUSDC", function () {
     const usdc = await MockUSDC.deploy();
     await usdc.waitForDeployment();
 
-    const ConfidentialMockUSDC = await ethers.getContractFactory("ConfidentialMockUSDC");
-    const confidentialUsdc = await ConfidentialMockUSDC.deploy(await usdc.getAddress());
+    const ConfidentialUSDC = await ethers.getContractFactory("ConfidentialUSDC");
+    const confidentialUsdc = await ConfidentialUSDC.deploy(await usdc.getAddress());
     await confidentialUsdc.waitForDeployment();
 
     return {

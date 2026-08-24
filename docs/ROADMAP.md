@@ -44,10 +44,17 @@ only their own value; an FHE random value is consumed onchain.
 
 **Goal:** establish the no-loss principal lifecycle.
 
-- Implement test-token faucet and ERC-20 approval/wrap flow.
-- Deposit confidential tokens or encrypted amounts into the pool.
-- Store user balance and pool shares as encrypted values.
+- Implement test-token faucet and ERC-20 approval/wrap flow. **Current:**
+  `ConfidentialUSDC` wraps Circle Sepolia USDC in deployment and `MockUSDC`
+  locally.
+- Deposit confidential tokens or encrypted amounts into the pool. **Current:**
+  `ConfidentialPrizePool` accepts ERC-7984 `confidentialTransferAndCall`
+  deposits.
+- Store user balance and pool shares as encrypted values. **Current:** user
+  principal and total principal are stored as `euint64`.
 - Withdraw full or partial principal without exposing the stored balance.
+  **Current:** users submit encrypted withdraw amounts; pool caps the transfer
+  with `FHE.min(requested, principal)`.
 - Add invariant and permission tests: total principal remains backed, one user
   cannot decrypt or spend another user's balance, and withdrawal never consumes
   prize funds.

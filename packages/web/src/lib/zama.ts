@@ -23,3 +23,7 @@ export function getZamaInstance() {
 export function userDecryptTimestamp() {
   return Math.floor(Date.now() / 1000);
 }
+
+export function stringifyTypedData(value: unknown) {
+  return JSON.stringify(value, (_key, data) => (typeof data === "bigint" ? data.toString() : data));
+}
