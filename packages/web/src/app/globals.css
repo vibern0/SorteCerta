@@ -1,0 +1,209 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --aurora-slate: 184 193 210;
+  --aurora-rose: 218 179 185;
+  --aurora-sand: 222 205 174;
+  --aurora-peach: 230 183 157;
+  --glass: 255 255 255;
+  --ink: 43 45 50;
+  --muted-ink: 103 102 109;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: #dedee3;
+  color: rgb(var(--ink));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-interphases-mono), ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
+  background-image:
+    radial-gradient(circle at 18% 12%, rgb(var(--aurora-slate) / 0.8), transparent 34rem),
+    radial-gradient(circle at 85% 18%, rgb(var(--aurora-rose) / 0.68), transparent 32rem),
+    radial-gradient(circle at 28% 88%, rgb(var(--aurora-sand) / 0.78), transparent 34rem),
+    radial-gradient(circle at 90% 82%, rgb(var(--aurora-peach) / 0.68), transparent 30rem),
+    linear-gradient(145deg, #ececf0 0%, #e8dfdc 52%, #e5e2dc 100%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgb(var(--aurora-rose) / 0.58);
+  color: rgb(var(--ink));
+}
+
+/* Mobile-first app canvas. Multiple radial layers create the muted aurora mesh. */
+.app-shell {
+  isolation: isolate;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  overflow: hidden;
+  position: relative;
+  background:
+    radial-gradient(circle at -8% 8%, rgb(var(--aurora-slate) / 0.94), transparent 40%),
+    radial-gradient(circle at 105% 18%, rgb(var(--aurora-rose) / 0.82), transparent 42%),
+    radial-gradient(circle at 16% 64%, rgb(var(--aurora-sand) / 0.88), transparent 42%),
+    radial-gradient(circle at 104% 78%, rgb(var(--aurora-peach) / 0.78), transparent 42%),
+    linear-gradient(150deg, #e5e8ee 0%, #e9dfdf 47%, #e9e1d6 100%);
+}
+
+.app-shell::before,
+.app-shell::after {
+  border-radius: 999px;
+  content: "";
+  filter: blur(10px);
+  opacity: 0.45;
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+
+.app-shell::before {
+  background: rgb(248 220 205 / 0.7);
+  height: 18rem;
+  right: -9rem;
+  top: 31rem;
+  width: 18rem;
+}
+
+.app-shell::after {
+  background: rgb(195 213 221 / 0.7);
+  bottom: 8rem;
+  height: 16rem;
+  left: -8rem;
+  width: 16rem;
+}
+
+@media (min-width: 481px) {
+  body {
+    padding: 24px 0;
+  }
+
+  .app-shell {
+    min-height: calc(100vh - 48px);
+    border: 1px solid rgb(255 255 255 / 0.56);
+    border-radius: 36px;
+    box-shadow:
+      0 40px 100px -42px rgb(53 48 55 / 0.42),
+      inset 1px 1px 0 rgb(255 255 255 / 0.58);
+  }
+}
+
+@layer base {
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.035em;
+  }
+}
+
+@layer components {
+  .glass-surface {
+    background: linear-gradient(
+      145deg,
+      rgb(var(--glass) / 0.6),
+      rgb(var(--glass) / 0.34)
+    );
+    border: 1px solid rgb(var(--glass) / 0.58);
+    box-shadow:
+      inset 1px 1px 0 rgb(var(--glass) / 0.62),
+      0 20px 48px -32px rgb(58 51 57 / 0.36);
+    -webkit-backdrop-filter: blur(24px) saturate(125%);
+    backdrop-filter: blur(24px) saturate(125%);
+  }
+
+  .card {
+    @apply glass-surface p-5;
+    border-radius: 28px;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-3
+      bg-brand hover:bg-brandHover active:scale-[0.98]
+      font-display text-white font-semibold transition-all
+      disabled:opacity-50 disabled:cursor-not-allowed;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 999px;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.16),
+      0 18px 32px -18px rgb(35 35 40 / 0.58);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-3
+      font-display text-text font-semibold transition-all active:scale-[0.98]
+      disabled:opacity-50 disabled:cursor-not-allowed;
+    background: rgb(255 255 255 / 0.42);
+    border: 1px solid rgb(255 255 255 / 0.58);
+    border-radius: 999px;
+    box-shadow: inset 1px 1px 0 rgb(255 255 255 / 0.62);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+  }
+
+  .btn-secondary:hover {
+    background: rgb(255 255 255 / 0.58);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+      font-display text-muted hover:text-text font-medium transition-colors;
+    border-radius: 999px;
+  }
+
+  .input {
+    @apply w-full text-text placeholder:text-muted px-4 py-3 outline-none transition-all;
+    background: rgb(255 255 255 / 0.4);
+    border: 1px solid rgb(255 255 255 / 0.58);
+    border-radius: 18px;
+    box-shadow: inset 1px 1px 0 rgb(255 255 255 / 0.52);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+  }
+
+  .input:focus {
+    background: rgb(255 255 255 / 0.58);
+    border-color: rgb(57 59 65 / 0.28);
+    box-shadow: 0 0 0 4px rgb(255 255 255 / 0.24);
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-muted;
+    background: rgb(255 255 255 / 0.38);
+    border: 1px solid rgb(255 255 255 / 0.52);
+    border-radius: 999px;
+    box-shadow: inset 1px 1px 0 rgb(255 255 255 / 0.48);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+
+  .label {
+    @apply font-display text-xs font-semibold uppercase tracking-[0.14em] text-muted;
+  }
+
+  .glass-divider {
+    background: rgb(255 255 255 / 0.52);
+    box-shadow: 0 1px 0 rgb(62 57 61 / 0.06);
+  }
+
+  .accent-rose {
+    background: rgb(235 197 201 / 0.72);
+    color: #704d56;
+  }
+
+  .accent-cyan {
+    background: rgb(195 221 224 / 0.76);
+    color: #47666a;
+  }
+}

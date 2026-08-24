@@ -1,0 +1,16 @@
+{
+  "name": "sortecerta",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SorteCerta — mobile-first no-loss lottery on PoolTogether architecture, Web3-abstracted for non-crypto users.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "contracts:compile": "npm run compile -w packages/contracts",
+    "contracts:test": "npm run test -w packages/contracts",
+    "contracts:deploy:sepolia": "npm run deploy:sepolia -w packages/contracts",
+    "web:dev": "npm run dev -w packages/web",
+    "web:build": "npm run build -w packages/web"
+  }
+}
