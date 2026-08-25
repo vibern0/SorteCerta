@@ -6,9 +6,11 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 describe("ConfidentialPrizePool", function () {
   let alice: HardhatEthersSigner;
   let bob: HardhatEthersSigner;
+  let admin: HardhatEthersSigner;
 
   before(async function () {
     const signers = await ethers.getSigners();
+    admin = signers[0];
     alice = signers[1];
     bob = signers[2];
   });
@@ -40,6 +42,10 @@ describe("ConfidentialPrizePool", function () {
       await confidentialUsdc.connect(user).wrap(user.address, 10_000_000n);
     }
 
+    await usdc.connect(admin).faucet(admin.address, 10_000_000n);
+    await usdc.connect(admin).approve(confidentialUsdcAddress, 10_000_000n);
+    await confidentialUsdc.connect(admin).wrap(admin.address, 10_000_000n);
+
     return { usdc, confidentialUsdc, confidentialUsdcAddress, pool, poolAddress };
   }
 
@@ -62,6 +68,28 @@ describe("ConfidentialPrizePool", function () {
         encryptedAmount.handles[0],
         encryptedAmount.inputProof,
         "0x",
+      );
+  }
+
+  async function fundPrize(
+    confidentialUsdc: any,
+    confidentialUsdcAddress: string,
+    pool: any,
+    poolAddress: string,
+    amount: bigint,
+  ) {
+    const encryptedAmount = await fhevm
+      .createEncryptedInput(confidentialUsdcAddress, admin.address)
+      .add64(amount)
+      .encrypt();
+
+    await confidentialUsdc
+      .connect(admin)
+      ["confidentialTransferAndCall(address,bytes32,bytes,bytes)"](
+        poolAddress,
+        encryptedAmount.handles[0],
+        encryptedAmount.inputProof,
+        await pool.PRIZE_FUNDING_DATA(),
       );
   }
 
@@ -196,5 +224,48 @@ describe("ConfidentialPrizePool", function () {
 
     expect(await fhevm.userDecryptEuint(FhevmType.euint64, encryptedPrincipal, poolAddress, alice)).to.equal(750_000n);
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(750_000n);
+  });
+
+  it("funds a confidential prize reserve", async function () {
+    const { confidentialUsdc, confidentialUsdcAddress, pool, poolAddress } = await deployFixture();
+
+    await fundPrize(confidentialUsdc, confidentialUsdcAddress, pool, poolAddress, 750_000n);
+
+    const encryptedReserve = await pool.encryptedPrizeReserve();
+    const encryptedPoolBalance = await confidentialUsdc.confidentialBalanceOf(poolAddress);
+
+    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedReserve)).to.equal(750_000n);
+    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(750_000n);
+  });
+
+  it("runs a confidential weighted draw and lets the winner claim", async function () {
+    const { confidentialUsdc, confidentialUsdcAddress, pool, poolAddress } = await deployFixture();
+
+    await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, alice, 600_000n);
+    await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, bob, 448_576n);
+    await fundPrize(confidentialUsdc, confidentialUsdcAddress, pool, poolAddress, 1_000_000n);
+
+    await pool.connect(admin).closeDraw();
+
+    const encryptedAliceWinnings = await pool.encryptedWinningsOf(alice.address);
+    const encryptedBobWinnings = await pool.encryptedWinningsOf(bob.address);
+    const aliceWinnings = await fhevm.userDecryptEuint(FhevmType.euint64, encryptedAliceWinnings, poolAddress, alice);
+    const bobWinnings = await fhevm.userDecryptEuint(FhevmType.euint64, encryptedBobWinnings, poolAddress, bob);
+
+    expect(aliceWinnings + bobWinnings).to.equal(1_000_000n);
+    await expect(fhevm.userDecryptEuint(FhevmType.euint64, encryptedBobWinnings, poolAddress, alice)).to.be.rejected;
+
+    const winner = aliceWinnings > 0n ? alice : bob;
+    await pool.connect(winner).claimPrize();
+
+    const encryptedClaimedWinnings = await pool.encryptedWinningsOf(winner.address);
+    const encryptedWinnerBalance = await confidentialUsdc.confidentialBalanceOf(winner.address);
+
+    expect(await fhevm.userDecryptEuint(FhevmType.euint64, encryptedClaimedWinnings, poolAddress, winner)).to.equal(
+      0n,
+    );
+    expect(
+      await fhevm.userDecryptEuint(FhevmType.euint64, encryptedWinnerBalance, confidentialUsdcAddress, winner),
+    ).to.be.greaterThan(0n);
   });
 });

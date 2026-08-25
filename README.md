@@ -123,17 +123,17 @@ Current prototype architecture:
 
 This is a **plaintext scaffold**, not a bounty-ready implementation:
 
-- **Confidential principal lifecycle is in progress.** `ConfidentialUSDC`
-  wraps USDC as ERC-7984, and `ConfidentialPrizePool` now supports encrypted
-  deposits plus encrypted-amount withdrawals for principal. Draws and prize
-  claims are still not wired into this confidential pool.
-
-- **Randomness** uses `blockhash`. Replace it with Zama FHE randomness and run
-  deposit-weighted winner selection over encrypted balances.
-- **Confidentiality** is not implemented. Replace plaintext vault shares,
-  deposits, and winnings with ERC-7984 or encrypted-integer accounting.
-- **User decryption** is not implemented. Add Zama SDK/relayer EIP-712 flows for
-  connected-wallet balance and winnings decryption.
+- **Confidential lifecycle is in progress.** `ConfidentialUSDC` wraps USDC as
+  ERC-7984, and `ConfidentialPrizePool` supports encrypted deposits,
+  encrypted-amount withdrawals, encrypted prize reserve funding, encrypted
+  winnings, claim, and Zama EIP-712 user decryption from the frontend.
+- **Draw MVP uses a public power-of-two ticket cap.** `closeDraw` uses
+  `FHE.randEuint64(MAX_DRAW_TICKETS)` and encrypted cumulative principal ranges.
+  When encrypted total principal equals the cap, selection is exactly
+  deposit-weighted. If total principal is below the cap, the unoccupied ticket
+  range has no winner and the encrypted prize carries forward. This avoids
+  plaintext total-balance disclosure because Zama's bounded random API requires
+  a public power-of-two upper bound.
 - **Zama SDK address handling** must preserve checksum addresses. The Phase 1
   spike showed lowercase/non-checksum addresses can fail SDK validation with
   `User address is not a valid address`. Normalize user and contract addresses

@@ -148,6 +148,27 @@ export const confidentialUsdcAbi = [
 export const confidentialPrizePoolAbi = [
   {
     type: "function",
+    name: "PRIZE_FUNDING_DATA",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bytes4" }],
+  },
+  {
+    type: "function",
+    name: "closeDraw",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "claimPrize",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
     name: "withdraw",
     stateMutability: "nonpayable",
     inputs: [
@@ -176,10 +197,38 @@ export const confidentialPrizePoolAbi = [
   },
   {
     type: "function",
+    name: "encryptedWinningsOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
     name: "encryptedTotalPrincipal",
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "encryptedPrizeReserve",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "drawId",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "participantCount",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
   },
 ] as const;
 
