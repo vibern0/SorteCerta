@@ -39,18 +39,20 @@ export default function ProfilePage() {
       <div className="card space-y-3">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand to-brandHover grid place-items-center text-white font-bold text-lg">
-            {shortAddress(session.smartAccountAddress).slice(1, 3).toUpperCase()}
+            {shortAddress(session.eoaAddress).slice(1, 3).toUpperCase()}
           </div>
           <div>
-            <p className="text-sm text-muted">Smart account</p>
-            <p className="font-mono text-sm">{shortAddress(session.smartAccountAddress)}</p>
+            <p className="text-sm text-muted">Carteira social</p>
+            <p className="font-mono text-sm">{shortAddress(session.eoaAddress)}</p>
           </div>
         </div>
         <div className="glass-divider h-px" />
         <div>
-          <p className="text-sm text-muted">EOA (assinante)</p>
+          <p className="text-sm text-muted">Smart account</p>
           <p className="font-mono text-sm text-muted">
-            {shortAddress(session.eoaAddress)}
+            {session.smartAccountClient
+              ? shortAddress(session.smartAccountAddress)
+              : "Indisponivel neste login"}
           </p>
         </div>
       </div>

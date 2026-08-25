@@ -10,7 +10,7 @@ export function ConnectButton({ fullWidth = false }: { fullWidth?: boolean }) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted">
         <span className="w-2 h-2 rounded-full bg-success" />
-        <span>Carteira ativa: {shortAddress(session.smartAccountAddress)}</span>
+        <span>Carteira ativa: {shortAddress(session.eoaAddress)}</span>
       </div>
     );
   }
@@ -44,7 +44,7 @@ export function ConnectButton({ fullWidth = false }: { fullWidth?: boolean }) {
       )}
       {web3AuthReady && !pimlicoReady && (
         <p className="text-xs text-warning">
-          Pimlico (gasless) não configurado — vais pagar gas com ETH de teste.
+          Pimlico (gasless) não configurado.
         </p>
       )}
     </div>
