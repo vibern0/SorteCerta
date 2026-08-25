@@ -3,8 +3,13 @@ pragma solidity ^0.8.27;
 
 import {FHE, ebool, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {IERC7984} from "@openzeppelin/confidential-contracts/interfaces/IERC7984.sol";
+import {IERC7984ERC20Wrapper} from "@openzeppelin/confidential-contracts/interfaces/IERC7984ERC20Wrapper.sol";
 import {IERC7984Receiver} from "@openzeppelin/confidential-contracts/interfaces/IERC7984Receiver.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
+
+interface IERC7984ERC20WrapperInternalAmount is IERC7984ERC20Wrapper {
+    function unwrap(address from, address to, euint64 amount) external returns (bytes32);
+}
 
 /// @notice Phase 2 confidential principal accounting and no-loss withdrawal.
 contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
@@ -15,6 +20,7 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
 
     event ConfidentialDeposit(address indexed account, euint64 indexed amount);
     event ConfidentialWithdrawal(address indexed account, euint64 indexed amount);
+    event ConfidentialWithdrawalToUsdc(address indexed account, address indexed to, euint64 indexed amount, bytes32 unwrapRequestId);
 
     error OnlyConfidentialToken();
 
@@ -46,21 +52,44 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
 
     function withdraw(externalEuint64 encryptedAmount, bytes calldata inputProof) external returns (euint64) {
         euint64 requested = FHE.fromExternal(encryptedAmount, inputProof);
-        euint64 available = _principal[msg.sender];
-        euint64 withdrawn = FHE.min(requested, available);
+        euint64 withdrawn = _withdrawPrincipal(msg.sender, requested);
 
-        _principal[msg.sender] = FHE.sub(available, withdrawn);
-        _totalPrincipal = FHE.sub(_totalPrincipal, withdrawn);
-
-        FHE.allowThis(_principal[msg.sender]);
-        FHE.allow(_principal[msg.sender], msg.sender);
-        FHE.allowThis(_totalPrincipal);
-        FHE.allowThis(withdrawn);
         FHE.allow(withdrawn, address(token));
 
         token.confidentialTransfer(msg.sender, withdrawn);
 
         emit ConfidentialWithdrawal(msg.sender, withdrawn);
+        return withdrawn;
+    }
+
+    function withdrawToUsdc(
+        externalEuint64 encryptedAmount,
+        bytes calldata inputProof,
+        address to
+    ) external returns (bytes32) {
+        euint64 requested = FHE.fromExternal(encryptedAmount, inputProof);
+        euint64 withdrawn = _withdrawPrincipal(msg.sender, requested);
+
+        FHE.allow(withdrawn, address(token));
+
+        bytes32 unwrapRequestId = IERC7984ERC20WrapperInternalAmount(address(token)).unwrap(address(this), to, withdrawn);
+
+        emit ConfidentialWithdrawalToUsdc(msg.sender, to, withdrawn, unwrapRequestId);
+        return unwrapRequestId;
+    }
+
+    function _withdrawPrincipal(address account, euint64 requested) internal returns (euint64) {
+        euint64 available = _principal[account];
+        euint64 withdrawn = FHE.min(requested, available);
+
+        _principal[account] = FHE.sub(available, withdrawn);
+        _totalPrincipal = FHE.sub(_totalPrincipal, withdrawn);
+
+        FHE.allowThis(_principal[account]);
+        FHE.allow(_principal[account], account);
+        FHE.allowThis(_totalPrincipal);
+        FHE.allowThis(withdrawn);
+
         return withdrawn;
     }
 

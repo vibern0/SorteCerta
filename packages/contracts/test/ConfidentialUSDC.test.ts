@@ -53,6 +53,37 @@ describe("ConfidentialUSDC", function () {
     expect(clearBalance).to.equal(1_000_000n);
   });
 
+  it("wraps and sends confidential tokens in one multicall", async function () {
+    const { usdc, confidentialUsdc, confidentialUsdcAddress } = await deployFixture();
+
+    await usdc.connect(alice).faucet(alice.address, 1_000_000n);
+    await usdc.connect(alice).approve(confidentialUsdcAddress, 1_000_000n);
+
+    const encryptedTransfer = await fhevm
+      .createEncryptedInput(confidentialUsdcAddress, alice.address)
+      .add64(400_000n)
+      .encrypt();
+
+    await confidentialUsdc.connect(alice).multicall([
+      confidentialUsdc.interface.encodeFunctionData("wrap", [alice.address, 400_000n]),
+      confidentialUsdc.interface.encodeFunctionData("confidentialTransfer(address,bytes32,bytes)", [
+        bob.address,
+        encryptedTransfer.handles[0],
+        encryptedTransfer.inputProof,
+      ]),
+    ]);
+
+    const encryptedAliceBalance = await confidentialUsdc.confidentialBalanceOf(alice.address);
+    const encryptedBobBalance = await confidentialUsdc.confidentialBalanceOf(bob.address);
+
+    expect(
+      await fhevm.userDecryptEuint(FhevmType.euint64, encryptedAliceBalance, confidentialUsdcAddress, alice),
+    ).to.equal(0n);
+    expect(await fhevm.userDecryptEuint(FhevmType.euint64, encryptedBobBalance, confidentialUsdcAddress, bob)).to.equal(
+      400_000n,
+    );
+  });
+
   it("keeps confidential transfers decryptable only by authorized users", async function () {
     const { usdc, confidentialUsdc, confidentialUsdcAddress } = await deployFixture();
 
