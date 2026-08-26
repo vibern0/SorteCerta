@@ -82,8 +82,8 @@ export async function decryptConfidentialBalances(
   currentSession: SmartSession,
 ): Promise<DecryptedBalances> {
   const user = currentSession.address;
-  const token = asAddress(CONTRACTS.confidentialUsdc, "Confidential USDC");
-  const pool = asAddress(CONTRACTS.confidentialPrizePool, "Confidential prize pool");
+  const token = asAddress(CONTRACTS.confidentialUsdc, "Savings token");
+  const pool = asAddress(CONTRACTS.confidentialPrizePool, "Prize pool");
 
   const [balanceHandle, principalHandle] = await Promise.all([
     publicClient.readContract({

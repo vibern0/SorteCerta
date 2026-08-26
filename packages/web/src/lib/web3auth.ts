@@ -51,10 +51,10 @@ async function getWeb3Auth(): Promise<Web3Auth> {
         chainNamespace: CHAIN_NAMESPACES.EIP155,
         chainId: "0xaa36a7", // Sepolia
         rpcTarget: RPC_URL,
-        displayName: "Sepolia",
+        displayName: "Ethereum",
         blockExplorerUrl: "https://sepolia.etherscan.io",
         ticker: "ETH",
-        tickerName: "Sepolia Ether",
+        tickerName: "Ether",
         logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
       },
     ],

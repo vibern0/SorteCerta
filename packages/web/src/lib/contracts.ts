@@ -218,6 +218,13 @@ export const confidentialPrizePoolAbi = [
   },
   {
     type: "function",
+    name: "publicPrizeReserve",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint64" }],
+  },
+  {
+    type: "function",
     name: "drawId",
     stateMutability: "view",
     inputs: [],

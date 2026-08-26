@@ -96,7 +96,10 @@ describe("ConfidentialPrizePool", function () {
         poolAddress,
         encryptedAmount.handles[0],
         encryptedAmount.inputProof,
-        await pool.PRIZE_FUNDING_DATA(),
+        ethers.concat([
+          await pool.PRIZE_FUNDING_DATA(),
+          ethers.AbiCoder.defaultAbiCoder().encode(["uint64"], [amount]),
+        ]),
       );
   }
 
@@ -266,7 +269,7 @@ describe("ConfidentialPrizePool", function () {
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(750_000n);
   });
 
-  it("funds a confidential prize reserve", async function () {
+  it("funds a public prize amount backed by a confidential reserve", async function () {
     const { confidentialUsdc, confidentialUsdcAddress, pool, poolAddress } = await deployFixture();
 
     await fundPrize(confidentialUsdc, confidentialUsdcAddress, pool, poolAddress, 750_000n);
@@ -274,6 +277,7 @@ describe("ConfidentialPrizePool", function () {
     const encryptedReserve = await pool.encryptedPrizeReserve();
     const encryptedPoolBalance = await confidentialUsdc.confidentialBalanceOf(poolAddress);
 
+    expect(await pool.publicPrizeReserve()).to.equal(750_000n);
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedReserve)).to.equal(750_000n);
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(750_000n);
   });
@@ -287,6 +291,7 @@ describe("ConfidentialPrizePool", function () {
 
     await time.increase(Number(DRAW_INTERVAL) + 1);
     await pool.connect(admin).closeDraw();
+    expect(await pool.publicPrizeReserve()).to.equal(0n);
 
     const encryptedAliceWinnings = await pool.encryptedWinningsOf(alice.address);
     const encryptedBobWinnings = await pool.encryptedWinningsOf(bob.address);

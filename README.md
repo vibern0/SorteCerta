@@ -25,8 +25,9 @@ official PoolTogether protocol.
 - **Fiat on-ramp** — out of scope for this MVP. Add Onramper / Wert / Stripe
   ramp integration when going past testnet.
 - **No-loss** — Users can withdraw encrypted principal from
-  `ConfidentialPrizePool` and unwrap it back to USDC. Prizes are funded by a
-  sponsor-funded confidential reserve until a real yield source is plugged in.
+  `ConfidentialPrizePool` and unwrap it back to USDC. The visible global prize
+  is currently mocked by sponsor/admin funding until a real yield source is
+  plugged in.
 - **Mobile-first PWA** — Next.js 14, Tailwind, dark theme, no crypto jargon in
   the UI ("Save", "Tickets", "Draw", "Withdraw").
 
@@ -74,7 +75,7 @@ npm test
 ```
 
 25 tests covering confidential deposits, encrypted principal decryption,
-withdrawal/unwrap, encrypted prize funding, FHE-random draws, confidential
+withdrawal/unwrap, public mocked prize funding, FHE-random draws, confidential
 claims, and the old plaintext prototype.
 
 ## Sepolia deployment
@@ -82,8 +83,8 @@ claims, and the old plaintext prototype.
 Current confidential deployment:
 
 - **USDC underlying:** `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`
-- **ConfidentialUSDC:** `0xb6324F328326d1a1DE86286a606774E16D5e7A06`
-- **ConfidentialPrizePool:** `0x4A1dF33C5b570A1A82cB5CE487b29c2BE7710520`
+- **ConfidentialUSDC:** `0x47E6c485506C6b1F97872028f127a2943B5559c3`
+- **ConfidentialPrizePool:** `0x1A31302BDEF9f21E897dbe1c32BDCE90b68B8085`
 - **Chain:** Ethereum Sepolia (`11155111`)
 - **Draw interval:** `300` seconds for demo testing
 
@@ -91,10 +92,42 @@ Frontend env values:
 
 ```bash
 NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
-NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS=0xb6324F328326d1a1DE86286a606774E16D5e7A06
-NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x4A1dF33C5b570A1A82cB5CE487b29c2BE7710520
+NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS=0x47E6c485506C6b1F97872028f127a2943B5559c3
+NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x1A31302BDEF9f21E897dbe1c32BDCE90b68B8085
 NEXT_PUBLIC_CHAIN_ID=11155111
 ```
+
+### Example Sepolia run
+
+The deployed pool has been exercised end to end on Sepolia with real wrapped
+USDC deposits, sponsor-funded prizes, round closes, prize claims, and a USDC
+withdrawal request. As of August 26, 2026, the pool had closed 8 rounds, started
+round 9, and registered 1 participant:
+`0x8AEFBA26724c9FD9a1f06E3a65bfd7a8004d2F79`.
+
+Useful example transactions:
+
+- Initial zero-prize close for round 1:
+  `0x467a5b4fbef7ad249c915a1619babd5fd1b7ff2ba17a9893fa8552e50e9e724b`
+- Prize funding of `1.000000` USDC for round 2:
+  `0xc6b2d346173cffc926cc0b88872eaf2be934a54d861ff264026aa8357622d348`
+- Second prize funding of `1.000000` USDC for round 2:
+  `0xb8f6452f178868186a612813bf69af595f953ccbe9833ad91bfbc6684070c315`
+- Round 2 close over the funded prize reserve:
+  `0x9cc90c2e47644068f128f568c74dba119e41186d74ae06d6dbd50e9686d80be6`
+- Deposit with decrypt delegate update:
+  `0xda63b1918d1a022db8bc8fc506b62c434e05bc0f81b6f8263b270f79fe775368`
+- Prize claim after a later round:
+  `0x322964721c739ba894ea8fb98a70c33782562c3e911f736543535213bfdd52a7`
+- USDC withdrawal request:
+  `0xc1a105950198e87adb5d43d998a44444e227d30bd430dd0675cf2b74a0948bd0`
+- Round 8 close and round 9 start:
+  `0xf3ee88144c386ae78bae23e44181dbb03972645bfeacb3864dce57865f4c7478`
+- Prize claim after round 8:
+  `0xe9028ea4edc3caafc5a70d3f78fa2b95a75497c78faaa3b4b600fddb9048f7d9`
+
+Explorer links use the Sepolia Etherscan transaction URL format:
+`https://sepolia.etherscan.io/tx/<hash>`.
 
 ## Architecture
 
@@ -110,7 +143,9 @@ NEXT_PUBLIC_CHAIN_ID=11155111
   Zama FHE randomness. No offchain RNG and no plaintext balance calculation.
 - **Claim/decryption:** winner-only confidential prize flow plus Zama EIP-712
   user decryption.
-- **Yield:** documented admin-funded prize reserve is acceptable for Sepolia.
+- **Prize/yield:** the global prize amount is public for UX. It is currently
+  mocked by sponsor/admin funding on Sepolia; Aave/Morpho/Superlend-style yield
+  can replace that funding source later.
 - **PoolTogether:** mechanic reference only; no official protocol dependency.
 
 Current confidential architecture:
@@ -144,12 +179,55 @@ Current confidential architecture:
         └──────────────────────────────────────────────────┘
 ```
 
+### ConfidentialPrizePool contract analysis
+
+`ConfidentialPrizePool` is the active bounty contract at
+`packages/contracts/contracts/ConfidentialPrizePool.sol`.
+
+- Deposits arrive through `ConfidentialUSDC.confidentialTransferAndCall`.
+  Normal transfer callbacks increase the sender's encrypted principal and the
+  encrypted total principal, then grant decrypt access to the account and its
+  optional delegate.
+- Prize funding uses callback data prefixed with `PRIZE_FUNDING_DATA`. The
+  encrypted cUSDC reserve is held by the pool, while the same amount is mirrored
+  in `publicPrizeReserve` so the app can show the active prize.
+- Draw closing is permissionless once `nextDrawAt` has passed. The contract
+  draws `FHE.randEuint64(MAX_DRAW_TICKETS)` and scans the bounded participant
+  list using encrypted cumulative balances.
+- Winner credit is private. Each participant's encrypted winnings are updated
+  with `FHE.select`, and only that account or its decrypt delegate receives
+  decrypt access.
+- Claims transfer encrypted cUSDC winnings to the caller and reset their
+  encrypted winnings handle.
+- Withdrawals accept an encrypted requested amount, cap it with
+  `FHE.min(requested, principal)`, reduce encrypted principal, and either return
+  cUSDC or create an underlying USDC unwrap request.
+- The no-loss invariant is principal-backed by pool-held cUSDC. Prize funds sit
+  in the separate encrypted prize reserve and are not consumed by withdrawal.
+
+Important current limitations:
+
+- `MAX_PARTICIPANTS` is 32, which is appropriate for the Sepolia FHE demo but
+  not a scalable production participant set.
+- Draw eligibility uses live balances at close time. The next hardening step is
+  a draw-start snapshot so late deposits or withdrawals cannot affect the same
+  round's odds.
+- The random ticket upper bound is the public power-of-two
+  `MAX_DRAW_TICKETS = 1_048_576`. If encrypted total principal is below that
+  cap, the unoccupied range creates a no-winner outcome and carries the
+  encrypted prize forward. That avoids disclosing total principal to compute a
+  tighter random bound.
+- Participant addresses, participant count, transaction timing, draw timing,
+  public prize funding amounts, and the configured draw interval are visible.
+  Individual principal, total principal, random ticket, prize credit, and
+  winnings remain encrypted.
+
 ## Current implementation status
 
 - **Confidential lifecycle is in progress and is the active bounty
   implementation.** `ConfidentialUSDC` wraps USDC as ERC-7984, and
   `ConfidentialPrizePool` supports encrypted deposits, encrypted-amount
-  withdrawals, encrypted prize reserve funding, encrypted winnings, claim, and
+  withdrawals, public mocked prize funding, encrypted winnings, claim, and
   Zama EIP-712 user decryption from the frontend.
 - **Draw MVP uses a public power-of-two ticket cap.** `closeDraw` uses
   `FHE.randEuint64(MAX_DRAW_TICKETS)` and encrypted cumulative principal ranges.
@@ -166,9 +244,12 @@ Current confidential architecture:
 - **Zama EIP-712 serialization** needs bigint-safe handling before typed-data
   signing; plain `JSON.stringify` can throw
   `Do not know how to serialize a BigInt`.
-- **Yield source** is a sponsor-funded prize reserve. A sponsor wraps USDC to
-  cUSDC and sends it to `ConfidentialPrizePool` with `PRIZE_FUNDING_DATA`. Plug
-  in Aave / Morpho / Superlend only after the Sepolia bounty demo is stable.
+- **Yield source** is mocked. A sponsor wraps USDC to cUSDC and sends it to
+  `ConfidentialPrizePool` with `PRIZE_FUNDING_DATA`; the sponsor-funded amount
+  is mirrored as the public global prize while user winnings remain encrypted.
+  Plug in Aave / Morpho / Superlend only after the Sepolia bounty demo is
+  stable. If an encrypted no-winner branch carries funds forward, that carry is
+  intentionally not disclosed by the public mirror.
 - **Tickets = live share balance**. Should be a snapshot at draw start to
   prevent last-minute deposit/withdraw manipulation.
 - **USDC** uses Circle Sepolia USDC for deployment when practical, with
@@ -185,6 +266,6 @@ Current confidential architecture:
 2. Deploy `ConfidentialUSDC` and `ConfidentialPrizePool` to Ethereum Sepolia.
 3. Run a clean-browser, multi-wallet Sepolia test of deposit, decrypt, fund,
    close, claim, withdraw, and finalize unwrap.
-4. Document leakage, sponsor-funded mock yield, faucet, keeper flow, and
+4. Document leakage, sponsor-funded mocked prize/yield, faucet, keeper flow, and
    deployed addresses.
 5. Record the real-person demo and publish the X thread/article.

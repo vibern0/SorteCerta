@@ -31,7 +31,10 @@ function asAddress(value: unknown, label: string) {
 }
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
+  const message = error instanceof Error ? error.message : String(error);
+  return /encrypted|confidential|public|private|mock|testnet|sepolia|prototype|faucet|leakage|decrypted/i.test(message)
+    ? "Something went wrong. Please try again."
+    : message;
 }
 
 function isZeroHandle(handle: unknown) {
@@ -81,7 +84,7 @@ export default function DrawPage() {
   const [drawInterval, setDrawInterval] = useState<bigint | undefined>();
   const [nextDrawAt, setNextDrawAt] = useState<bigint | undefined>();
   const [participantCount, setParticipantCount] = useState<bigint | undefined>();
-  const [prizeReserveHandle, setPrizeReserveHandle] = useState<`0x${string}` | undefined>();
+  const [publicPrizeReserve, setPublicPrizeReserve] = useState<bigint | undefined>();
   const [winnings, setWinnings] = useState<bigint | undefined>();
   const addresses = useMemo(
     () => ({
@@ -95,8 +98,7 @@ export default function DrawPage() {
   const ready = isAddress(addresses.pool);
   const activeDrawId = drawId === undefined ? undefined : drawId + 1n;
   const roundsClosed = drawId ?? 0n;
-  const hasPrizeReserveHandle = prizeReserveHandle !== undefined && !isZeroHandle(prizeReserveHandle);
-  const canClaimPrize = winnings === undefined || winnings > 0n;
+  const hasPrizeToClaim = winnings !== undefined && winnings > 0n;
 
   useEffect(() => {
     void refresh();
@@ -122,28 +124,28 @@ export default function DrawPage() {
   async function refresh() {
     if (!ready) return;
 
-    const pool = asAddress(addresses.pool, "Confidential prize pool");
-    const [currentDrawId, interval, nextAt, participants, reserveHandle] = await Promise.all([
+    const pool = asAddress(addresses.pool, "Prize pool");
+    const [currentDrawId, interval, nextAt, participants, prizeReserve] = await Promise.all([
       publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "drawId" }),
       publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "drawInterval" }),
       publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "nextDrawAt" }),
       publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "participantCount" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "encryptedPrizeReserve" }),
+      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "publicPrizeReserve" }),
     ]);
 
     setDrawId(currentDrawId);
     setDrawInterval(interval);
     setNextDrawAt(nextAt);
     setParticipantCount(participants);
-    setPrizeReserveHandle(reserveHandle as `0x${string}`);
+    setPublicPrizeReserve(prizeReserve);
   }
 
   async function decryptWinnings() {
     const currentSession = activeSession();
     const user = currentSession.address;
-    if (!ready) throw new Error("Confidential contracts are not configured.");
+    if (!ready) throw new Error("Prize checks are unavailable right now.");
 
-    const pool = asAddress(addresses.pool, "Confidential prize pool");
+    const pool = asAddress(addresses.pool, "Prize pool");
     const handle = await publicClient.readContract({
       address: pool,
       abi: confidentialPrizePoolAbi,
@@ -178,16 +180,22 @@ export default function DrawPage() {
 
   async function claimPrize() {
     const currentSession = activeSession();
-    if (!ready) throw new Error("Confidential contracts are not configured.");
+    if (!ready) throw new Error("Prize claims are unavailable right now.");
 
     const data = encodeFunctionData({
       abi: confidentialPrizePoolAbi,
       functionName: "claimPrize",
       args: [],
     });
-    await sendTx(currentSession, asAddress(addresses.pool, "Confidential prize pool"), data);
+    await sendTx(currentSession, asAddress(addresses.pool, "Prize pool"), data);
     setWinnings(undefined);
     await refresh();
+  }
+
+  function handlePrizeAction() {
+    return hasPrizeToClaim
+      ? run(claimPrize, "Prize claimed to your cUSDC balance.", "claimPrize")
+      : run(decryptWinnings, "Winnings revealed.", "checkPrize");
   }
 
   async function run(action: () => Promise<void>, ok: string, currentAction?: WorkingAction) {
@@ -212,7 +220,7 @@ export default function DrawPage() {
         <div className="inline-flex">
           <span className="pill">
             <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-            Confidential draw
+            Prize draw
           </span>
         </div>
         <h1 className="font-display text-3xl font-bold leading-tight">
@@ -221,8 +229,8 @@ export default function DrawPage() {
           Prizes and rounds.
         </h1>
         <p className="text-sm leading-relaxed text-muted">
-          See the pool's public cadence, how many accounts are participating,
-          and claim your prize when one exists.
+          See the draw schedule, how many accounts are participating, and claim
+          your prize when you have one.
         </p>
       </section>
 
@@ -231,7 +239,7 @@ export default function DrawPage() {
         <Countdown target={nextDrawAt} />
         <div className="grid gap-2 text-sm">
           <div className="flex items-center justify-between">
-            <span className="text-muted">Public schedule</span>
+            <span className="text-muted">Schedule</span>
             <span className="font-semibold text-right">{formatDateTime(nextDrawAt)}</span>
           </div>
           <div className="flex items-center justify-between">
@@ -265,42 +273,38 @@ export default function DrawPage() {
           <div className="rounded-2xl bg-white/35 border border-white/50 p-3 min-h-24">
             <p className="text-xs text-muted">Prize</p>
             <p className="font-display text-xl font-bold tabular-nums">
-              {hasPrizeReserveHandle ? "Encrypted" : "-"}
+              {formatUSDC(publicPrizeReserve)} USDC
             </p>
           </div>
         </div>
-        {hasPrizeReserveHandle && (
-          <p className="rounded-2xl bg-white/30 border border-white/45 px-3 py-2 text-xs leading-relaxed text-muted">
-            The prize amount stays encrypted in the contract until the round closes.
-          </p>
-        )}
       </div>
 
       <div className="card space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="label">My winnings</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted">
-              Winnings stay encrypted. Only your account can reveal and claim them.
-            </p>
-          </div>
-          <span className="font-display text-xl font-bold tabular-nums text-brand whitespace-nowrap">
+        <div>
+          <p className="label">My winnings</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted">
+            At the end of each draw, your account may be eligible for a prize.
+            Check here, then claim it when you have one.
+          </p>
+        </div>
+        <div className="flex min-h-20 items-center justify-between gap-3 rounded-2xl border border-white/50 bg-white/35 px-4 py-3">
+          <span className="text-xs font-semibold text-muted">Prize ready</span>
+          <span className="min-w-32 max-w-[68%] text-right font-display text-2xl font-bold leading-none tabular-nums text-brand break-words">
             {formatUSDC(winnings)} cUSDC
           </span>
         </div>
         <button
-          className="btn-secondary w-full"
-          disabled={!session || !ready || status === "working"}
-          onClick={() => void run(decryptWinnings, "Winnings revealed.", "checkPrize")}
-        >
-          {workingAction === "checkPrize" ? "Checking..." : "Check prize"}
-        </button>
-        <button
           className="btn-primary w-full"
-          disabled={!session || !ready || status === "working" || !canClaimPrize}
-          onClick={() => void run(claimPrize, "Prize claimed to your cUSDC balance.", "claimPrize")}
+          disabled={!session || !ready || status === "working"}
+          onClick={() => void handlePrizeAction()}
         >
-          {workingAction === "claimPrize" ? "Claiming..." : "Claim prize"}
+          {workingAction === "claimPrize"
+            ? "Claiming..."
+            : workingAction === "checkPrize"
+              ? "Checking..."
+              : hasPrizeToClaim
+                ? "Claim prize"
+                : "Check prize"}
         </button>
       </div>
 

@@ -39,12 +39,12 @@ export function ConnectButton({ fullWidth = false }: { fullWidth?: boolean }) {
       {error && <p className="text-sm text-danger">{error}</p>}
       {!web3AuthReady && (
         <p className="text-xs text-warning">
-          Web3Auth is not configured. Set <code>NEXT_PUBLIC_WEB3AUTH_CLIENT_ID</code>.
+          Sign-in is unavailable right now.
         </p>
       )}
       {web3AuthReady && !pimlicoReady && (
         <p className="text-xs text-warning">
-          Pimlico (gasless) is not configured.
+          Fee coverage is unavailable right now.
         </p>
       )}
     </div>

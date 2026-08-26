@@ -1,55 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useWallet } from "@/lib/wallet-context";
 import { useUSDCBalance } from "@/lib/usePoolData";
 import { formatUSDC, shortAddress } from "@/lib/format";
 import { ConnectButton } from "@/components/ConnectButton";
-import { decryptConfidentialBalances } from "@/lib/confidential-balances";
+import { LoadingAmount } from "@/components/LoadingAmount";
 
 export default function ProfilePage() {
-  const { session, web3AuthReady, pimlicoReady, disconnect } = useWallet();
-  const [confidentialBalance, setConfidentialBalance] = useState<bigint | undefined>();
-  const [principal, setPrincipal] = useState<bigint | undefined>();
-  const [decrypting, setDecrypting] = useState(false);
-  const [decryptError, setDecryptError] = useState<string | null>(null);
+  const {
+    session,
+    web3AuthReady,
+    pimlicoReady,
+    disconnect,
+    confidentialBalance,
+    principal,
+    confidentialBalancesLoading,
+    confidentialBalancesError,
+  } = useWallet();
 
   const { data: usdcData } = useUSDCBalance(session?.address);
   const usdcBalance = usdcData?.[0]?.result as bigint | undefined;
-
-  useEffect(() => {
-    if (!session) {
-      setConfidentialBalance(undefined);
-      setPrincipal(undefined);
-      setDecryptError(null);
-      return;
-    }
-
-    let cancelled = false;
-    const currentSession = session;
-
-    async function decrypt() {
-      setDecrypting(true);
-      setDecryptError(null);
-      try {
-        const balances = await decryptConfidentialBalances(currentSession);
-        if (cancelled) return;
-        setConfidentialBalance(balances.confidentialBalance);
-        setPrincipal(balances.principal);
-      } catch (error) {
-        if (cancelled) return;
-        setDecryptError(error instanceof Error ? error.message : String(error));
-      } finally {
-        if (!cancelled) setDecrypting(false);
-      }
-    }
-
-    void decrypt();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [session]);
 
   if (!session) {
     return (
@@ -88,18 +58,18 @@ export default function ProfilePage() {
           </span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-muted">Decrypted cUSDC</span>
+          <span className="text-muted">Savings balance</span>
           <span className="font-semibold tabular-nums">
-            {decrypting ? "Decrypting..." : `${formatUSDC(confidentialBalance)} cUSDC`}
+            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} cUSDC`}
           </span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted">Principal in pool</span>
           <span className="font-semibold tabular-nums text-brand">
-            {decrypting ? "Decrypting..." : `${formatUSDC(principal)} cUSDC`}
+            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(principal)} cUSDC`}
           </span>
         </div>
-        {decryptError && <p className="text-xs text-danger">{decryptError}</p>}
+        {confidentialBalancesError && <p className="text-xs text-danger">{confidentialBalancesError}</p>}
       </div>
 
       <div className="card space-y-2 text-sm">
@@ -108,12 +78,12 @@ export default function ProfilePage() {
           <span>{web3AuthReady ? "✓" : "—"}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted">Gasless (Pimlico)</span>
+          <span className="text-muted">Transaction fees</span>
           <span>{pimlicoReady ? "✓" : "—"}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted">Network</span>
-          <span>Sepolia</span>
+          <span>Live</span>
         </div>
       </div>
 

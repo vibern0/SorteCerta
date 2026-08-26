@@ -13,7 +13,7 @@ This roadmap targets the Zama Developer Program Mainnet Season 4 bounty. See
   Hardhat tests and fallback demos.
 - Replace the plaintext ERC-4626 `Vault` and `PrizePool` with a confidential
   pool built from Zama/OpenZeppelin confidential-token primitives.
-- Use an admin-funded prize reserve as the documented mock yield source.
+- Use an admin-funded, public global prize as the documented mock yield source.
 - Use Web3Auth, Safe, and Pimlico as the single account-abstraction path for
   Zama signing and judge testing.
 - Defer real yield and mainnet until the required flow works end to end.
@@ -80,7 +80,8 @@ own balances, and withdraw their exact principal.
   `claimPrize` transfers encrypted cUSDC to the winner.
 - Add admin/keeper draw triggering, draw state transitions, and mock prize
   funding. **Current:** owner-triggered `closeDraw`; mock prize funding via
-  confidential transfer callback tagged with `PRIZE_FUNDING_DATA`.
+  confidential transfer callback tagged with `PRIZE_FUNDING_DATA`, mirrored as
+  a public global prize amount for the active draw.
 - Test empty pools, one participant, zero balances, withdrawals near draw time,
   repeated draws, prize conservation, and weighted behavior.
 - Document unavoidable leakage such as participant addresses, transaction
@@ -129,7 +130,7 @@ draw, claim, and withdraw using deployed Sepolia contracts.
   replay protection, backing invariants, participant bounds, and gas usage.
 - Add deployment and demo bootstrap scripts.
 - Finish README sections: live URL, architecture, confidentiality, leakage,
-  mock yield, faucet, keeper flow, deployments, setup, and limitations.
+  mocked prize/yield, faucet, keeper flow, deployments, setup, and limitations.
 - Prepare a deterministic 3-minute real-person demo path.
 - Publish the X thread/article and add its link to the README.
 - Tag the submitted commit and preserve the funded Sepolia demo state.
@@ -144,7 +145,8 @@ the complete flow; submission contains every required link.
 - Replace: plaintext ERC-4626 accounting, `blockhash` randomness, public winner,
   direct plaintext prize payment, and current contract ABIs.
 - Defer: Web3Auth/Safe/Pimlico, real yield, fiat on-ramp, mobile wrappers,
-  official PoolTogether integration, and mainnet.
+  official PoolTogether integration, and mainnet. See [`TODO.md`](TODO.md) for
+  the later Morpho USDC/WETH yield adapter notes.
 
 Start with **Phase 1**. Do not begin the full contract rewrite until the local
 Zama spike proves encrypted input, ACLs, FHE randomness, and user decryption.

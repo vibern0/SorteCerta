@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { createPublicClient, encodeAbiParameters, encodeEventTopics, encodeFunctionData, getAddress, http, isAddress, parseEventLogs, toHex } from "viem";
 import { sepolia } from "viem/chains";
 import {
@@ -13,13 +14,13 @@ import {
 import { formatUSDC, parseUSDC } from "@/lib/format";
 import { useWallet } from "@/lib/wallet-context";
 import { sendSmartTransaction, sendSmartTransactionBatch, type SmartSession } from "@/lib/web3auth";
-import { decryptConfidentialBalances } from "@/lib/confidential-balances";
 import { getZamaInstance } from "@/lib/zama";
 import { useToast } from "@/components/Toast";
 import { AmountInput } from "@/components/AmountInput";
+import { LoadingAmount } from "@/components/LoadingAmount";
 
 type Status = "idle" | "working" | "success" | "error";
-type WorkingAction = "decrypt" | "deposit" | "withdraw" | "pending" | undefined;
+type WorkingAction = "deposit" | "withdraw" | "pending" | undefined;
 
 const PENDING_UNWRAPS_STORAGE_PREFIX = "sortecerta:pending-unwraps";
 const UNWRAP_LOG_LOOKBACK_BLOCKS = 512n;
@@ -38,7 +39,10 @@ function asAddress(value: unknown, label: string) {
 }
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
+  const message = error instanceof Error ? error.message : String(error);
+  return /encrypted|confidential|public|private|mock|testnet|sepolia|prototype|faucet|leakage|decrypted/i.test(message)
+    ? "Something went wrong. Please try again."
+    : message;
 }
 
 type PendingUnwrap = {
@@ -75,8 +79,19 @@ function writeStoredPendingUnwraps(token: `0x${string}`, user: `0x${string}`, re
   window.localStorage.setItem(pendingUnwrapStorageKey(token, user), JSON.stringify(requests));
 }
 
+function formatShortHash(hash: `0x${string}`) {
+  return hash.replace(/^0x/, "").slice(0, 6);
+}
+
 export default function SavingsPage() {
-  const { session } = useWallet();
+  const {
+    session,
+    confidentialBalance,
+    principal,
+    confidentialBalancesLoading,
+    confidentialBalancesError,
+    refreshConfidentialBalances,
+  } = useWallet();
   const toast = useToast();
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
@@ -84,9 +99,9 @@ export default function SavingsPage() {
   const [workingAction, setWorkingAction] = useState<WorkingAction>();
   const [usdcBalance, setUsdcBalance] = useState<bigint | undefined>();
   const [allowance, setAllowance] = useState<bigint | undefined>();
-  const [confidentialBalance, setConfidentialBalance] = useState<bigint | undefined>();
-  const [principal, setPrincipal] = useState<bigint | undefined>();
   const [pendingUnwraps, setPendingUnwraps] = useState<PendingUnwrap[]>([]);
+  const [depositSheetOpen, setDepositSheetOpen] = useState(false);
+  const [withdrawSheetOpen, setWithdrawSheetOpen] = useState(false);
 
   const addresses = useMemo(
     () => ({
@@ -111,9 +126,24 @@ export default function SavingsPage() {
     if (!session?.address) return;
     void refreshBalances(session.address);
     void refreshPendingUnwraps(session.address);
-    if (poolReady) void decryptConfidentialState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.address, poolReady]);
+
+  const sheetOpen = depositSheetOpen || withdrawSheetOpen;
+
+  useEffect(() => {
+    if (!sheetOpen) return;
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setDepositSheetOpen(false);
+        setWithdrawSheetOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [sheetOpen]);
 
   function activeSession() {
     if (!session) throw new Error("Connect your smart account first.");
@@ -135,7 +165,7 @@ export default function SavingsPage() {
           address: asAddress(addresses.usdc, "USDC"),
           abi: erc20Abi,
           functionName: "allowance",
-          args: [user, asAddress(addresses.confidentialUsdc, "Confidential USDC")],
+          args: [user, asAddress(addresses.confidentialUsdc, "Savings token")],
         })
       : undefined;
 
@@ -159,7 +189,7 @@ export default function SavingsPage() {
     });
     const requestId = events.at(-1)?.args.unwrapRequestId;
     if (requestId) {
-      const token = asAddress(addresses.confidentialUsdc, "Confidential USDC");
+        const token = asAddress(addresses.confidentialUsdc, "Savings token");
       setPendingUnwraps((current) => {
         const next = [{ requestId, txHash: receipt.transactionHash }, ...current.filter((request) => request.requestId !== requestId)];
         writeStoredPendingUnwraps(token, user, next);
@@ -174,7 +204,7 @@ export default function SavingsPage() {
     fromBlock: bigint,
     toBlock: bigint,
   ) {
-    const token = asAddress(addresses.confidentialUsdc, "Confidential USDC");
+      const token = asAddress(addresses.confidentialUsdc, "Savings token");
     const chunkSize = 1_000n;
     const logs = [];
 
@@ -205,7 +235,7 @@ export default function SavingsPage() {
   async function refreshPendingUnwraps(user = session?.address) {
     if (!user || !wrapperReady) return;
 
-    const token = asAddress(addresses.confidentialUsdc, "Confidential USDC");
+    const token = asAddress(addresses.confidentialUsdc, "Savings token");
     const stored = readStoredPendingUnwraps(token, user);
     const latestBlock = await publicClient.getBlockNumber();
     const fromBlock = latestBlock > UNWRAP_LOG_LOOKBACK_BLOCKS ? latestBlock - UNWRAP_LOG_LOOKBACK_BLOCKS : 0n;
@@ -271,13 +301,13 @@ export default function SavingsPage() {
   async function finalizeUnwrap(requestId: `0x${string}`) {
     const currentSession = activeSession();
     const user = currentSession.address;
-    if (!wrapperReady) throw new Error("Confidential USDC address is not configured.");
+    if (!wrapperReady) throw new Error("Withdrawals are unavailable right now.");
 
-    const token = asAddress(addresses.confidentialUsdc, "Confidential USDC");
+    const token = asAddress(addresses.confidentialUsdc, "Savings token");
     const zama = await getZamaInstance();
     const decrypted = await zama.publicDecrypt([requestId]);
     const clearValue = decrypted.clearValues[requestId];
-    if (typeof clearValue !== "bigint") throw new Error("Unexpected public decrypt value.");
+    if (typeof clearValue !== "bigint") throw new Error("Withdrawal is not ready yet.");
     const data = encodeFunctionData({
       abi: confidentialUsdcAbi,
       functionName: "finalizeUnwrap",
@@ -293,11 +323,11 @@ export default function SavingsPage() {
     const user = currentSession.address;
     const value = parseUSDC(depositAmount);
     if (value === 0n) throw new Error("Valor invalido.");
-    if (!poolReady) throw new Error("Confidential prize pool address is not configured.");
+    if (!poolReady) throw new Error("Deposits are unavailable right now.");
 
     const usdc = asAddress(addresses.usdc, "USDC");
-    const token = asAddress(addresses.confidentialUsdc, "Confidential USDC");
-    const pool = asAddress(addresses.pool, "Confidential prize pool");
+    const token = asAddress(addresses.confidentialUsdc, "Savings token");
+    const pool = asAddress(addresses.pool, "Prize pool");
     const zama = await getZamaInstance();
     const encrypted = await zama.createEncryptedInput(token, user).add64(value).encrypt();
     const wrapCall = encodeFunctionData({
@@ -336,7 +366,9 @@ export default function SavingsPage() {
     const tx = await sendSmartTransactionBatch(currentSession, calls);
     await publicClient.waitForTransactionReceipt({ hash: tx });
     setDepositAmount("");
-    await decryptConfidentialState(user);
+    setDepositSheetOpen(false);
+    await refreshConfidentialBalances();
+    await refreshBalances(user);
   }
 
   async function withdrawConfidential() {
@@ -344,9 +376,9 @@ export default function SavingsPage() {
     const user = currentSession.address;
     const value = parseUSDC(withdrawAmount);
     if (value === 0n) throw new Error("Valor invalido.");
-    if (!poolReady) throw new Error("Confidential prize pool address is not configured.");
+    if (!poolReady) throw new Error("Withdrawals are unavailable right now.");
 
-    const pool = asAddress(addresses.pool, "Confidential prize pool");
+    const pool = asAddress(addresses.pool, "Prize pool");
     const zama = await getZamaInstance();
     const encrypted = await zama.createEncryptedInput(pool, user).add64(value).encrypt();
     const data = encodeFunctionData({
@@ -358,28 +390,20 @@ export default function SavingsPage() {
     rememberUnwrapRequest(receipt, user);
     await refreshBalances(user);
     setWithdrawAmount("");
-    setPrincipal(undefined);
+    await refreshConfidentialBalances();
   }
 
-  async function decryptConfidentialState(currentUser?: `0x${string}`) {
-    const currentSession = activeSession();
-    const user = currentUser ?? currentSession.address;
-    if (!poolReady) throw new Error("Confidential contracts are not configured.");
-
-    const balances = await decryptConfidentialBalances(currentSession);
-    if (balances.confidentialBalance !== undefined) {
-      setConfidentialBalance(balances.confidentialBalance);
-    }
-    if (balances.principal !== undefined) {
-      setPrincipal(balances.principal);
-    }
-
-    await refreshBalances(user);
+  function closeSheets() {
+    setDepositSheetOpen(false);
+    setWithdrawSheetOpen(false);
   }
 
   async function run(action: () => Promise<void>, ok: string, currentAction?: WorkingAction) {
-    setStatus("working");
-    setWorkingAction(currentAction);
+    flushSync(() => {
+      setStatus("working");
+      setWorkingAction(currentAction);
+    });
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     try {
       await action();
       setStatus("success");
@@ -391,6 +415,11 @@ export default function SavingsPage() {
     } finally {
       setWorkingAction(undefined);
     }
+  }
+
+  async function copyPendingHash(hash: `0x${string}`) {
+    await navigator.clipboard.writeText(hash);
+    toast({ tone: "success", title: "Withdrawal ID copied." });
   }
 
   return (
@@ -409,122 +438,267 @@ export default function SavingsPage() {
           <span className="font-semibold tabular-nums">{formatUSDC(usdcBalance)} USDC</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted text-sm">Confidential balance</span>
-          <span className="font-semibold tabular-nums">{formatUSDC(confidentialBalance)} cUSDC</span>
+          <span className="text-muted text-sm">Savings balance</span>
+          <span className="font-semibold tabular-nums">
+            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} cUSDC`}
+          </span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted text-sm">Deposited in pool</span>
-          <span className="font-semibold tabular-nums text-brand">{formatUSDC(principal)} cUSDC</span>
+          <span className="font-semibold tabular-nums text-brand">
+            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(principal)} cUSDC`}
+          </span>
         </div>
-        <button
-          className="btn-secondary w-full"
-          disabled={!session || !poolReady || status === "working"}
-          onClick={() => void run(decryptConfidentialState, "Confidential balances decrypted.", "decrypt")}
-        >
-          {workingAction === "decrypt" ? "Revealing..." : "Reveal balances"}
-        </button>
+        {confidentialBalancesError && <p className="text-xs text-danger">{confidentialBalancesError}</p>}
       </div>
 
-      <div className="card space-y-4">
-        <AmountInput
-          label="Deposit"
-          maxLabel={`${formatUSDC(usdcBalance)} USDC`}
-          value={depositAmount}
-          onChange={setDepositAmount}
-          onMax={() => setDepositAmount(usdcBalance !== undefined ? formatUSDC(usdcBalance, 6) : "0")}
-        />
-
+      <div className="grid grid-cols-2 gap-3">
         <button
-          onClick={() =>
-            void run(
-              depositConfidential,
-              `Your ${depositAmount || "0"} USDC deposit is confirmed.`,
-              "deposit",
-            )
-          }
+          type="button"
+          onClick={() => setDepositSheetOpen(true)}
           disabled={!session || !poolReady || status === "working"}
           className="btn-primary w-full"
         >
-          {workingAction === "deposit" ? (
-            <>
-              <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-              Sending...
-            </>
-          ) : (
-            "Deposit USDC"
-          )}
+          <svg
+            aria-hidden="true"
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+          >
+            <path d="M12 3v12" />
+            <path d="m7 10 5 5 5-5" />
+            <path d="M5 21h14" />
+          </svg>
+          Deposit
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setWithdrawSheetOpen(true)}
+          disabled={!showWithdraw || status === "working"}
+          className="btn-secondary w-full"
+        >
+          <svg
+            aria-hidden="true"
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+          >
+            <path d="M12 21V9" />
+            <path d="m7 14 5-5 5 5" />
+            <path d="M5 3h14" />
+          </svg>
+          Withdraw
         </button>
       </div>
 
-      {showWithdraw && (
-        <div className="card space-y-4">
-          {hasWithdrawablePrincipal && (
-            <AmountInput
-              label="Withdraw"
-              maxLabel={`${formatUSDC(principal)} cUSDC`}
-              value={withdrawAmount}
-              onChange={setWithdrawAmount}
-              onMax={() => setWithdrawAmount(principal !== undefined ? formatUSDC(principal, 6) : "0")}
-            />
-          )}
+      {depositSheetOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-text/35 px-4 pb-4 backdrop-blur-sm">
+          <button
+            type="button"
+            aria-label="Close deposit sheet"
+            className="absolute inset-0 h-full w-full cursor-default"
+            onClick={closeSheets}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="deposit-sheet-title"
+            className="glass-surface relative max-h-[86vh] w-full max-w-[448px] space-y-4 overflow-y-auto rounded-t-[30px] p-5 shadow-[0_-28px_64px_-38px_rgb(43_45_50_/_0.55)] animate-fade-in"
+          >
+            <div className="mx-auto h-1.5 w-12 rounded-full bg-text/20" />
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="label">Deposit</p>
+                <h2 id="deposit-sheet-title" className="font-display text-xl font-bold">
+                  Move USDC into the pool
+                </h2>
+              </div>
+              <button
+                type="button"
+                aria-label="Close deposit sheet"
+                onClick={closeSheets}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/40 text-muted transition-colors hover:bg-white/60 hover:text-text"
+              >
+                <svg
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                >
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+            </div>
 
-          {hasWithdrawablePrincipal && (
+            <AmountInput
+              label="Amount"
+              maxLabel={`${formatUSDC(usdcBalance)} USDC`}
+              value={depositAmount}
+              onChange={setDepositAmount}
+              onMax={() => setDepositAmount(usdcBalance !== undefined ? formatUSDC(usdcBalance, 6) : "0")}
+              disabled={workingAction === "deposit"}
+            />
+
             <button
               onClick={() =>
                 void run(
-                  withdrawConfidential,
-                  "Encrypted withdrawal and USDC unwrap requested.",
-                  "withdraw",
+                  depositConfidential,
+                  `Your ${depositAmount || "0"} USDC deposit is confirmed.`,
+                  "deposit",
                 )
               }
               disabled={!session || !poolReady || status === "working"}
-              className="btn-secondary w-full"
+              className="btn-primary w-full"
             >
-              {workingAction === "withdraw" ? (
+              {workingAction === "deposit" ? (
                 <>
-                  <span className="w-4 h-4 rounded-full border-2 border-text/20 border-t-text animate-spin" />
+                  <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                   Sending...
                 </>
               ) : (
-                "Withdraw to USDC"
+                "Deposit USDC"
               )}
             </button>
-          )}
+          </div>
+        </div>
+      )}
 
-          {pendingUnwraps.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted text-sm">Pending withdrawal</span>
-                <button
-                  className="btn-ghost !py-1 !px-3 !text-xs bg-surface2"
-                  disabled={!session || !wrapperReady || status === "working"}
-                  onClick={() =>
-                    void run(async () => void (await refreshPendingUnwraps()), "Pending withdraws refreshed.", "pending")
-                  }
-                >
-                  {workingAction === "pending" ? "Refreshing..." : "Refresh"}
-                </button>
+      {withdrawSheetOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-text/35 px-4 pb-4 backdrop-blur-sm">
+          <button
+            type="button"
+            aria-label="Close withdrawal sheet"
+            className="absolute inset-0 h-full w-full cursor-default"
+            onClick={closeSheets}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="withdraw-sheet-title"
+            className="glass-surface relative max-h-[86vh] w-full max-w-[448px] space-y-4 overflow-y-auto rounded-t-[30px] p-5 shadow-[0_-28px_64px_-38px_rgb(43_45_50_/_0.55)] animate-fade-in"
+          >
+            <div className="mx-auto h-1.5 w-12 rounded-full bg-text/20" />
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="label">Withdraw</p>
+                <h2 id="withdraw-sheet-title" className="font-display text-xl font-bold">
+                  Move pool funds to USDC
+                </h2>
               </div>
-              {pendingUnwraps.map((request) => (
-                <div key={request.requestId} className="space-y-2 rounded-lg bg-surface2 p-3">
-                  <p className="font-mono text-xs break-all text-muted">{request.requestId}</p>
+              <button
+                type="button"
+                aria-label="Close withdrawal sheet"
+                onClick={closeSheets}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/40 text-muted transition-colors hover:bg-white/60 hover:text-text"
+              >
+                <svg
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                >
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {hasWithdrawablePrincipal && (
+              <AmountInput
+                label="Amount"
+                maxLabel={`${formatUSDC(principal)} cUSDC`}
+                value={withdrawAmount}
+                onChange={setWithdrawAmount}
+                onMax={() => setWithdrawAmount(principal !== undefined ? formatUSDC(principal, 6) : "0")}
+                disabled={workingAction === "withdraw"}
+              />
+            )}
+
+            {hasWithdrawablePrincipal && (
+              <button
+                onClick={() =>
+                  void run(
+                    withdrawConfidential,
+                    "Withdrawal requested.",
+                    "withdraw",
+                  )
+                }
+                disabled={!session || !poolReady || status === "working"}
+                className="btn-secondary w-full"
+              >
+                {workingAction === "withdraw" ? (
+                  <>
+                    <span className="w-4 h-4 rounded-full border-2 border-text/20 border-t-text animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Withdraw to USDC"
+                )}
+              </button>
+            )}
+
+            {pendingUnwraps.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted text-sm">Pending withdrawal</span>
                   <button
-                    className="btn-secondary w-full"
-                    disabled={status === "working"}
+                    className="btn-ghost !py-1 !px-3 !text-xs bg-surface2"
+                    disabled={!session || !wrapperReady || status === "working"}
                     onClick={() =>
-                      void run(
-                        () => finalizeUnwrap(request.requestId),
-                        "Your USDC withdrawal is finalized.",
-                        "pending",
-                      )
+                      void run(async () => void (await refreshPendingUnwraps()), "Pending withdraws refreshed.", "pending")
                     }
                   >
-                    {workingAction === "pending" ? "Finalizing..." : "Finalize withdrawal"}
+                    {workingAction === "pending" ? "Refreshing..." : "Refresh"}
                   </button>
                 </div>
-              ))}
-            </div>
-          )}
+                {pendingUnwraps.map((request) => (
+                  <div key={request.requestId} className="space-y-2">
+                    <button
+                      type="button"
+                      className="font-mono text-xs text-muted underline-offset-2 transition-colors hover:text-text hover:underline"
+                      title="Copy withdrawal ID"
+                      onClick={() => void copyPendingHash(request.requestId)}
+                    >
+                      {formatShortHash(request.requestId)}
+                    </button>
+                    <button
+                      className="btn-secondary w-full"
+                      disabled={status === "working"}
+                      onClick={() =>
+                        void run(
+                          () => finalizeUnwrap(request.requestId),
+                          "Your USDC withdrawal is finalized.",
+                          "pending",
+                        )
+                      }
+                    >
+                      {workingAction === "pending" ? "Finalizing..." : "Finalize withdrawal"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!showWithdraw && <p className="text-sm text-muted">No deposited funds or pending withdrawals yet.</p>}
+          </div>
         </div>
       )}
 

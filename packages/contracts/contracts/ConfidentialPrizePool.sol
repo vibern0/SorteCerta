@@ -11,7 +11,7 @@ interface IERC7984ERC20WrapperInternalAmount is IERC7984ERC20Wrapper {
     function unwrap(address from, address to, euint64 amount) external returns (bytes32);
 }
 
-/// @notice Phase 2 confidential principal accounting and no-loss withdrawal.
+/// @notice Confidential principal accounting, public mocked prize funding, and no-loss withdrawal.
 contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     uint256 public constant MAX_PARTICIPANTS = 32;
     uint64 public constant MAX_DRAW_TICKETS = 1_048_576;
@@ -29,10 +29,11 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     address[] private _participants;
     euint64 private _totalPrincipal;
     euint64 private _prizeReserve;
+    uint64 public publicPrizeReserve;
     uint256 private _drawId;
 
     event ConfidentialDeposit(address indexed account, euint64 indexed amount);
-    event PrizeFunded(address indexed account, euint64 indexed amount);
+    event PrizeFunded(address indexed account, euint64 indexed amount, uint64 publicAmount);
     event DrawStarted(uint256 indexed drawId, uint256 nextDrawAt);
     event DrawClosed(uint256 indexed drawId, euint64 indexed randomTicket, euint64 indexed prizeAmount);
     event PrizeClaimed(address indexed account, euint64 indexed amount);
@@ -43,6 +44,7 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     error OnlyConfidentialToken();
     error DrawNotReady(uint256 nextDrawAt);
     error TooManyParticipants();
+    error InvalidPrizeFundingData();
 
     constructor(IERC7984 token_, uint256 drawInterval_) {
         token = token_;
@@ -62,13 +64,15 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         if (msg.sender != address(token)) revert OnlyConfidentialToken();
 
         if (bytes4(data) == PRIZE_FUNDING_DATA) {
+            uint64 publicAmount = _decodePrizeFundingAmount(data);
             _prizeReserve = FHE.add(_prizeReserve, amount);
+            publicPrizeReserve += publicAmount;
             FHE.allowThis(_prizeReserve);
 
             ebool funded = FHE.asEbool(true);
             FHE.allowTransient(funded, msg.sender);
 
-            emit PrizeFunded(from, amount);
+            emit PrizeFunded(from, amount, publicAmount);
             return funded;
         }
 
@@ -101,6 +105,7 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         ebool alreadyAwarded = FHE.asEbool(false);
         euint64 prize = _prizeReserve;
         _prizeReserve = FHE.asEuint64(0);
+        publicPrizeReserve = 0;
 
         for (uint256 i = 0; i < _participants.length; i++) {
             address participant = _participants[i];
@@ -197,6 +202,11 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     function _decodeDecryptDelegate(bytes calldata data) internal pure returns (address) {
         if (data.length != 32) return address(0);
         return abi.decode(data, (address));
+    }
+
+    function _decodePrizeFundingAmount(bytes calldata data) internal pure returns (uint64) {
+        if (data.length != 36) revert InvalidPrizeFundingData();
+        return abi.decode(data[4:], (uint64));
     }
 
     function _allowAccount(euint64 value, address account) internal {

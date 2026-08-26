@@ -42,3 +42,14 @@ architecture.
   typed data with a replacer that converts `bigint` to string before calling
   `eth_signTypedData_v4`; plain `JSON.stringify(eip712)` can throw
   `Do not know how to serialize a BigInt`.
+
+## Product copy rules
+
+- Write user-facing product copy for everyday people and assume SorteCerta is a
+  finished product, not a demo.
+- Do not mention implementation/privacy words like "encrypted", "confidential",
+  "public", "private", "decrypted", "mock", "mocked", "testnet", "Sepolia",
+  "prototype", "faucet", or "leakage" in user-facing UI, marketing, or demo
+  copy.
+- When explaining prizes, describe eligibility at the end of each draw. Do not
+  imply a user has guaranteed winnings before they check or claim a prize.

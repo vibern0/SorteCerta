@@ -47,6 +47,9 @@ The final bounty implementation must provide:
   requirement that SorteCerta accept cUSDT or USDT deposits.
 - An admin-funded prize reserve or other mock yield source is acceptable on
   Sepolia when its behavior and real-yield replacement point are documented.
+  SorteCerta exposes the sponsor-funded global prize amount publicly for UX,
+  while individual balances, winner crediting, and user winnings remain
+  confidential.
 - A documented keeper/admin draw trigger is acceptable.
 
 ## Explicit non-goals for the bounty

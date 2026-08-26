@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createPublicClient, encodeFunctionData, getAddress, http, isAddress, toHex } from "viem";
+import {
+  concatHex,
+  createPublicClient,
+  encodeAbiParameters,
+  encodeFunctionData,
+  getAddress,
+  http,
+  isAddress,
+  toHex,
+} from "viem";
 import { sepolia } from "viem/chains";
 import { AmountInput } from "@/components/AmountInput";
 import { useToast } from "@/components/Toast";
@@ -31,7 +40,10 @@ function asAddress(value: unknown, label: string) {
 }
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
+  const message = error instanceof Error ? error.message : String(error);
+  return /encrypted|confidential|public|private|mock|testnet|sepolia|prototype|faucet|leakage|decrypted/i.test(message)
+    ? "Something went wrong. Please try again."
+    : message;
 }
 
 export default function AdminPage() {
@@ -89,7 +101,7 @@ export default function AdminPage() {
         address: asAddress(addresses.usdc, "USDC"),
         abi: erc20Abi,
         functionName: "allowance",
-        args: [session.address, asAddress(addresses.confidentialUsdc, "Confidential USDC")],
+        args: [session.address, asAddress(addresses.confidentialUsdc, "Savings token")],
       }),
     ]);
     setUsdcBalance(balance);
@@ -101,17 +113,21 @@ export default function AdminPage() {
     const user = currentSession.address;
     const value = parseUSDC(fundAmount);
     if (value === 0n) throw new Error("Valor invalido.");
-    if (!ready) throw new Error("Confidential contracts are not configured.");
+    if (!ready) throw new Error("Prize funding is unavailable right now.");
 
     const usdc = asAddress(addresses.usdc, "USDC");
-    const token = asAddress(addresses.confidentialUsdc, "Confidential USDC");
-    const pool = asAddress(addresses.pool, "Confidential prize pool");
+    const token = asAddress(addresses.confidentialUsdc, "Savings token");
+    const pool = asAddress(addresses.pool, "Prize pool");
     const zama = await getZamaInstance();
-    const prizeData = await publicClient.readContract({
+    const prizeFundingSelector = await publicClient.readContract({
       address: pool,
       abi: confidentialPrizePoolAbi,
       functionName: "PRIZE_FUNDING_DATA",
     });
+    const prizeData = concatHex([
+      prizeFundingSelector,
+      encodeAbiParameters([{ type: "uint64" }], [value]),
+    ]);
     const encrypted = await zama.createEncryptedInput(token, user).add64(value).encrypt();
     const wrapCall = encodeFunctionData({
       abi: confidentialUsdcAbi,
@@ -151,14 +167,14 @@ export default function AdminPage() {
 
   async function closeDraw() {
     const currentSession = activeSession();
-    if (!ready) throw new Error("Confidential contracts are not configured.");
+    if (!ready) throw new Error("Round closing is unavailable right now.");
 
     const data = encodeFunctionData({
       abi: confidentialPrizePoolAbi,
       functionName: "closeDraw",
       args: [],
     });
-    await sendTx(currentSession, asAddress(addresses.pool, "Confidential prize pool"), data);
+    await sendTx(currentSession, asAddress(addresses.pool, "Prize pool"), data);
     await refresh();
   }
 
@@ -193,8 +209,7 @@ export default function AdminPage() {
           Prize and round.
         </h1>
         <p className="text-sm leading-relaxed text-muted">
-          Operational tools to fund the encrypted prize and trigger the round
-          close.
+          Operational tools to set the prize and close the round.
         </p>
       </section>
 
@@ -202,7 +217,7 @@ export default function AdminPage() {
         <div className="space-y-1">
           <p className="label">Sponsor prize</p>
           <p className="text-xs leading-relaxed text-muted">
-            Adds USDC to the encrypted prize for the active round.
+            Adds money to the prize for the active round.
           </p>
         </div>
         <AmountInput
@@ -215,7 +230,7 @@ export default function AdminPage() {
         <button
           className="btn-primary w-full"
           disabled={!session || !ready || status === "working"}
-          onClick={() => void run(fundPrize, "Encrypted prize funded.", "fundPrize")}
+          onClick={() => void run(fundPrize, "Prize funded.", "fundPrize")}
         >
           {workingAction === "fundPrize" ? "Funding..." : "Fund prize"}
         </button>
@@ -231,7 +246,7 @@ export default function AdminPage() {
         <button
           className="btn-secondary w-full"
           disabled={!session || !ready || status === "working"}
-          onClick={() => void run(closeDraw, "Draw closed with encrypted randomness.", "closeDraw")}
+          onClick={() => void run(closeDraw, "Round closed.", "closeDraw")}
         >
           {workingAction === "closeDraw" ? "Closing..." : "Close round"}
         </button>

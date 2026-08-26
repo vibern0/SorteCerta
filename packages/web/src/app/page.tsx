@@ -1,29 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { ConnectButton } from "@/components/ConnectButton";
 import { Countdown } from "@/components/Countdown";
+import { LoadingAmount } from "@/components/LoadingAmount";
 import { useCurrentDraw, useUSDCBalance } from "@/lib/usePoolData";
 import { useWallet } from "@/lib/wallet-context";
 import { formatUSDC } from "@/lib/format";
 
 export default function HomePage() {
-  const { session } = useWallet();
-  const [addressCopied, setAddressCopied] = useState(false);
+  const {
+    session,
+    confidentialBalance,
+    principal,
+    confidentialBalancesLoading,
+    confidentialBalancesError,
+  } = useWallet();
   const { data: poolData } = useCurrentDraw();
   const draw = poolData?.[0]?.result as
     | { endTime: bigint; prizeAmount: bigint; id: bigint }
     | undefined;
   const { data: usdcData } = useUSDCBalance(session?.address);
   const usdcBalance = usdcData?.[0]?.result as bigint | undefined;
-
-  async function copyAddress() {
-    if (!session?.address) return;
-    await navigator.clipboard.writeText(session.address);
-    setAddressCopied(true);
-    window.setTimeout(() => setAddressCopied(false), 1800);
-  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -32,7 +30,7 @@ export default function HomePage() {
         <div className="inline-flex">
           <span className="pill">
             <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-            Sepolia testnet
+            Prize savings
           </span>
         </div>
         <h1 className="font-display text-4xl font-bold leading-tight tracking-tight">
@@ -64,27 +62,25 @@ export default function HomePage() {
       {session && (
         <section className="card space-y-3">
           <p className="label">Your account</p>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted text-sm">Smart account</span>
-              <button
-                type="button"
-                onClick={() => void copyAddress()}
-                className="btn-secondary !px-3 !py-1.5 !text-xs"
-              >
-                {addressCopied ? "Copied" : "Copy"}
-              </button>
-            </div>
-            <p className="break-all rounded-2xl bg-white/30 px-3 py-2 text-xs text-muted">
-              {session.address}
-            </p>
-          </div>
           <div className="flex items-baseline justify-between">
             <span className="text-muted">USDC balance</span>
             <span className="font-display text-2xl font-bold tabular-nums">
               {formatUSDC(usdcBalance)} <span className="text-muted text-base">USDC</span>
             </span>
           </div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-muted">Savings balance</span>
+            <span className="font-semibold tabular-nums">
+              {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} cUSDC`}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-muted">Deposited in pool</span>
+            <span className="font-semibold tabular-nums text-brand">
+              {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(principal)} cUSDC`}
+            </span>
+          </div>
+          {confidentialBalancesError && <p className="text-xs text-danger">{confidentialBalancesError}</p>}
           <Link href="/savings" className="btn-primary w-full">
             Deposit / Withdraw
           </Link>
@@ -126,7 +122,7 @@ export default function HomePage() {
       </section>
 
       <p className="text-xs text-muted text-center pt-4">
-        Test version on Sepolia. No real funds.{" "}
+        Save, stay flexible, and check each draw for prizes.{" "}
         <Link href="/draw" className="text-brand hover:underline">
           View next draw
         </Link>
