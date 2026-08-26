@@ -396,24 +396,24 @@ export default function SavingsPage() {
   return (
     <div className="space-y-5 animate-fade-in">
       <section className="space-y-2">
-        <h1 className="font-display text-2xl font-bold">A minha poupança</h1>
+        <h1 className="font-display text-2xl font-bold">My savings</h1>
         <p className="text-sm leading-relaxed text-muted">
-          Saldo da carteira, principal depositado e movimentos de entrada ou saída.
+          Wallet balance, deposited principal, and money moving in or out.
         </p>
       </section>
 
       <div className="card space-y-3">
-        <p className="label">Estado pessoal</p>
+        <p className="label">Personal status</p>
         <div className="flex items-center justify-between">
-          <span className="text-muted text-sm">Na carteira</span>
+          <span className="text-muted text-sm">In wallet</span>
           <span className="font-semibold tabular-nums">{formatUSDC(usdcBalance)} USDC</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted text-sm">Saldo confidencial</span>
+          <span className="text-muted text-sm">Confidential balance</span>
           <span className="font-semibold tabular-nums">{formatUSDC(confidentialBalance)} cUSDC</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted text-sm">Depositado no pool</span>
+          <span className="text-muted text-sm">Deposited in pool</span>
           <span className="font-semibold tabular-nums text-brand">{formatUSDC(principal)} cUSDC</span>
         </div>
         <button
@@ -421,13 +421,13 @@ export default function SavingsPage() {
           disabled={!session || !poolReady || status === "working"}
           onClick={() => void run(decryptConfidentialState, "Confidential balances decrypted.", "decrypt")}
         >
-          {workingAction === "decrypt" ? "A revelar..." : "Revelar saldos"}
+          {workingAction === "decrypt" ? "Revealing..." : "Reveal balances"}
         </button>
       </div>
 
       <div className="card space-y-4">
         <AmountInput
-          label="Depositar"
+          label="Deposit"
           maxLabel={`${formatUSDC(usdcBalance)} USDC`}
           value={depositAmount}
           onChange={setDepositAmount}
@@ -448,10 +448,10 @@ export default function SavingsPage() {
           {workingAction === "deposit" ? (
             <>
               <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-              A enviar...
+              Sending...
             </>
           ) : (
-            "Depositar USDC"
+            "Deposit USDC"
           )}
         </button>
       </div>
@@ -460,7 +460,7 @@ export default function SavingsPage() {
         <div className="card space-y-4">
           {hasWithdrawablePrincipal && (
             <AmountInput
-              label="Levantar"
+              label="Withdraw"
               maxLabel={`${formatUSDC(principal)} cUSDC`}
               value={withdrawAmount}
               onChange={setWithdrawAmount}
@@ -483,10 +483,10 @@ export default function SavingsPage() {
               {workingAction === "withdraw" ? (
                 <>
                   <span className="w-4 h-4 rounded-full border-2 border-text/20 border-t-text animate-spin" />
-                  A enviar...
+                  Sending...
                 </>
               ) : (
-                "Levantar para USDC"
+                "Withdraw to USDC"
               )}
             </button>
           )}
@@ -494,7 +494,7 @@ export default function SavingsPage() {
           {pendingUnwraps.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-muted text-sm">Levantamento pendente</span>
+                <span className="text-muted text-sm">Pending withdrawal</span>
                 <button
                   className="btn-ghost !py-1 !px-3 !text-xs bg-surface2"
                   disabled={!session || !wrapperReady || status === "working"}
@@ -502,7 +502,7 @@ export default function SavingsPage() {
                     void run(async () => void (await refreshPendingUnwraps()), "Pending withdraws refreshed.", "pending")
                   }
                 >
-                  {workingAction === "pending" ? "A atualizar..." : "Atualizar"}
+                  {workingAction === "pending" ? "Refreshing..." : "Refresh"}
                 </button>
               </div>
               {pendingUnwraps.map((request) => (
@@ -519,7 +519,7 @@ export default function SavingsPage() {
                       )
                     }
                   >
-                    {workingAction === "pending" ? "A finalizar..." : "Finalizar levantamento"}
+                    {workingAction === "pending" ? "Finalizing..." : "Finalize withdrawal"}
                   </button>
                 </div>
               ))}

@@ -54,9 +54,9 @@ const interphasesMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "SorteCerta — A poupança com sorte",
+  title: "SorteCerta — Savings with a chance to win",
   description:
-    "A sua poupança, com prémios todas as semanas. 100% do seu capital, sempre.",
+    "Your savings, with weekly prizes. 100% of your principal, always.",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.png",
@@ -78,7 +78,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt" className={`${ramillas.variable} ${interphasesMono.variable}`}>
+    <html lang="en" className={`${ramillas.variable} ${interphasesMono.variable}`}>
       <body>
         <Providers>
           <div className="app-shell flex flex-col">

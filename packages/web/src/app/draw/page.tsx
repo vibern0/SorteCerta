@@ -40,7 +40,7 @@ function isZeroHandle(handle: unknown) {
 
 function formatDateTime(timestamp: bigint | undefined) {
   if (timestamp === undefined) return "-";
-  return new Intl.DateTimeFormat("pt-PT", {
+  return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(Number(timestamp) * 1000));
@@ -56,20 +56,20 @@ function formatInterval(seconds: bigint | undefined) {
     const days = Math.floor(value / 86_400);
     const hours = Math.floor((value % 86_400) / 3_600);
     return hours > 0
-      ? `${unit(days, "dia", "dias")} ${unit(hours, "hora", "horas")}`
-      : unit(days, "dia", "dias");
+      ? `${unit(days, "day", "days")} ${unit(hours, "hour", "hours")}`
+      : unit(days, "day", "days");
   }
 
   if (value > 3_600) {
     const hours = Math.floor(value / 3_600);
     const minutes = Math.floor((value % 3_600) / 60);
     return minutes > 0
-      ? `${unit(hours, "hora", "horas")} ${unit(minutes, "minuto", "minutos")}`
-      : unit(hours, "hora", "horas");
+      ? `${unit(hours, "hour", "hours")} ${unit(minutes, "minute", "minutes")}`
+      : unit(hours, "hour", "hours");
   }
 
-  if (value > 60) return unit(Math.round(value / 60), "minuto", "minutos");
-  return unit(value, "segundo", "segundos");
+  if (value > 60) return unit(Math.round(value / 60), "minute", "minutes");
+  return unit(value, "second", "seconds");
 }
 
 export default function DrawPage() {
@@ -212,66 +212,66 @@ export default function DrawPage() {
         <div className="inline-flex">
           <span className="pill">
             <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-            Sorteio confidencial
+            Confidential draw
           </span>
         </div>
         <h1 className="font-display text-3xl font-bold leading-tight">
-          Estado global.
+          Global state.
           <br />
-          Prémios e rondas.
+          Prizes and rounds.
         </h1>
         <p className="text-sm leading-relaxed text-muted">
-          Veja a cadência pública do pool, quantas contas participam e reclame
-          o seu prémio quando existir.
+          See the pool's public cadence, how many accounts are participating,
+          and claim your prize when one exists.
         </p>
       </section>
 
       <div className="card space-y-3">
-        <p className="label">Próximo sorteio</p>
+        <p className="label">Next draw</p>
         <Countdown target={nextDrawAt} />
         <div className="grid gap-2 text-sm">
           <div className="flex items-center justify-between">
-            <span className="text-muted">Horário público</span>
+            <span className="text-muted">Public schedule</span>
             <span className="font-semibold text-right">{formatDateTime(nextDrawAt)}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-muted">Recorrência</span>
+            <span className="text-muted">Recurrence</span>
             <span className="font-semibold">{formatInterval(drawInterval)}</span>
           </div>
         </div>
       </div>
 
       <div className="card space-y-3">
-        <p className="label">Pool global</p>
+        <p className="label">Global pool</p>
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl bg-white/35 border border-white/50 p-3 min-h-24">
-            <p className="text-xs text-muted">Ronda ativa</p>
+            <p className="text-xs text-muted">Active round</p>
             <p className="font-display text-2xl font-bold tabular-nums">
               #{activeDrawId === undefined ? "-" : activeDrawId.toString()}
             </p>
           </div>
           <div className="rounded-2xl bg-white/35 border border-white/50 p-3 min-h-24">
-            <p className="text-xs text-muted">Participantes</p>
+            <p className="text-xs text-muted">Participants</p>
             <p className="font-display text-2xl font-bold tabular-nums">
               {participantCount === undefined ? "-" : participantCount.toString()}
             </p>
           </div>
           <div className="rounded-2xl bg-white/35 border border-white/50 p-3 min-h-24">
-            <p className="text-xs text-muted">Rondas fechadas</p>
+            <p className="text-xs text-muted">Closed rounds</p>
             <p className="font-display text-2xl font-bold tabular-nums">
               {roundsClosed.toString()}
             </p>
           </div>
           <div className="rounded-2xl bg-white/35 border border-white/50 p-3 min-h-24">
-            <p className="text-xs text-muted">Prémio</p>
+            <p className="text-xs text-muted">Prize</p>
             <p className="font-display text-xl font-bold tabular-nums">
-              {hasPrizeReserveHandle ? "Cifrado" : "-"}
+              {hasPrizeReserveHandle ? "Encrypted" : "-"}
             </p>
           </div>
         </div>
         {hasPrizeReserveHandle && (
           <p className="rounded-2xl bg-white/30 border border-white/45 px-3 py-2 text-xs leading-relaxed text-muted">
-            O montante do prémio fica cifrado no contrato até ao fecho da ronda.
+            The prize amount stays encrypted in the contract until the round closes.
           </p>
         )}
       </div>
@@ -279,9 +279,9 @@ export default function DrawPage() {
       <div className="card space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="label">Os meus ganhos</p>
+            <p className="label">My winnings</p>
             <p className="mt-1 text-xs leading-relaxed text-muted">
-              Os ganhos ficam cifrados. Só a sua conta consegue revelar e reclamar.
+              Winnings stay encrypted. Only your account can reveal and claim them.
             </p>
           </div>
           <span className="font-display text-xl font-bold tabular-nums text-brand whitespace-nowrap">
@@ -291,16 +291,16 @@ export default function DrawPage() {
         <button
           className="btn-secondary w-full"
           disabled={!session || !ready || status === "working"}
-          onClick={() => void run(decryptWinnings, "Ganhos revelados.", "checkPrize")}
+          onClick={() => void run(decryptWinnings, "Winnings revealed.", "checkPrize")}
         >
-          {workingAction === "checkPrize" ? "A verificar..." : "Verificar prémio"}
+          {workingAction === "checkPrize" ? "Checking..." : "Check prize"}
         </button>
         <button
           className="btn-primary w-full"
           disabled={!session || !ready || status === "working" || !canClaimPrize}
-          onClick={() => void run(claimPrize, "Prémio reclamado para o saldo cUSDC.", "claimPrize")}
+          onClick={() => void run(claimPrize, "Prize claimed to your cUSDC balance.", "claimPrize")}
         >
-          {workingAction === "claimPrize" ? "A reclamar..." : "Reclamar prémio"}
+          {workingAction === "claimPrize" ? "Claiming..." : "Claim prize"}
         </button>
       </div>
 

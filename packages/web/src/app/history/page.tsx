@@ -62,13 +62,13 @@ export default function HistoryPage() {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <h1 className="font-display text-2xl font-bold">Histórico</h1>
+      <h1 className="font-display text-2xl font-bold">History</h1>
 
       {loading || isLoading ? (
-        <div className="card text-muted text-center py-10">A carregar…</div>
+        <div className="card text-muted text-center py-10">Loading...</div>
       ) : fetched.length === 0 ? (
         <div className="card text-muted text-center py-10">
-          Ainda não há sorteios concluídos.
+          No completed draws yet.
         </div>
       ) : (
         <div className="space-y-2">
@@ -88,21 +88,21 @@ export default function HistoryPage() {
                   }`}
                 >
                   {d.fulfilled
-                    ? "Concluído"
+                    ? "Completed"
                     : new Date() > new Date(Number(d.endTime) * 1000)
-                    ? "Pronto a fechar"
-                    : "Aberto"}
+                    ? "Ready to close"
+                    : "Open"}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted">Prémio</span>
+                <span className="text-muted">Prize</span>
                 <span className="font-semibold tabular-nums">
                   {formatUSDC(d.prizeAmount)} USDC
                 </span>
               </div>
               {d.fulfilled && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted">Vencedor</span>
+                  <span className="text-muted">Winner</span>
                   <span className="font-mono text-xs">
                     {d.winner === "0x0000000000000000000000000000000000000000"
                       ? "—"

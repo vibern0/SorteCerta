@@ -8,10 +8,10 @@ import { shortAddress } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 const NAV = [
-  { href: "/", label: "Início" },
-  { href: "/savings", label: "Poupar" },
-  { href: "/draw", label: "Sorteio" },
-  { href: "/history", label: "Histórico" },
+  { href: "/", label: "Home" },
+  { href: "/savings", label: "Save" },
+  { href: "/draw", label: "Draw" },
+  { href: "/history", label: "History" },
   { href: "/admin", label: "Admin" },
 ];
 
@@ -54,7 +54,7 @@ export function Header() {
             disabled={connecting || !web3AuthReady}
             className="btn-primary !py-2 !px-4 !text-sm"
           >
-            {connecting ? "A entrar…" : "Entrar"}
+            {connecting ? "Signing in..." : "Sign in"}
           </button>
         )}
       </div>

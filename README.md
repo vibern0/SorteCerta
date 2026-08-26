@@ -1,6 +1,6 @@
 # SorteCerta
 
-> A sua poupança, com sorte. Versão de teste na Ethereum Sepolia.
+> Your savings, with a chance to win. Test version on Ethereum Sepolia.
 
 Mobile-first confidential prize-savings app for the Zama Developer Program
 Mainnet Season 4 bounty. SorteCerta recreates the core PoolTogether no-loss
@@ -28,7 +28,7 @@ official PoolTogether protocol.
   `ConfidentialPrizePool` and unwrap it back to USDC. Prizes are funded by a
   sponsor-funded confidential reserve until a real yield source is plugged in.
 - **Mobile-first PWA** — Next.js 14, Tailwind, dark theme, no crypto jargon in
-  the UI ("Poupar", "Bilhetes", "Sorteio", "Levantar").
+  the UI ("Save", "Tickets", "Draw", "Withdraw").
 
 ## Repo layout
 

@@ -1,13 +1,13 @@
 {
   "name": "SorteCerta",
   "short_name": "SorteCerta",
-  "description": "A sua poupança, com sorte.",
+  "description": "Your savings, with a chance to win.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#E8E3E1",
   "theme_color": "#E8E3E1",
   "orientation": "portrait",
-  "lang": "pt",
+  "lang": "en",
   "icons": [
     {
       "src": "/icon-192.png",

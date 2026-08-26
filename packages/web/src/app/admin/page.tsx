@@ -188,25 +188,25 @@ export default function AdminPage() {
           </span>
         </div>
         <h1 className="font-display text-3xl font-bold leading-tight">
-          Controlo do pool.
+          Pool control.
           <br />
-          Prémio e ronda.
+          Prize and round.
         </h1>
         <p className="text-sm leading-relaxed text-muted">
-          Ferramentas operacionais para financiar o prémio cifrado e acionar o
-          fecho da ronda.
+          Operational tools to fund the encrypted prize and trigger the round
+          close.
         </p>
       </section>
 
       <div className="card space-y-3">
         <div className="space-y-1">
-          <p className="label">Patrocinar prémio</p>
+          <p className="label">Sponsor prize</p>
           <p className="text-xs leading-relaxed text-muted">
-            Adiciona USDC ao prémio cifrado da ronda ativa.
+            Adds USDC to the encrypted prize for the active round.
           </p>
         </div>
         <AmountInput
-          label="Montante"
+          label="Amount"
           maxLabel={`${formatUSDC(usdcBalance, 6)} USDC`}
           value={fundAmount}
           onChange={setFundAmount}
@@ -215,9 +215,9 @@ export default function AdminPage() {
         <button
           className="btn-primary w-full"
           disabled={!session || !ready || status === "working"}
-          onClick={() => void run(fundPrize, "Prémio cifrado financiado.", "fundPrize")}
+          onClick={() => void run(fundPrize, "Encrypted prize funded.", "fundPrize")}
         >
-          {workingAction === "fundPrize" ? "A financiar..." : "Financiar prémio"}
+          {workingAction === "fundPrize" ? "Funding..." : "Fund prize"}
         </button>
       </div>
 
@@ -225,15 +225,15 @@ export default function AdminPage() {
         <div className="space-y-1">
           <p className="label">Keeper</p>
           <p className="text-xs leading-relaxed text-muted">
-            Fecha a ronda quando o contador chega a zero e inicia a próxima.
+            Closes the round when the countdown reaches zero and starts the next one.
           </p>
         </div>
         <button
           className="btn-secondary w-full"
           disabled={!session || !ready || status === "working"}
-          onClick={() => void run(closeDraw, "Sorteio fechado com aleatoriedade cifrada.", "closeDraw")}
+          onClick={() => void run(closeDraw, "Draw closed with encrypted randomness.", "closeDraw")}
         >
-          {workingAction === "closeDraw" ? "A fechar..." : "Fechar ronda"}
+          {workingAction === "closeDraw" ? "Closing..." : "Close round"}
         </button>
       </div>
     </div>

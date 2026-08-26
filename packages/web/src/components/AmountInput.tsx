@@ -26,10 +26,10 @@ export function AmountInput({ label, maxLabel, value, onChange, onMax }: AmountI
           type="button"
           onClick={onMax}
           className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full px-3 py-1.5 text-xs font-semibold tabular-nums text-muted transition-colors hover:bg-white/45 hover:text-text"
-          aria-label={`Usar maximo: ${maxLabel}`}
+          aria-label={`Use maximum: ${maxLabel}`}
           title={maxLabel}
         >
-          Máx
+          Max
         </button>
       </div>
     </div>

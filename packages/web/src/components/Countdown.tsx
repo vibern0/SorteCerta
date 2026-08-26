@@ -16,9 +16,9 @@ export function Countdown({ target }: { target: bigint | undefined }) {
           ended ? "text-warning" : "text-text"
         }`}
       >
-        {ended ? "Aberto" : formatCountdown(seconds)}
+        {ended ? "Open" : formatCountdown(seconds)}
       </span>
-      {!ended && <span className="text-muted text-sm">até ao sorteio</span>}
+      {!ended && <span className="text-muted text-sm">until the draw</span>}
     </div>
   );
 }

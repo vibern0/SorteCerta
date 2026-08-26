@@ -54,9 +54,9 @@ export default function ProfilePage() {
   if (!session) {
     return (
       <div className="space-y-4 animate-fade-in">
-        <h1 className="font-display text-2xl font-bold">Conta</h1>
+        <h1 className="font-display text-2xl font-bold">Account</h1>
         <div className="card text-center space-y-4">
-          <p className="text-muted">Entre para ver a sua conta.</p>
+          <p className="text-muted">Sign in to view your account.</p>
           <ConnectButton fullWidth />
         </div>
       </div>
@@ -65,7 +65,7 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <h1 className="font-display text-2xl font-bold">Conta</h1>
+      <h1 className="font-display text-2xl font-bold">Account</h1>
 
       <div className="card space-y-3">
         <div className="flex items-center gap-3">
@@ -80,23 +80,23 @@ export default function ProfilePage() {
       </div>
 
       <div className="card space-y-2">
-        <p className="label">Resumo</p>
+        <p className="label">Summary</p>
         <div className="flex justify-between text-sm">
-          <span className="text-muted">USDC disponível</span>
+          <span className="text-muted">Available USDC</span>
           <span className="font-semibold tabular-nums">
             {formatUSDC(usdcBalance)} USDC
           </span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-muted">cUSDC decryptado</span>
+          <span className="text-muted">Decrypted cUSDC</span>
           <span className="font-semibold tabular-nums">
-            {decrypting ? "A decryptar..." : `${formatUSDC(confidentialBalance)} cUSDC`}
+            {decrypting ? "Decrypting..." : `${formatUSDC(confidentialBalance)} cUSDC`}
           </span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-muted">Principal no pool</span>
+          <span className="text-muted">Principal in pool</span>
           <span className="font-semibold tabular-nums text-brand">
-            {decrypting ? "A decryptar..." : `${formatUSDC(principal)} cUSDC`}
+            {decrypting ? "Decrypting..." : `${formatUSDC(principal)} cUSDC`}
           </span>
         </div>
         {decryptError && <p className="text-xs text-danger">{decryptError}</p>}
@@ -104,7 +104,7 @@ export default function ProfilePage() {
 
       <div className="card space-y-2 text-sm">
         <div className="flex justify-between">
-          <span className="text-muted">Login social</span>
+          <span className="text-muted">Social login</span>
           <span>{web3AuthReady ? "✓" : "—"}</span>
         </div>
         <div className="flex justify-between">
@@ -112,7 +112,7 @@ export default function ProfilePage() {
           <span>{pimlicoReady ? "✓" : "—"}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted">Rede</span>
+          <span className="text-muted">Network</span>
           <span>Sepolia</span>
         </div>
       </div>
@@ -121,7 +121,7 @@ export default function ProfilePage() {
         onClick={() => void disconnect()}
         className="btn-secondary w-full text-danger"
       >
-        Terminar sessão
+        Sign out
       </button>
     </div>
   );
