@@ -58,6 +58,10 @@ export const metadata: Metadata = {
   description:
     "A sua poupança, com prémios todas as semanas. 100% do seu capital, sempre.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

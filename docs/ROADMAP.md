@@ -14,9 +14,9 @@ This roadmap targets the Zama Developer Program Mainnet Season 4 bounty. See
 - Replace the plaintext ERC-4626 `Vault` and `PrizePool` with a confidential
   pool built from Zama/OpenZeppelin confidential-token primitives.
 - Use an admin-funded prize reserve as the documented mock yield source.
-- Start with an injected EOA wallet for Zama EIP-712 signing and judge testing.
-- Defer Web3Auth, Safe, Pimlico, real yield, and mainnet until the required flow
-  works end to end.
+- Use Web3Auth, Safe, and Pimlico as the single account-abstraction path for
+  Zama signing and judge testing.
+- Defer real yield and mainnet until the required flow works end to end.
 
 **Exit gate:** architecture note names contracts, token flow, encrypted state,
 public leakage, draw trigger, and withdrawal invariant.
@@ -34,8 +34,8 @@ public leakage, draw trigger, and withdrawal invariant.
 - Normalize every wallet, contract, and handle-pair contract address passed to
   the Zama SDK with checksum formatting. Lowercase addresses caused the browser
   spike to fail with `User address is not a valid address`.
-- Serialize Zama EIP-712 typed data with a `bigint` replacer before
-  `eth_signTypedData_v4`.
+- Keep Zama EIP-712 typed data compatible with the smart account signer,
+  including bigint-safe handling.
 
 **Exit gate:** two local users can submit encrypted values; each can decrypt
 only their own value; an FHE random value is consumed onchain.
@@ -93,7 +93,7 @@ winner discovery, claim, and principal withdrawal.
 
 **Goal:** make every required action understandable and reliable.
 
-- Connect/switch an injected wallet to Ethereum Sepolia.
+- Connect the Web3Auth-backed Safe smart account on Ethereum Sepolia.
 - Add faucet, approval/wrap, deposit, balance decryption, draw, winnings
   decryption, claim, and withdrawal states.
 - Show transaction pending/success/failure feedback.

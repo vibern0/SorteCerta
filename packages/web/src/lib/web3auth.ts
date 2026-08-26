@@ -1,15 +1,14 @@
 "use client";
 
 /**
- * Web3Auth social wallet session.
+ * Web3Auth social-login smart account session.
  *
  * Flow:
  *   1. User clicks "Sign in with Google / Apple" → Web3Auth modal opens.
- *   2. We read the EOA address from the EIP-1193 provider.
- *   3. If Web3Auth exposes `eth_private_key`, we also prepare the legacy Safe
- *      smart account path. Social providers may not expose that RPC method.
+ *   2. Web3Auth provides the owner key used to derive the Safe smart account.
+ *   3. Every app transaction is sent as an ERC-4337 UserOp through Pimlico.
  *
- * Zama user-decryption requires the wallet address to stay checksummed.
+ * Zama user-decryption requires the smart account address to stay checksummed.
  */
 
 import {
@@ -21,7 +20,6 @@ import {
   type Hex,
 } from "viem";
 import { sepolia } from "viem/chains";
-import { privateKeyToAccount } from "viem/accounts";
 import { SafeSmartAccount } from "permissionless/accounts/safe";
 import { createSmartAccountClient } from "permissionless/clients";
 import { createPimlicoClient } from "permissionless/clients/pimlico";
@@ -34,6 +32,7 @@ import {
 } from "@web3auth/modal";
 
 import { CONTRACTS, PIMLICO_URL, RPC_URL, prizePoolAbi } from "./contracts";
+import { stringifyTypedData } from "./zama";
 
 // ─── Web3Auth lifecycle (browser-only) ─────────────────────────────────────
 
@@ -95,56 +94,38 @@ function getPimlicoClient() {
 // ─── Session ──────────────────────────────────────────────────────────────
 
 export type SmartSession = {
-  eoaAddress: Address;
-  smartAccountAddress: Address;
-  smartAccountClient: ReturnType<typeof createSmartAccountClient> | null;
-  provider: Awaited<ReturnType<typeof getWeb3Auth>>["provider"];
+  address: Address;
+  ownerAddress: Address;
+  smartAccountClient: ReturnType<typeof createSmartAccountClient>;
+  signOwnerTypedData: (typedData: unknown) => Promise<Hex>;
   logout: () => Promise<void>;
 };
 
-async function requestPrivateKey(provider: NonNullable<SmartSession["provider"]>) {
-  try {
-    return (await provider.request({ method: "eth_private_key" })) as Hex;
-  } catch (err: any) {
-    const message = String(err?.message ?? err ?? "");
-    if (message.toLowerCase().includes("method not found")) return null;
-    throw err;
+async function createSmartSession(
+  w3a: Web3Auth,
+  provider: NonNullable<Web3Auth["provider"]>,
+  requestAccounts = false
+): Promise<SmartSession> {
+  const providerState = provider as any;
+  let ownerAccounts = Array.isArray(providerState.state?.accounts)
+    ? providerState.state.accounts
+    : [];
+  if (ownerAccounts.length === 0 && providerState.selectedAddress) {
+    ownerAccounts = [providerState.selectedAddress];
   }
-}
-
-/**
- * Trigger the Web3Auth modal and return a ready-to-use smart-account session.
- * Throws if Web3Auth isn't configured (no client ID) or the user cancels.
- */
-export async function connectSmartAccount(): Promise<SmartSession> {
-  const w3a = await getWeb3Auth();
-  if (!w3a.connected) await w3a.connect();
-
-  const provider = w3a.provider;
-  if (!provider) throw new Error("Web3Auth returned no provider");
-
-  const accounts = (await provider.request({ method: "eth_accounts" })) as string[];
-  const eoaAddress = getAddress(accounts?.[0] ?? "");
-  const privateKey = await requestPrivateKey(provider);
-
-  if (!privateKey) {
-    return {
-      eoaAddress,
-      smartAccountAddress: eoaAddress,
-      smartAccountClient: null,
-      provider,
-      logout: async () => {
-        await w3a.logout();
-      },
-    };
+  if (ownerAccounts.length === 0 && requestAccounts) {
+    ownerAccounts = (await provider.request({
+      method: "eth_requestAccounts",
+    })) as string[];
   }
+  if (!ownerAccounts[0]) throw new Error("Web3Auth returned no owner account");
+  const ownerAddress = getAddress(ownerAccounts[0]);
 
-  const eoa = privateKeyToAccount(privateKey);
   const publicClient = getPublicClient();
 
   const smartAccount = await SafeSmartAccount.toSafeSmartAccount({
     client: publicClient,
-    owners: [eoa],
+    owners: [provider as any],
     entryPoint: {
       address: entryPoint07Address,
       version: "0.7",
@@ -167,26 +148,79 @@ export async function connectSmartAccount(): Promise<SmartSession> {
   });
 
   return {
-    eoaAddress: eoa.address,
-    smartAccountAddress: smartAccount.address,
+    address: getAddress(smartAccount.address),
+    ownerAddress,
     smartAccountClient,
-    provider,
+    signOwnerTypedData: async (typedData) =>
+      (await provider.request({
+        method: "eth_signTypedData_v4",
+        params: [ownerAddress, stringifyTypedData(typedData)],
+      })) as Hex,
     logout: async () => {
       await w3a.logout();
     },
   };
 }
 
+/**
+ * Trigger the Web3Auth modal and return a ready-to-use smart-account session.
+ * Throws if Web3Auth isn't configured (no client ID) or the user cancels.
+ */
+export async function connectSmartAccount(): Promise<SmartSession> {
+  const w3a = await getWeb3Auth();
+  const provider = w3a.connected ? w3a.provider : await w3a.connect();
+  if (!provider) throw new Error("Web3Auth returned no provider");
+  return createSmartSession(w3a, provider, true);
+}
+
+/**
+ * Restore a previous Web3Auth login without opening the modal.
+ * Returns null when there is no cached Web3Auth provider.
+ */
+export async function restoreSmartAccount(): Promise<SmartSession | null> {
+  const w3a = await getWeb3Auth();
+  if (!w3a.connected || !w3a.provider) return null;
+  return createSmartSession(w3a, w3a.provider);
+}
+
 // ─── High-level actions (each one = one UserOp) ──────────────────────────
+
+export async function sendSmartTransaction(
+  session: SmartSession,
+  to: Address,
+  data: Hex
+): Promise<Hex> {
+  return session.smartAccountClient.sendTransaction({
+    calls: [{ to, data }],
+  });
+}
+
+export async function sendSmartTransactionBatch(
+  session: SmartSession,
+  calls: { to: Address; data: Hex }[]
+): Promise<Hex> {
+  return session.smartAccountClient.sendTransaction({ calls });
+}
+
+export async function signSmartTypedData(
+  session: SmartSession,
+  typedData: unknown
+): Promise<Hex> {
+  return session.smartAccountClient.signTypedData(typedData as any);
+}
+
+export async function signOwnerTypedData(
+  session: SmartSession,
+  typedData: unknown
+): Promise<Hex> {
+  return session.signOwnerTypedData(typedData);
+}
 
 /** Approve USDC to the PrizePool. One-time setup per session. */
 export async function approveUSDC(
   session: SmartSession,
   amount: bigint
 ): Promise<Hex> {
-  if (!session.smartAccountClient) {
-    throw new Error("Smart account actions are unavailable for this Web3Auth provider.");
-  }
   return session.smartAccountClient.sendTransaction({
     calls: [
       {
@@ -217,9 +251,6 @@ export async function depositAndBuyTickets(
   session: SmartSession,
   amount: bigint
 ): Promise<Hex> {
-  if (!session.smartAccountClient) {
-    throw new Error("Smart account actions are unavailable for this Web3Auth provider.");
-  }
   return session.smartAccountClient.sendTransaction({
     calls: [
       {
@@ -239,9 +270,6 @@ export async function fundPrizePool(
   session: SmartSession,
   amount: bigint
 ): Promise<Hex> {
-  if (!session.smartAccountClient) {
-    throw new Error("Smart account actions are unavailable for this Web3Auth provider.");
-  }
   return session.smartAccountClient.sendTransaction({
     calls: [
       {
@@ -258,9 +286,6 @@ export async function fundPrizePool(
 
 /** Close the current draw (anyone can call after the period ends). */
 export async function closeDraw(session: SmartSession): Promise<Hex> {
-  if (!session.smartAccountClient) {
-    throw new Error("Smart account actions are unavailable for this Web3Auth provider.");
-  }
   return session.smartAccountClient.sendTransaction({
     calls: [
       {
@@ -279,9 +304,6 @@ export async function redeemShares(
   session: SmartSession,
   shares: bigint
 ): Promise<Hex> {
-  if (!session.smartAccountClient) {
-    throw new Error("Smart account actions are unavailable for this Web3Auth provider.");
-  }
   return session.smartAccountClient.sendTransaction({
     calls: [
       {
@@ -301,7 +323,7 @@ export async function redeemShares(
             },
           ],
           functionName: "redeem",
-          args: [shares, session.smartAccountAddress, session.smartAccountAddress],
+          args: [shares, session.address, session.address],
         }),
       },
     ],

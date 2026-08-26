@@ -10,7 +10,7 @@ export function ConnectButton({ fullWidth = false }: { fullWidth?: boolean }) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted">
         <span className="w-2 h-2 rounded-full bg-success" />
-        <span>Carteira ativa: {shortAddress(session.eoaAddress)}</span>
+        <span>Smart account ativo: {shortAddress(session.address)}</span>
       </div>
     );
   }

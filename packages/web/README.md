@@ -10,9 +10,9 @@ permissionless (Safe smart account) + Pimlico.
 - **Tailwind 3** — custom design tokens in `tailwind.config.ts` (dark theme,
   mobile-first `.app-shell`).
 - **wagmi v2** + **viem v2** — chain reads, contract calls, event watching.
-- **Web3Auth modal** — Google + Apple sign-in. Returns an EOA.
-- **permissionless** + **Safe** — derives a Safe smart account from the EOA.
-  EntryPoint v0.7. Pimlico is the bundler + paymaster.
+- **Web3Auth modal** — Google + Apple sign-in used to derive the smart account.
+- **permissionless** + **Safe** — Safe smart account with EntryPoint v0.7.
+  Pimlico is the bundler + paymaster.
 
 ## Pages
 
@@ -63,8 +63,6 @@ src/
 
 ## Notes
 
-- The smart account is derived from the EOA at default Safe salt 0, so the
-  same address comes up on repeat logins.
 - All contract calls go through `smartAccountClient.sendTransaction` (Pimlico
-  bundler + paymaster), so the user never signs a normal EIP-1559 tx.
+  bundler + paymaster), so the user signs UserOps through the Safe account.
 - USDC `approve` is a one-time setup per session, sent as its own UserOp.

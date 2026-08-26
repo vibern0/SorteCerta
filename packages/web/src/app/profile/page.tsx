@@ -1,24 +1,55 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useWallet } from "@/lib/wallet-context";
 import { useUSDCBalance } from "@/lib/usePoolData";
-import { useTickets, useCurrentDraw } from "@/lib/usePoolData";
 import { formatUSDC, shortAddress } from "@/lib/format";
 import { ConnectButton } from "@/components/ConnectButton";
+import { decryptConfidentialBalances } from "@/lib/confidential-balances";
 
 export default function ProfilePage() {
   const { session, web3AuthReady, pimlicoReady, disconnect } = useWallet();
-  const { data: poolData } = useCurrentDraw();
-  const currentDrawId = poolData?.[0]?.result?.id as bigint | undefined;
+  const [confidentialBalance, setConfidentialBalance] = useState<bigint | undefined>();
+  const [principal, setPrincipal] = useState<bigint | undefined>();
+  const [decrypting, setDecrypting] = useState(false);
+  const [decryptError, setDecryptError] = useState<string | null>(null);
 
-  const { data: usdcData } = useUSDCBalance(session?.smartAccountAddress);
+  const { data: usdcData } = useUSDCBalance(session?.address);
   const usdcBalance = usdcData?.[0]?.result as bigint | undefined;
-  const { data: ticketData } = useTickets(
-    currentDrawId,
-    session?.smartAccountAddress
-  );
-  const tickets = ticketData?.[0]?.result as bigint | undefined;
-  const vaultShares = ticketData?.[1]?.result as bigint | undefined;
+
+  useEffect(() => {
+    if (!session) {
+      setConfidentialBalance(undefined);
+      setPrincipal(undefined);
+      setDecryptError(null);
+      return;
+    }
+
+    let cancelled = false;
+    const currentSession = session;
+
+    async function decrypt() {
+      setDecrypting(true);
+      setDecryptError(null);
+      try {
+        const balances = await decryptConfidentialBalances(currentSession);
+        if (cancelled) return;
+        setConfidentialBalance(balances.confidentialBalance);
+        setPrincipal(balances.principal);
+      } catch (error) {
+        if (cancelled) return;
+        setDecryptError(error instanceof Error ? error.message : String(error));
+      } finally {
+        if (!cancelled) setDecrypting(false);
+      }
+    }
+
+    void decrypt();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
 
   if (!session) {
     return (
@@ -39,21 +70,12 @@ export default function ProfilePage() {
       <div className="card space-y-3">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand to-brandHover grid place-items-center text-white font-bold text-lg">
-            {shortAddress(session.eoaAddress).slice(1, 3).toUpperCase()}
+            {shortAddress(session.address).slice(1, 3).toUpperCase()}
           </div>
           <div>
-            <p className="text-sm text-muted">Carteira social</p>
-            <p className="font-mono text-sm">{shortAddress(session.eoaAddress)}</p>
+            <p className="text-sm text-muted">Smart account</p>
+            <p className="font-mono text-sm">{shortAddress(session.address)}</p>
           </div>
-        </div>
-        <div className="glass-divider h-px" />
-        <div>
-          <p className="text-sm text-muted">Smart account</p>
-          <p className="font-mono text-sm text-muted">
-            {session.smartAccountClient
-              ? shortAddress(session.smartAccountAddress)
-              : "Indisponivel neste login"}
-          </p>
         </div>
       </div>
 
@@ -66,17 +88,18 @@ export default function ProfilePage() {
           </span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-muted">Na poupança</span>
+          <span className="text-muted">cUSDC decryptado</span>
           <span className="font-semibold tabular-nums">
-            {formatUSDC(vaultShares)} USDC
+            {decrypting ? "A decryptar..." : `${formatUSDC(confidentialBalance)} cUSDC`}
           </span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-muted">Bilhetes (sorteio atual)</span>
+          <span className="text-muted">Principal no pool</span>
           <span className="font-semibold tabular-nums text-brand">
-            {tickets !== undefined ? tickets.toString() : "—"}
+            {decrypting ? "A decryptar..." : `${formatUSDC(principal)} cUSDC`}
           </span>
         </div>
+        {decryptError && <p className="text-xs text-danger">{decryptError}</p>}
       </div>
 
       <div className="card space-y-2 text-sm">

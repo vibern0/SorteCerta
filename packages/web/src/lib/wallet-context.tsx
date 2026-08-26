@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   connectSmartAccount,
+  restoreSmartAccount,
   type SmartSession,
   isWeb3AuthConfigured,
   isPimlicoConfigured,
@@ -35,13 +36,40 @@ const WalletContext = createContext<WalletContextValue | null>(null);
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<WalletState>({
     session: null,
-    connecting: false,
+    connecting: true,
     error: null,
     ready: false,
   });
 
   useEffect(() => {
-    setState((s) => ({ ...s, ready: true }));
+    let cancelled = false;
+
+    async function restoreSession() {
+      if (!isWeb3AuthConfigured()) {
+        setState((s) => ({ ...s, connecting: false, ready: true }));
+        return;
+      }
+
+      try {
+        const session = await restoreSmartAccount();
+        if (cancelled) return;
+        setState({ session, connecting: false, error: null, ready: true });
+      } catch (err: any) {
+        if (cancelled) return;
+        setState({
+          session: null,
+          connecting: false,
+          error: err?.message ?? "Failed to restore login",
+          ready: true,
+        });
+      }
+    }
+
+    void restoreSession();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const connect = useCallback(async () => {

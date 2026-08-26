@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@/lib/wallet-context";
@@ -11,19 +12,28 @@ const NAV = [
   { href: "/savings", label: "Poupar" },
   { href: "/draw", label: "Sorteio" },
   { href: "/history", label: "Histórico" },
+  { href: "/admin", label: "Admin" },
 ];
 
 export function Header() {
   const path = usePathname();
   const { session, connect, connecting, disconnect, web3AuthReady } = useWallet();
+  const navItems = session
+    ? NAV
+    : NAV.filter((item) => item.href !== "/history");
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/40 bg-white/30 backdrop-blur-2xl">
       <div className="flex items-center justify-between px-5 h-16">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-brand grid place-items-center text-white font-bold text-sm shadow-lg shadow-black/10">
-            S
-          </div>
+          <Image
+            src="/icon-192.png"
+            alt=""
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded-xl shadow-lg shadow-black/10"
+            priority
+          />
           <span className="font-display font-semibold tracking-tight text-lg">SorteCerta</span>
         </Link>
 
@@ -31,11 +41,11 @@ export function Header() {
           <button
             onClick={() => void disconnect()}
             className="flex items-center gap-2 rounded-full bg-white/35 border border-white/60 px-3 py-1.5 hover:bg-white/55 transition-colors backdrop-blur-xl"
-            title={session.smartAccountAddress}
+            title={session.address}
           >
             <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
             <span className="text-xs font-medium">
-              {shortAddress(session.smartAccountAddress)}
+              {shortAddress(session.address)}
             </span>
           </button>
         ) : (
@@ -50,7 +60,7 @@ export function Header() {
       </div>
 
       <nav className="flex gap-1 px-3 pb-3 overflow-x-auto">
-        {NAV.map((item) => {
+        {navItems.map((item) => {
           const active = path === item.href;
           return (
             <Link

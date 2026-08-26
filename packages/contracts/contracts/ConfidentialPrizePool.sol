@@ -19,9 +19,12 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
 
     IERC7984 public immutable token;
     address public immutable owner;
+    uint256 public immutable drawInterval;
+    uint256 public nextDrawAt;
 
     mapping(address account => euint64 principal) private _principal;
     mapping(address account => bool known) private _isParticipant;
+    mapping(address account => address delegate) private _decryptDelegate;
     mapping(address account => euint64 winnings) private _winnings;
     address[] private _participants;
     euint64 private _totalPrincipal;
@@ -30,18 +33,24 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
 
     event ConfidentialDeposit(address indexed account, euint64 indexed amount);
     event PrizeFunded(address indexed account, euint64 indexed amount);
+    event DrawStarted(uint256 indexed drawId, uint256 nextDrawAt);
     event DrawClosed(uint256 indexed drawId, euint64 indexed randomTicket, euint64 indexed prizeAmount);
     event PrizeClaimed(address indexed account, euint64 indexed amount);
     event ConfidentialWithdrawal(address indexed account, euint64 indexed amount);
     event ConfidentialWithdrawalToUsdc(address indexed account, address indexed to, euint64 indexed amount, bytes32 unwrapRequestId);
+    event DecryptDelegateUpdated(address indexed account, address indexed delegate);
 
     error OnlyConfidentialToken();
-    error OnlyOwner();
+    error DrawNotReady(uint256 nextDrawAt);
     error TooManyParticipants();
 
-    constructor(IERC7984 token_) {
+    constructor(IERC7984 token_, uint256 drawInterval_) {
         token = token_;
+        drawInterval = drawInterval_;
+        nextDrawAt = block.timestamp + drawInterval_;
         owner = msg.sender;
+
+        emit DrawStarted(_drawId + 1, nextDrawAt);
     }
 
     function onConfidentialTransferReceived(
@@ -63,13 +72,18 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
             return funded;
         }
 
+        address decryptDelegate = _decodeDecryptDelegate(data);
+        if (decryptDelegate != address(0) && _decryptDelegate[from] != decryptDelegate) {
+            _decryptDelegate[from] = decryptDelegate;
+            emit DecryptDelegateUpdated(from, decryptDelegate);
+        }
+
         _registerParticipant(from);
 
         _principal[from] = FHE.add(_principal[from], amount);
         _totalPrincipal = FHE.add(_totalPrincipal, amount);
 
-        FHE.allowThis(_principal[from]);
-        FHE.allow(_principal[from], from);
+        _allowAccount(_principal[from], from);
         FHE.allowThis(_totalPrincipal);
 
         ebool success = FHE.asEbool(true);
@@ -80,7 +94,7 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     }
 
     function closeDraw() external returns (euint64) {
-        if (msg.sender != owner) revert OnlyOwner();
+        if (block.timestamp < nextDrawAt) revert DrawNotReady(nextDrawAt);
 
         euint64 randomTicket = FHE.randEuint64(MAX_DRAW_TICKETS);
         euint64 cumulative = FHE.asEuint64(0);
@@ -99,8 +113,7 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
             euint64 award = FHE.select(selected, prize, FHE.asEuint64(0));
 
             _winnings[participant] = FHE.add(_winnings[participant], award);
-            FHE.allowThis(_winnings[participant]);
-            FHE.allow(_winnings[participant], participant);
+            _allowAccount(_winnings[participant], participant);
 
             alreadyAwarded = FHE.or(alreadyAwarded, selected);
         }
@@ -111,7 +124,9 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         FHE.allowThis(randomTicket);
 
         _drawId++;
+        nextDrawAt = block.timestamp + drawInterval;
         emit DrawClosed(_drawId, randomTicket, prize);
+        emit DrawStarted(_drawId + 1, nextDrawAt);
         return randomTicket;
     }
 
@@ -119,8 +134,7 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         euint64 amount = _winnings[msg.sender];
         _winnings[msg.sender] = FHE.asEuint64(0);
 
-        FHE.allowThis(_winnings[msg.sender]);
-        FHE.allow(_winnings[msg.sender], msg.sender);
+        _allowAccount(_winnings[msg.sender], msg.sender);
         FHE.allowThis(amount);
         FHE.allow(amount, address(token));
 
@@ -128,6 +142,14 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
 
         emit PrizeClaimed(msg.sender, amount);
         return amount;
+    }
+
+    function setDecryptDelegate(address delegate) external {
+        _decryptDelegate[msg.sender] = delegate;
+        _allowAccount(_principal[msg.sender], msg.sender);
+        _allowAccount(_winnings[msg.sender], msg.sender);
+
+        emit DecryptDelegateUpdated(msg.sender, delegate);
     }
 
     function withdraw(externalEuint64 encryptedAmount, bytes calldata inputProof) external returns (euint64) {
@@ -165,12 +187,26 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         _principal[account] = FHE.sub(available, withdrawn);
         _totalPrincipal = FHE.sub(_totalPrincipal, withdrawn);
 
-        FHE.allowThis(_principal[account]);
-        FHE.allow(_principal[account], account);
+        _allowAccount(_principal[account], account);
         FHE.allowThis(_totalPrincipal);
         FHE.allowThis(withdrawn);
 
         return withdrawn;
+    }
+
+    function _decodeDecryptDelegate(bytes calldata data) internal pure returns (address) {
+        if (data.length != 32) return address(0);
+        return abi.decode(data, (address));
+    }
+
+    function _allowAccount(euint64 value, address account) internal {
+        FHE.allowThis(value);
+        FHE.allow(value, account);
+
+        address delegate = _decryptDelegate[account];
+        if (delegate != address(0)) {
+            FHE.allow(value, delegate);
+        }
     }
 
     function _registerParticipant(address account) internal {
@@ -187,6 +223,10 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
 
     function encryptedWinningsOf(address account) external view returns (euint64) {
         return _winnings[account];
+    }
+
+    function decryptDelegateOf(address account) external view returns (address) {
+        return _decryptDelegate[account];
     }
 
     function encryptedTotalPrincipal() external view returns (euint64) {

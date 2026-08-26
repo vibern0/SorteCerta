@@ -4,21 +4,21 @@
   "description": "A sua poupança, com sorte.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0B0B12",
-  "theme_color": "#0B0B12",
+  "background_color": "#E8E3E1",
+  "theme_color": "#E8E3E1",
   "orientation": "portrait",
   "lang": "pt",
   "icons": [
     {
-      "src": "/icon-192.svg",
+      "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.svg",
+      "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

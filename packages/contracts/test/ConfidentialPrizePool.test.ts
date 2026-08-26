@@ -2,6 +2,9 @@ import { expect } from "chai";
 import { ethers, fhevm } from "hardhat";
 import { FhevmType } from "@fhevm/hardhat-plugin";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
+
+const DRAW_INTERVAL = 5n * 60n;
 
 describe("ConfidentialPrizePool", function () {
   let alice: HardhatEthersSigner;
@@ -32,7 +35,7 @@ describe("ConfidentialPrizePool", function () {
     const confidentialUsdcAddress = await confidentialUsdc.getAddress();
 
     const ConfidentialPrizePool = await ethers.getContractFactory("ConfidentialPrizePool");
-    const pool = await ConfidentialPrizePool.deploy(confidentialUsdcAddress);
+    const pool = await ConfidentialPrizePool.deploy(confidentialUsdcAddress, DRAW_INTERVAL);
     await pool.waitForDeployment();
     const poolAddress = await pool.getAddress();
 
@@ -55,11 +58,15 @@ describe("ConfidentialPrizePool", function () {
     poolAddress: string,
     user: HardhatEthersSigner,
     amount: bigint,
+    decryptDelegate?: string,
   ) {
     const encryptedAmount = await fhevm
       .createEncryptedInput(confidentialUsdcAddress, user.address)
       .add64(amount)
       .encrypt();
+    const data = decryptDelegate
+      ? ethers.AbiCoder.defaultAbiCoder().encode(["address"], [decryptDelegate])
+      : "0x";
 
     await confidentialUsdc
       .connect(user)
@@ -67,7 +74,7 @@ describe("ConfidentialPrizePool", function () {
         poolAddress,
         encryptedAmount.handles[0],
         encryptedAmount.inputProof,
-        "0x",
+        data,
       );
   }
 
@@ -139,6 +146,39 @@ describe("ConfidentialPrizePool", function () {
     );
     await expect(fhevm.userDecryptEuint(FhevmType.euint64, encryptedBobPrincipal, poolAddress, alice)).to.be.rejected;
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedTotalPrincipal)).to.equal(4_500_000n);
+  });
+
+  it("lets an account delegate principal decryption to its owner signer", async function () {
+    const { confidentialUsdc, confidentialUsdcAddress, pool, poolAddress } = await deployFixture();
+
+    await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, alice, 2_000_000n, bob.address);
+
+    const encryptedAlicePrincipal = await pool.encryptedPrincipalOf(alice.address);
+
+    expect(await pool.decryptDelegateOf(alice.address)).to.equal(bob.address);
+    expect(await fhevm.userDecryptEuint(FhevmType.euint64, encryptedAlicePrincipal, poolAddress, alice)).to.equal(
+      2_000_000n,
+    );
+    expect(await fhevm.userDecryptEuint(FhevmType.euint64, encryptedAlicePrincipal, poolAddress, bob)).to.equal(
+      2_000_000n,
+    );
+    await expect(fhevm.userDecryptEuint(FhevmType.euint64, encryptedAlicePrincipal, poolAddress, admin)).to.be.rejected;
+  });
+
+  it("lets an account set a decrypt delegate after depositing", async function () {
+    const { confidentialUsdc, confidentialUsdcAddress, pool, poolAddress } = await deployFixture();
+
+    await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, alice, 1_250_000n);
+
+    const encryptedAlicePrincipal = await pool.encryptedPrincipalOf(alice.address);
+    await expect(fhevm.userDecryptEuint(FhevmType.euint64, encryptedAlicePrincipal, poolAddress, bob)).to.be.rejected;
+
+    await pool.connect(alice).setDecryptDelegate(bob.address);
+
+    expect(await pool.decryptDelegateOf(alice.address)).to.equal(bob.address);
+    expect(await fhevm.userDecryptEuint(FhevmType.euint64, encryptedAlicePrincipal, poolAddress, bob)).to.equal(
+      1_250_000n,
+    );
   });
 
   it("wraps and deposits in one multicall", async function () {
@@ -245,6 +285,7 @@ describe("ConfidentialPrizePool", function () {
     await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, bob, 448_576n);
     await fundPrize(confidentialUsdc, confidentialUsdcAddress, pool, poolAddress, 1_000_000n);
 
+    await time.increase(Number(DRAW_INTERVAL) + 1);
     await pool.connect(admin).closeDraw();
 
     const encryptedAliceWinnings = await pool.encryptedWinningsOf(alice.address);
@@ -267,5 +308,19 @@ describe("ConfidentialPrizePool", function () {
     expect(
       await fhevm.userDecryptEuint(FhevmType.euint64, encryptedWinnerBalance, confidentialUsdcAddress, winner),
     ).to.be.greaterThan(0n);
+  });
+
+  it("exposes the recurring draw schedule and lets anyone close a ready draw", async function () {
+    const { pool } = await deployFixture();
+
+    const nextDrawAt = await pool.nextDrawAt();
+    expect(await pool.drawInterval()).to.equal(DRAW_INTERVAL);
+    await expect(pool.connect(bob).closeDraw()).to.be.revertedWithCustomError(pool, "DrawNotReady");
+
+    await time.increaseTo(nextDrawAt);
+    await pool.connect(bob).closeDraw();
+
+    expect(await pool.drawId()).to.equal(1n);
+    expect(await pool.nextDrawAt()).to.be.greaterThan(nextDrawAt);
   });
 });

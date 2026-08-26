@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { ConnectButton } from "@/components/ConnectButton";
 import { Countdown } from "@/components/Countdown";
 import { useCurrentDraw, useUSDCBalance } from "@/lib/usePoolData";
@@ -9,12 +10,20 @@ import { formatUSDC } from "@/lib/format";
 
 export default function HomePage() {
   const { session } = useWallet();
+  const [addressCopied, setAddressCopied] = useState(false);
   const { data: poolData } = useCurrentDraw();
   const draw = poolData?.[0]?.result as
     | { endTime: bigint; prizeAmount: bigint; id: bigint }
     | undefined;
-  const { data: usdcData } = useUSDCBalance(session?.smartAccountAddress);
+  const { data: usdcData } = useUSDCBalance(session?.address);
   const usdcBalance = usdcData?.[0]?.result as bigint | undefined;
+
+  async function copyAddress() {
+    if (!session?.address) return;
+    await navigator.clipboard.writeText(session.address);
+    setAddressCopied(true);
+    window.setTimeout(() => setAddressCopied(false), 1800);
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -55,6 +64,21 @@ export default function HomePage() {
       {session && (
         <section className="card space-y-3">
           <p className="label">A sua conta</p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted text-sm">Smart account</span>
+              <button
+                type="button"
+                onClick={() => void copyAddress()}
+                className="btn-secondary !px-3 !py-1.5 !text-xs"
+              >
+                {addressCopied ? "Copiado" : "Copiar"}
+              </button>
+            </div>
+            <p className="break-all rounded-2xl bg-white/30 px-3 py-2 text-xs text-muted">
+              {session.address}
+            </p>
+          </div>
           <div className="flex items-baseline justify-between">
             <span className="text-muted">Saldo USDC</span>
             <span className="font-display text-2xl font-bold tabular-nums">

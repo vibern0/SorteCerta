@@ -15,7 +15,7 @@ export const CONTRACTS = {
 export const CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? 11155111); // Sepolia
 
 export const RPC_URL =
-  process.env.NEXT_PUBLIC_RPC_URL ?? "https://rpc.sepolia.org";
+  process.env.NEXT_PUBLIC_RPC_URL ?? "https://ethereum-sepolia-rpc.publicnode.com";
 
 export const PIMLICO_API_KEY = process.env.NEXT_PUBLIC_PIMLICO_API_KEY ?? "";
 export const PIMLICO_URL = `https://api.pimlico.io/v2/sepolia/rpc?apikey=${PIMLICO_API_KEY}`;
@@ -219,6 +219,20 @@ export const confidentialPrizePoolAbi = [
   {
     type: "function",
     name: "drawId",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "drawInterval",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "nextDrawAt",
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],
