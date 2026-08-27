@@ -13,6 +13,8 @@
     "deploy:confidential-usdc:local": "hardhat run scripts/deploy-confidential-usdc.ts --network localhost",
     "deploy:confidential-pool": "hardhat run scripts/deploy-confidential-pool.ts --network sepolia",
     "deploy:confidential-pool:local": "hardhat run scripts/deploy-confidential-pool.ts --network localhost",
+    "deploy:morpho-yield-adapter": "hardhat run scripts/deploy-morpho-yield-adapter.ts --network sepolia",
+    "deploy:morpho-yield-adapter:local": "hardhat run scripts/deploy-morpho-yield-adapter.ts --network localhost",
     "deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost"
   },
