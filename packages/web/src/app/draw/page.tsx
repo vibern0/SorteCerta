@@ -75,6 +75,7 @@ function formatInterval(seconds: bigint | undefined) {
   return unit(value, "second", "seconds");
 }
 
+// Draw page for checking prizes, claiming winnings, and viewing round timing.
 export default function DrawPage() {
   const { session } = useWallet();
   const toast = useToast();

@@ -83,6 +83,7 @@ function formatShortHash(hash: `0x${string}`) {
   return hash.replace(/^0x/, "").slice(0, 6);
 }
 
+// Savings page for deposits, withdrawals, and pending unwrap requests.
 export default function SavingsPage() {
   const {
     session,

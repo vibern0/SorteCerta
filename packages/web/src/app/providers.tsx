@@ -46,6 +46,7 @@ function ChunkLoadRecovery() {
   return null;
 }
 
+// Shared client providers for contracts, cached queries, wallet state, and toasts.
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
     () =>

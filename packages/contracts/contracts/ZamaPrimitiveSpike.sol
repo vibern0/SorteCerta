@@ -9,6 +9,7 @@ contract ZamaPrimitiveSpike is ZamaEthereumConfig {
     mapping(address account => euint32 value) private _values;
     euint32 private _lastRandom;
 
+    /// @notice Stores an encrypted value for the caller.
     function submitValue(externalEuint32 encryptedValue, bytes calldata inputProof) external {
         euint32 value = FHE.fromExternal(encryptedValue, inputProof);
 
@@ -18,10 +19,12 @@ contract ZamaPrimitiveSpike is ZamaEthereumConfig {
         FHE.allow(_values[msg.sender], msg.sender);
     }
 
+    /// @notice Returns the encrypted value stored for an account.
     function getValue(address account) external view returns (euint32) {
         return _values[account];
     }
 
+    /// @notice Draws a small encrypted random value for the caller.
     function drawRandomForCaller() external {
         _lastRandom = FHE.randEuint32(16);
 
@@ -29,6 +32,7 @@ contract ZamaPrimitiveSpike is ZamaEthereumConfig {
         FHE.allow(_lastRandom, msg.sender);
     }
 
+    /// @notice Returns the last encrypted random value.
     function getLastRandom() external view returns (euint32) {
         return _lastRandom;
     }
