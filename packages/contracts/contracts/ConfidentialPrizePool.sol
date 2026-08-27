@@ -11,6 +11,13 @@ interface IERC7984ERC20WrapperInternalAmount is IERC7984ERC20Wrapper {
     function unwrap(address from, address to, euint64 amount) external returns (bytes32);
 }
 
+interface IMorphoPrizeYieldAdapter {
+    function accruedYieldAssets() external view returns (uint256);
+    function supplyPoolPrincipal(uint256 assets) external returns (uint256 shares);
+    function harvestYieldToPrizePool(uint256 maxAssets) external returns (uint256 harvestedAssets);
+    function restorePrincipalToPool(uint256 assets) external returns (uint256 restoredAssets);
+}
+
 /// @notice Confidential principal accounting, public mocked prize funding, and no-loss withdrawal.
 contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     uint256 public constant MAX_PARTICIPANTS = 32;
@@ -21,6 +28,9 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     address public immutable owner;
     uint256 public immutable drawInterval;
     uint256 public nextDrawAt;
+    IMorphoPrizeYieldAdapter public morphoYieldAdapter;
+    uint256 public morphoDepositBatchSize;
+    uint256 public morphoPendingDepositCount;
 
     mapping(address account => euint64 principal) private _principal;
     mapping(address account => bool known) private _isParticipant;
@@ -29,6 +39,7 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     address[] private _participants;
     euint64 private _totalPrincipal;
     euint64 private _prizeReserve;
+    euint64 private _pendingMorphoPrincipal;
     uint64 public publicPrizeReserve;
     uint256 private _drawId;
 
@@ -40,11 +51,19 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     event ConfidentialWithdrawal(address indexed account, euint64 indexed amount);
     event ConfidentialWithdrawalToUsdc(address indexed account, address indexed to, euint64 indexed amount, bytes32 unwrapRequestId);
     event DecryptDelegateUpdated(address indexed account, address indexed delegate);
+    event MorphoYieldAdapterUpdated(address indexed adapter, uint256 depositBatchSize);
+    event MorphoPrincipalUnwrapRequested(bytes32 indexed unwrapRequestId, uint256 depositCount);
+    event MorphoPrincipalSupplied(uint256 assets, uint256 shares);
+    event MorphoYieldHarvested(uint256 assets);
+    event MorphoPrincipalRestored(uint256 assets);
 
     error OnlyConfidentialToken();
+    error OnlyOwner();
     error DrawNotReady(uint256 nextDrawAt);
     error TooManyParticipants();
     error InvalidPrizeFundingData();
+    error MorphoYieldAdapterNotSet();
+    error InvalidMorphoDepositBatchSize();
 
     constructor(IERC7984 token_, uint256 drawInterval_) {
         token = token_;
@@ -86,14 +105,18 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
 
         _principal[from] = FHE.add(_principal[from], amount);
         _totalPrincipal = FHE.add(_totalPrincipal, amount);
+        _pendingMorphoPrincipal = FHE.add(_pendingMorphoPrincipal, amount);
+        morphoPendingDepositCount++;
 
         _allowAccount(_principal[from], from);
         FHE.allowThis(_totalPrincipal);
+        FHE.allowThis(_pendingMorphoPrincipal);
 
         ebool success = FHE.asEbool(true);
         FHE.allowTransient(success, msg.sender);
 
         emit ConfidentialDeposit(from, amount);
+        _requestMorphoPrincipalUnwrapIfReady();
         return success;
     }
 
@@ -157,6 +180,40 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         emit DecryptDelegateUpdated(msg.sender, delegate);
     }
 
+    function setMorphoYieldAdapter(IMorphoPrizeYieldAdapter adapter, uint256 depositBatchSize) external {
+        _onlyOwner();
+        if (depositBatchSize > 0 && address(adapter) == address(0)) revert MorphoYieldAdapterNotSet();
+
+        morphoYieldAdapter = adapter;
+        morphoDepositBatchSize = depositBatchSize;
+
+        emit MorphoYieldAdapterUpdated(address(adapter), depositBatchSize);
+    }
+
+    function supplyFinalizedMorphoPrincipal(uint256 assets) external returns (uint256 shares) {
+        _onlyOwner();
+        IMorphoPrizeYieldAdapter adapter = _requireMorphoYieldAdapter();
+
+        shares = adapter.supplyPoolPrincipal(assets);
+        emit MorphoPrincipalSupplied(assets, shares);
+    }
+
+    function harvestMorphoYield(uint256 maxAssets) external returns (uint256 harvestedAssets) {
+        _onlyOwner();
+        IMorphoPrizeYieldAdapter adapter = _requireMorphoYieldAdapter();
+
+        harvestedAssets = adapter.harvestYieldToPrizePool(maxAssets);
+        emit MorphoYieldHarvested(harvestedAssets);
+    }
+
+    function restoreMorphoPrincipal(uint256 assets) external returns (uint256 restoredAssets) {
+        _onlyOwner();
+        IMorphoPrizeYieldAdapter adapter = _requireMorphoYieldAdapter();
+
+        restoredAssets = adapter.restorePrincipalToPool(assets);
+        emit MorphoPrincipalRestored(restoredAssets);
+    }
+
     function withdraw(externalEuint64 encryptedAmount, bytes calldata inputProof) external returns (euint64) {
         euint64 requested = FHE.fromExternal(encryptedAmount, inputProof);
         euint64 withdrawn = _withdrawPrincipal(msg.sender, requested);
@@ -204,6 +261,27 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         return abi.decode(data, (address));
     }
 
+    function _requestMorphoPrincipalUnwrapIfReady() internal {
+        if (address(morphoYieldAdapter) == address(0) || morphoDepositBatchSize == 0) return;
+        if (morphoPendingDepositCount < morphoDepositBatchSize) return;
+
+        euint64 amount = _pendingMorphoPrincipal;
+        uint256 depositCount = morphoPendingDepositCount;
+
+        _pendingMorphoPrincipal = FHE.asEuint64(0);
+        morphoPendingDepositCount = 0;
+        FHE.allowThis(_pendingMorphoPrincipal);
+        FHE.allow(amount, address(token));
+
+        bytes32 unwrapRequestId = IERC7984ERC20WrapperInternalAmount(address(token)).unwrap(
+            address(this),
+            address(morphoYieldAdapter),
+            amount
+        );
+
+        emit MorphoPrincipalUnwrapRequested(unwrapRequestId, depositCount);
+    }
+
     function _decodePrizeFundingAmount(bytes calldata data) internal pure returns (uint64) {
         if (data.length != 36) revert InvalidPrizeFundingData();
         return abi.decode(data[4:], (uint64));
@@ -227,6 +305,15 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         _participants.push(account);
     }
 
+    function _onlyOwner() internal view {
+        if (msg.sender != owner) revert OnlyOwner();
+    }
+
+    function _requireMorphoYieldAdapter() internal view returns (IMorphoPrizeYieldAdapter adapter) {
+        adapter = morphoYieldAdapter;
+        if (address(adapter) == address(0)) revert MorphoYieldAdapterNotSet();
+    }
+
     function encryptedPrincipalOf(address account) external view returns (euint64) {
         return _principal[account];
     }
@@ -245,6 +332,15 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
 
     function encryptedPrizeReserve() external view returns (euint64) {
         return _prizeReserve;
+    }
+
+    function encryptedPendingMorphoPrincipal() external view returns (euint64) {
+        return _pendingMorphoPrincipal;
+    }
+
+    function morphoAccruedYieldAssets() external view returns (uint256) {
+        if (address(morphoYieldAdapter) == address(0)) return 0;
+        return morphoYieldAdapter.accruedYieldAssets();
     }
 
     function participantCount() external view returns (uint256) {
