@@ -1,42 +1,39 @@
 # TODO
 
-## Frontend: deposit and withdraw bottom sheet validation
+## Frontend: deposit and withdraw confirmation bottom sheets
 
 Status: queued for the judge-facing frontend work.
 
-Goal: before a user confirms a deposit or withdrawal from the bottom sheet,
-validate the action and show clear, user-safe feedback without exposing protocol
-implementation details in product copy.
+Goal: show a bottom sheet before a user submits a deposit or withdrawal so they
+can review the action, understand the account impact, and explicitly confirm.
 
-Deposit validation should cover:
+Deposit confirmation should show:
 
-- Connected account and supported network are ready.
-- Amount is present, positive, and within token decimal precision.
-- User has enough available token balance for the requested deposit.
-- Required allowance, wrapping, or account setup step is missing or ready.
-- The pool is currently accepting deposits.
-- Zama encrypted input/proof preparation is ready before the transaction is
-  submitted.
+- Deposit amount.
+- Estimated eligible balance after the deposit.
+- Any required preparation step, such as approval, wrapping, or account setup.
+- A clear primary action to confirm and submit the deposit.
+- A secondary action to go back and edit the amount.
 
-Withdrawal validation should cover:
+Withdrawal confirmation should show:
 
-- Connected account and supported network are ready.
-- Amount is present, positive, and within token decimal precision.
-- User has enough available principal for the requested withdrawal, based on the
-  app's latest known account state.
-- The withdrawal flow can proceed while a draw or claim state is in progress.
-- Zama encrypted input/proof preparation is ready before the transaction is
-  submitted.
+- Withdrawal amount.
+- Estimated eligible balance after the withdrawal.
+- Whether the withdrawal affects eligibility for the current draw.
+- A clear primary action to confirm and submit the withdrawal.
+- A secondary action to go back and edit the amount.
 
 UX notes:
 
 - Keep copy short, concrete, and product-facing. Avoid implementation/privacy
   words banned by `AGENTS.md`.
-- Disable the primary confirm action until blocking validation passes.
-- Prefer inline field errors for amount issues and bottom-sheet level alerts for
-  account, network, allowance, or app-state blockers.
-- Re-check validation immediately before submit so stale balance or allowance
+- The amount entry view should handle field-level errors before opening the
+  confirmation sheet.
+- The confirmation sheet can show blocking account, network, balance, allowance,
+  or app-state issues if they appear after the sheet opens.
+- Re-check readiness immediately before submit so stale balance or allowance
   data cannot launch a doomed transaction.
+- After submit, close or collapse the sheet into the background action flow.
 
 ## Frontend: background async actions
 
