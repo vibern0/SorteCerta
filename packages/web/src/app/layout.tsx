@@ -76,6 +76,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
+// Root shell for app fonts, providers, header, and page content.
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${ramillas.variable} ${interphasesMono.variable}`}>

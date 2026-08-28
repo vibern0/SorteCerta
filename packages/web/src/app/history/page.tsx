@@ -14,6 +14,7 @@ type DrawRow = {
   fulfilled: boolean;
 };
 
+// History page for recent draws from the legacy plaintext prize pool.
 export default function HistoryPage() {
   const [maxId, setMaxId] = useState<bigint>(0n);
   const [fetched, setFetched] = useState<DrawRow[]>([]);

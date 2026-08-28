@@ -46,6 +46,7 @@ function getErrorMessage(error: unknown) {
     : message;
 }
 
+// Admin page for sponsor funding and closing ready prize rounds.
 export default function AdminPage() {
   const { session } = useWallet();
   const toast = useToast();
