@@ -18,9 +18,12 @@ import { getZamaInstance } from "@/lib/zama";
 import { useToast } from "@/components/Toast";
 import { AmountInput } from "@/components/AmountInput";
 import { LoadingAmount } from "@/components/LoadingAmount";
+import { useActionCenter } from "@/components/ActionCenter";
+import type { ActionPatch } from "@/lib/action-center-model";
 
 type Status = "idle" | "working" | "success" | "error";
 type WorkingAction = "deposit" | "withdraw" | "pending" | undefined;
+type SheetStep = "entry" | "confirm";
 
 const PENDING_UNWRAPS_STORAGE_PREFIX = "sortecerta:pending-unwraps";
 const UNWRAP_LOG_LOOKBACK_BLOCKS = 512n;
@@ -94,6 +97,7 @@ export default function SavingsPage() {
     refreshConfidentialBalances,
   } = useWallet();
   const toast = useToast();
+  const { runAction } = useActionCenter();
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -101,8 +105,8 @@ export default function SavingsPage() {
   const [usdcBalance, setUsdcBalance] = useState<bigint | undefined>();
   const [allowance, setAllowance] = useState<bigint | undefined>();
   const [pendingUnwraps, setPendingUnwraps] = useState<PendingUnwrap[]>([]);
-  const [depositSheetOpen, setDepositSheetOpen] = useState(false);
-  const [withdrawSheetOpen, setWithdrawSheetOpen] = useState(false);
+  const [depositSheetStep, setDepositSheetStep] = useState<SheetStep>();
+  const [withdrawSheetStep, setWithdrawSheetStep] = useState<SheetStep>();
 
   const addresses = useMemo(
     () => ({
@@ -130,15 +134,15 @@ export default function SavingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.address, poolReady]);
 
-  const sheetOpen = depositSheetOpen || withdrawSheetOpen;
+  const sheetOpen = Boolean(depositSheetStep || withdrawSheetStep);
 
   useEffect(() => {
     if (!sheetOpen) return;
 
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setDepositSheetOpen(false);
-        setWithdrawSheetOpen(false);
+        setDepositSheetStep(undefined);
+        setWithdrawSheetStep(undefined);
       }
     }
 
@@ -190,13 +194,14 @@ export default function SavingsPage() {
     });
     const requestId = events.at(-1)?.args.unwrapRequestId;
     if (requestId) {
-        const token = asAddress(addresses.confidentialUsdc, "Savings token");
+      const token = asAddress(addresses.confidentialUsdc, "Savings token");
       setPendingUnwraps((current) => {
         const next = [{ requestId, txHash: receipt.transactionHash }, ...current.filter((request) => request.requestId !== requestId)];
         writeStoredPendingUnwraps(token, user, next);
         return next;
       });
     }
+    return requestId;
   }
 
   async function getUnwrapLogs(
@@ -205,7 +210,7 @@ export default function SavingsPage() {
     fromBlock: bigint,
     toBlock: bigint,
   ) {
-      const token = asAddress(addresses.confidentialUsdc, "Savings token");
+    const token = asAddress(addresses.confidentialUsdc, "Savings token");
     const chunkSize = 1_000n;
     const logs = [];
 
@@ -319,10 +324,9 @@ export default function SavingsPage() {
     await refreshPendingUnwraps(user);
   }
 
-  async function depositConfidential() {
+  async function depositConfidential(value: bigint, update: (patch: ActionPatch) => void) {
     const currentSession = activeSession();
     const user = currentSession.address;
-    const value = parseUSDC(depositAmount);
     if (value === 0n) throw new Error("Valor invalido.");
     if (!poolReady) throw new Error("Deposits are unavailable right now.");
 
@@ -364,18 +368,20 @@ export default function SavingsPage() {
     }
     calls.push({ to: token, data });
 
+    update({ status: "waiting-wallet" });
     const tx = await sendSmartTransactionBatch(currentSession, calls);
+    update({ status: "submitted", txHash: tx });
+    update({ status: "confirming" });
     await publicClient.waitForTransactionReceipt({ hash: tx });
+    update({ status: "updating" });
     setDepositAmount("");
-    setDepositSheetOpen(false);
     await refreshConfidentialBalances();
     await refreshBalances(user);
   }
 
-  async function withdrawConfidential() {
+  async function withdrawConfidential(value: bigint, update: (patch: ActionPatch) => void) {
     const currentSession = activeSession();
     const user = currentSession.address;
-    const value = parseUSDC(withdrawAmount);
     if (value === 0n) throw new Error("Valor invalido.");
     if (!poolReady) throw new Error("Withdrawals are unavailable right now.");
 
@@ -387,16 +393,91 @@ export default function SavingsPage() {
       functionName: "withdrawToUsdc",
       args: [toHex(encrypted.handles[0]) as `0x${string}`, toHex(encrypted.inputProof), user],
     });
-    const receipt = await sendTx(currentSession, pool, data);
-    rememberUnwrapRequest(receipt, user);
+    update({ status: "waiting-wallet" });
+    const tx = await sendSmartTransaction(currentSession, pool, data);
+    update({ status: "submitted", txHash: tx });
+    update({ status: "confirming" });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+    update({ status: "updating" });
+    const requestId = rememberUnwrapRequest(receipt, user);
+    if (requestId) update({ requestId });
     await refreshBalances(user);
     setWithdrawAmount("");
     await refreshConfidentialBalances();
   }
 
   function closeSheets() {
-    setDepositSheetOpen(false);
-    setWithdrawSheetOpen(false);
+    setDepositSheetStep(undefined);
+    setWithdrawSheetStep(undefined);
+  }
+
+  function parsedAmount(value: string) {
+    try {
+      return parseUSDC(value);
+    } catch {
+      return 0n;
+    }
+  }
+
+  const parsedDepositAmount = parsedAmount(depositAmount);
+  const parsedWithdrawAmount = parsedAmount(withdrawAmount);
+  const depositNeedsApproval = parsedDepositAmount > 0n && (allowance ?? 0n) < parsedDepositAmount;
+  const depositBalanceAfter =
+    usdcBalance === undefined || parsedDepositAmount > usdcBalance ? undefined : usdcBalance - parsedDepositAmount;
+  const depositPoolAfter =
+    principal === undefined || parsedDepositAmount === 0n ? principal : principal + parsedDepositAmount;
+  const withdrawPoolAfter =
+    principal === undefined || parsedWithdrawAmount > principal ? undefined : principal - parsedWithdrawAmount;
+
+  function reviewDeposit() {
+    if (parsedDepositAmount === 0n) {
+      toast({ tone: "error", title: "Enter an amount first." });
+      return;
+    }
+    if (usdcBalance !== undefined && parsedDepositAmount > usdcBalance) {
+      toast({ tone: "error", title: "Amount is above your wallet balance." });
+      return;
+    }
+    setDepositSheetStep("confirm");
+  }
+
+  function reviewWithdraw() {
+    if (parsedWithdrawAmount === 0n) {
+      toast({ tone: "error", title: "Enter an amount first." });
+      return;
+    }
+    if (principal !== undefined && parsedWithdrawAmount > principal) {
+      toast({ tone: "error", title: "Amount is above your pool balance." });
+      return;
+    }
+    setWithdrawSheetStep("confirm");
+  }
+
+  function runTrackedTransaction(
+    label: string,
+    type: "deposit" | "withdraw",
+    action: (update: (patch: ActionPatch) => void) => Promise<void>,
+    ok: string,
+  ) {
+    closeSheets();
+    runAction(
+      {
+        label,
+        type,
+        account: session?.address,
+      },
+      async ({ update }) => {
+        try {
+          await action(update);
+          update({ status: "completed" });
+          toast({ tone: "success", title: ok });
+        } catch (error) {
+          const errorMessage = getErrorMessage(error);
+          update({ status: "failed", error: errorMessage });
+          toast({ tone: "error", title: "Transaction failed", description: errorMessage });
+        }
+      },
+    );
   }
 
   async function run(action: () => Promise<void>, ok: string, currentAction?: WorkingAction) {
@@ -456,8 +537,8 @@ export default function SavingsPage() {
       <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
-          onClick={() => setDepositSheetOpen(true)}
-          disabled={!session || !poolReady || status === "working"}
+          onClick={() => setDepositSheetStep("entry")}
+          disabled={!session || !poolReady}
           className="btn-primary w-full"
         >
           <svg
@@ -479,8 +560,8 @@ export default function SavingsPage() {
 
         <button
           type="button"
-          onClick={() => setWithdrawSheetOpen(true)}
-          disabled={!showWithdraw || status === "working"}
+          onClick={() => setWithdrawSheetStep("entry")}
+          disabled={!showWithdraw}
           className="btn-secondary w-full"
         >
           <svg
@@ -501,7 +582,7 @@ export default function SavingsPage() {
         </button>
       </div>
 
-      {depositSheetOpen && (
+      {depositSheetStep && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-text/35 px-4 pb-4 backdrop-blur-sm">
           <button
             type="button"
@@ -551,34 +632,72 @@ export default function SavingsPage() {
               value={depositAmount}
               onChange={setDepositAmount}
               onMax={() => setDepositAmount(usdcBalance !== undefined ? formatUSDC(usdcBalance, 6) : "0")}
-              disabled={workingAction === "deposit"}
+              disabled={depositSheetStep === "confirm"}
             />
 
-            <button
-              onClick={() =>
-                void run(
-                  depositConfidential,
-                  `Your ${depositAmount || "0"} USDC deposit is confirmed.`,
-                  "deposit",
-                )
-              }
-              disabled={!session || !poolReady || status === "working"}
-              className="btn-primary w-full"
-            >
-              {workingAction === "deposit" ? (
-                <>
-                  <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                "Deposit USDC"
-              )}
-            </button>
+            {depositSheetStep === "entry" ? (
+              <button
+                onClick={reviewDeposit}
+                disabled={!session || !poolReady}
+                className="btn-primary w-full"
+              >
+                Review deposit
+              </button>
+            ) : (
+              <div className="space-y-4">
+                <div className="rounded-3xl border border-white/55 bg-white/35 p-4">
+                  <p className="label">Confirm</p>
+                  <div className="mt-3 space-y-2 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-muted">Deposit</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(parsedDepositAmount, 6)} USDC</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-muted">Wallet after</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(depositBalanceAfter)} USDC</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-muted">Pool after</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(depositPoolAfter)} cUSDC</span>
+                    </div>
+                  </div>
+                  {depositNeedsApproval && (
+                    <p className="mt-3 rounded-2xl bg-white/45 px-3 py-2 text-xs text-muted">
+                      Your wallet will ask for a preparation step before the deposit.
+                    </p>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    className="btn-secondary !px-3"
+                    onClick={() => setDepositSheetStep("entry")}
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary !px-3"
+                    disabled={!session || !poolReady}
+                    onClick={() =>
+                      runTrackedTransaction(
+                        `Deposit ${formatUSDC(parsedDepositAmount, 6)} USDC`,
+                        "deposit",
+                        (update) => depositConfidential(parsedDepositAmount, update),
+                        "Deposit complete.",
+                      )
+                    }
+                  >
+                    Confirm
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {withdrawSheetOpen && (
+      {withdrawSheetStep && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-text/35 px-4 pb-4 backdrop-blur-sm">
           <button
             type="button"
@@ -629,31 +748,63 @@ export default function SavingsPage() {
                 value={withdrawAmount}
                 onChange={setWithdrawAmount}
                 onMax={() => setWithdrawAmount(principal !== undefined ? formatUSDC(principal, 6) : "0")}
-                disabled={workingAction === "withdraw"}
+                disabled={withdrawSheetStep === "confirm"}
               />
             )}
 
-            {hasWithdrawablePrincipal && (
+            {hasWithdrawablePrincipal && withdrawSheetStep === "entry" && (
               <button
-                onClick={() =>
-                  void run(
-                    withdrawConfidential,
-                    "Withdrawal requested.",
-                    "withdraw",
-                  )
-                }
+                onClick={reviewWithdraw}
                 disabled={!session || !poolReady || status === "working"}
                 className="btn-secondary w-full"
               >
-                {workingAction === "withdraw" ? (
-                  <>
-                    <span className="w-4 h-4 rounded-full border-2 border-text/20 border-t-text animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  "Withdraw to USDC"
-                )}
+                Review withdrawal
               </button>
+            )}
+
+            {hasWithdrawablePrincipal && withdrawSheetStep === "confirm" && (
+              <div className="space-y-4">
+                <div className="rounded-3xl border border-white/55 bg-white/35 p-4">
+                  <p className="label">Confirm</p>
+                  <div className="mt-3 space-y-2 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-muted">Withdraw</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(parsedWithdrawAmount, 6)} cUSDC</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-muted">Pool after</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(withdrawPoolAfter)} cUSDC</span>
+                    </div>
+                  </div>
+                  <p className="mt-3 rounded-2xl bg-white/45 px-3 py-2 text-xs text-muted">
+                    Your draw chances update after this action finishes.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    className="btn-secondary !px-3"
+                    onClick={() => setWithdrawSheetStep("entry")}
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary !px-3"
+                    disabled={!session || !poolReady}
+                    onClick={() =>
+                      runTrackedTransaction(
+                        `Withdraw ${formatUSDC(parsedWithdrawAmount, 6)} cUSDC`,
+                        "withdraw",
+                        (update) => withdrawConfidential(parsedWithdrawAmount, update),
+                        "Withdrawal requested.",
+                      )
+                    }
+                  >
+                    Confirm
+                  </button>
+                </div>
+              </div>
             )}
 
             {pendingUnwraps.length > 0 && (

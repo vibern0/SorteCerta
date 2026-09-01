@@ -1,0 +1,102 @@
+export const ACTION_HISTORY_LIMIT = 12;
+
+export type AsyncActionType =
+  | "deposit"
+  | "withdraw"
+  | "claim"
+  | "faucet"
+  | "approval"
+  | "wrap"
+  | "draw"
+  | "check"
+  | "pending";
+
+export type AsyncActionStatus =
+  | "preparing"
+  | "waiting-wallet"
+  | "submitted"
+  | "confirming"
+  | "updating"
+  | "completed"
+  | "failed"
+  | "dismissed";
+
+export type AsyncAction = {
+  id: string;
+  label: string;
+  type: AsyncActionType;
+  status: AsyncActionStatus;
+  account?: string;
+  txHash?: string;
+  requestId?: string;
+  error?: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type NewAsyncAction = {
+  id?: string;
+  label: string;
+  type: AsyncActionType;
+  account?: string;
+  txHash?: string;
+  requestId?: string;
+  createdAt?: number;
+};
+
+export type ActionPatch = Partial<
+  Pick<AsyncAction, "status" | "txHash" | "requestId" | "error" | "updatedAt">
+>;
+
+export function isFinalActionStatus(status: AsyncActionStatus) {
+  return status === "completed" || status === "failed" || status === "dismissed";
+}
+
+export function createActionId(createdAt = Date.now()) {
+  const random =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+  return `${createdAt}-${random}`;
+}
+
+export function trimActionHistory(actions: AsyncAction[]) {
+  return [...actions]
+    .sort((left, right) => right.updatedAt - left.updatedAt)
+    .slice(0, ACTION_HISTORY_LIMIT);
+}
+
+export function addAction(actions: AsyncAction[], input: NewAsyncAction): AsyncAction[] {
+  const createdAt = input.createdAt ?? Date.now();
+  const action: AsyncAction = {
+    id: input.id ?? createActionId(createdAt),
+    label: input.label,
+    type: input.type,
+    account: input.account,
+    txHash: input.txHash,
+    requestId: input.requestId,
+    status: "preparing",
+    createdAt,
+    updatedAt: createdAt,
+  };
+
+  return trimActionHistory([action, ...actions]);
+}
+
+export function updateAction(actions: AsyncAction[], id: string, patch: ActionPatch): AsyncAction[] {
+  return trimActionHistory(
+    actions.map((action) =>
+      action.id === id
+        ? {
+            ...action,
+            ...patch,
+            updatedAt: patch.updatedAt ?? Date.now(),
+          }
+        : action,
+    ),
+  );
+}
+
+export function dismissAction(actions: AsyncAction[], id: string): AsyncAction[] {
+  return actions.filter((action) => action.id !== id || !isFinalActionStatus(action.status));
+}
