@@ -1,3 +1,5 @@
+const path = require("node:path");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -17,6 +19,13 @@ const nextConfig = {
         ],
       },
     ];
+  },
+  webpack(config) {
+    config.resolve.alias["@segment/analytics-next"] = path.resolve(
+      __dirname,
+      "src/lib/segment-noop.ts"
+    );
+    return config;
   },
 };
 
