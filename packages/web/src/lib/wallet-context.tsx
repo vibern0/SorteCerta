@@ -18,6 +18,7 @@ import {
   isPimlicoConfigured,
 } from "./web3auth";
 import { decryptConfidentialBalances } from "./confidential-balances";
+import { getWalletErrorMessage } from "./wallet-errors";
 
 type WalletState = {
   session: SmartSession | null;
@@ -43,7 +44,7 @@ const WalletContext = createContext<WalletContextValue | null>(null);
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<WalletState>({
     session: null,
-    connecting: true,
+    connecting: false,
     error: null,
     ready: false,
   });
@@ -114,11 +115,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       const session = await connectSmartAccount();
       setState({ session, connecting: false, error: null, ready: true });
-    } catch {
+    } catch (error) {
       setState((s) => ({
         ...s,
         connecting: false,
-        error: "Could not sign you in.",
+        error: getWalletErrorMessage(error),
       }));
     }
   }, []);
