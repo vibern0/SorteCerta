@@ -46,6 +46,7 @@ async function getWeb3Auth(): Promise<Web3Auth> {
   const options: Web3AuthOptions = {
     clientId: process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID ?? "",
     web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
+    disableAnalytics: true,
     chains: [
       {
         chainNamespace: CHAIN_NAMESPACES.EIP155,
