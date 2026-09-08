@@ -98,7 +98,7 @@ export default function HistoryPage() {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted">Prize</span>
                 <span className="font-semibold tabular-nums">
-                  {formatUSDC(d.prizeAmount)} USDC
+                  {formatUSDC(d.prizeAmount, 6)} USDC
                 </span>
               </div>
               {d.fulfilled && (
