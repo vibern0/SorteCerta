@@ -8,6 +8,9 @@ export function formatUSDC(amount: bigint | undefined, maxDecimals = 2): string 
 }
 
 export function formatUSDCCompact(amount: bigint | undefined): string {
+  if (amount !== undefined && amount > 0n && amount < 10_000n) {
+    return formatUSDC(amount, 6).replace(/0+$/, "");
+  }
   return formatUSDC(amount, 2);
 }
 

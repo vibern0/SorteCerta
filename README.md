@@ -92,7 +92,7 @@ Current confidential deployment:
 - **ConfidentialUSDC:** `0x47E6c485506C6b1F97872028f127a2943B5559c3`
 - **ConfidentialPrizePool:** `0x1A31302BDEF9f21E897dbe1c32BDCE90b68B8085`
 - **Chain:** Ethereum Sepolia (`11155111`)
-- **Draw interval:** `300` seconds for demo testing
+- **Draw interval:** `900` seconds for Morpho-yield demo testing
 
 Frontend env values:
 
@@ -174,7 +174,8 @@ tracked principal. When the owner/keeper calls `harvestMorphoYield(maxAssets)`,
 the pool instructs the adapter to withdraw only that surplus, wrap it back into
 `cUSDC`, and send it to `ConfidentialPrizePool` using the existing
 `PRIZE_FUNDING_DATA` callback. The pool then holds the harvested yield as the
-active prize reserve.
+active prize reserve. The smallest harvestable prize is one USDC base unit:
+`0.000001 USDC`.
 
 If the pool needs more withdrawal liquidity, the owner/keeper calls
 `restoreMorphoPrincipal(assets)`. The adapter withdraws principal from Morpho,
