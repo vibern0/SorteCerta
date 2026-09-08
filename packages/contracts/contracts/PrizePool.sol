@@ -52,6 +52,7 @@ contract PrizePool is Ownable, ReentrancyGuard {
     error ZeroAmount();
     error DrawEnded();
 
+    /// @notice Creates the prize pool and starts the first draw.
     constructor(
         address _vault,
         address _usdc,
@@ -65,10 +66,12 @@ contract PrizePool is Ownable, ReentrancyGuard {
 
     // ─── Views ──────────────────────────────────────────────────────────────
 
+    /// @notice Returns the active draw.
     function currentDraw() external view returns (Draw memory) {
         return draws[currentDrawId];
     }
 
+    /// @notice Returns all participant addresses for a draw.
     function getParticipants(uint256 drawId) external view returns (address[] memory) {
         return _participants[drawId].values();
     }
@@ -140,6 +143,7 @@ contract PrizePool is Ownable, ReentrancyGuard {
         _startNewDraw();
     }
 
+    /// @notice Starts the next draw period.
     function _startNewDraw() internal {
         currentDrawId += 1;
         Draw storage d = draws[currentDrawId];
@@ -150,6 +154,7 @@ contract PrizePool is Ownable, ReentrancyGuard {
         emit DrawStarted(currentDrawId, d.startTime, d.endTime);
     }
 
+    /// @notice Picks and pays the weighted winner for a closed draw.
     function _pickWinner(uint256 drawId, uint256 randomWord) internal {
         Draw storage d = draws[drawId];
 

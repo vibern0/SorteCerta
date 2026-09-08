@@ -8,6 +8,7 @@ import { useCurrentDraw, useUSDCBalance } from "@/lib/usePoolData";
 import { useWallet } from "@/lib/wallet-context";
 import { formatUSDC } from "@/lib/format";
 
+// Home page summary for the active draw, account balances, and next action.
 export default function HomePage() {
   const {
     session,

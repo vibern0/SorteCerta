@@ -6,6 +6,7 @@ import { formatUSDC, shortAddress } from "@/lib/format";
 import { ConnectButton } from "@/components/ConnectButton";
 import { LoadingAmount } from "@/components/LoadingAmount";
 
+// Profile page for wallet status, account details, and balance summary.
 export default function ProfilePage() {
   const {
     session,
