@@ -47,6 +47,7 @@ async function getWeb3Auth(): Promise<Web3Auth> {
     clientId: process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID ?? "",
     web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
     disableAnalytics: true,
+    sessionTime: 60 * 60 * 24 * 7,
     chains: [
       {
         chainNamespace: CHAIN_NAMESPACES.EIP155,
