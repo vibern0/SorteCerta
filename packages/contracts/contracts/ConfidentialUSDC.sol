@@ -9,6 +9,7 @@ import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /// @notice ERC-7984 wrapper for USDC on Sepolia, or MockUSDC in local tests.
 contract ConfidentialUSDC is ZamaEthereumConfig, ERC7984ERC20Wrapper, Multicall {
+    /// @notice Creates the cUSDC wrapper around the configured ERC-20.
     constructor(IERC20 underlying)
         ERC7984("Confidential USDC", "cUSDC", "https://sortecerta.local/cusdc")
         ERC7984ERC20Wrapper(underlying)

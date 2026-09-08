@@ -11,5 +11,6 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 ///         For the MVP on Sepolia, no real yield source is plugged in. Prizes
 ///         are funded by anyone calling PrizePool.fundPrizePool().
 contract Vault is ERC4626 {
+    /// @notice Creates the vault share token for the underlying USDC asset.
     constructor(IERC20 asset_) ERC20("Vault USDC Shares", "vUSDC") ERC4626(asset_) {}
 }

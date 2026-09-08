@@ -46,6 +46,8 @@ async function getWeb3Auth(): Promise<Web3Auth> {
   const options: Web3AuthOptions = {
     clientId: process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID ?? "",
     web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
+    disableAnalytics: true,
+    sessionTime: 60 * 60 * 24 * 7,
     chains: [
       {
         chainNamespace: CHAIN_NAMESPACES.EIP155,
@@ -103,8 +105,7 @@ export type SmartSession = {
 
 async function createSmartSession(
   w3a: Web3Auth,
-  provider: NonNullable<Web3Auth["provider"]>,
-  requestAccounts = false
+  provider: NonNullable<Web3Auth["provider"]>
 ): Promise<SmartSession> {
   const providerState = provider as any;
   let ownerAccounts = Array.isArray(providerState.state?.accounts)
@@ -113,9 +114,9 @@ async function createSmartSession(
   if (ownerAccounts.length === 0 && providerState.selectedAddress) {
     ownerAccounts = [providerState.selectedAddress];
   }
-  if (ownerAccounts.length === 0 && requestAccounts) {
+  if (ownerAccounts.length === 0) {
     ownerAccounts = (await provider.request({
-      method: "eth_requestAccounts",
+      method: "eth_accounts",
     })) as string[];
   }
   if (!ownerAccounts[0]) throw new Error("Web3Auth returned no owner account");
@@ -170,7 +171,7 @@ export async function connectSmartAccount(): Promise<SmartSession> {
   const w3a = await getWeb3Auth();
   const provider = w3a.connected ? w3a.provider : await w3a.connect();
   if (!provider) throw new Error("Web3Auth returned no provider");
-  return createSmartSession(w3a, provider, true);
+  return createSmartSession(w3a, provider);
 }
 
 /**
