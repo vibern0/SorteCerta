@@ -52,6 +52,10 @@ export function isFinalActionStatus(status: AsyncActionStatus) {
   return status === "completed" || status === "failed" || status === "dismissed";
 }
 
+export function countPendingActions(actions: AsyncAction[]) {
+  return actions.filter((action) => !isFinalActionStatus(action.status)).length;
+}
+
 export function createActionId(createdAt = Date.now()) {
   const random =
     typeof crypto !== "undefined" && "randomUUID" in crypto

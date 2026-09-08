@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   ACTION_HISTORY_LIMIT,
   addAction,
+  countPendingActions,
   dismissAction,
   updateAction,
 } from "../src/lib/action-center-model.ts";
@@ -63,4 +64,12 @@ test("dismisses only completed or failed actions", () => {
   });
 
   assert.equal(dismissAction(completed, running.id).length, 0);
+});
+
+test("counts only pending actions for the activity access point", () => {
+  const [running] = addAction([], { ...baseAction, label: "Deposit", type: "deposit", createdAt: 1_000 });
+  const [createdFailure] = addAction([], { ...baseAction, label: "Withdraw", type: "withdraw", createdAt: 2_000 });
+  const [failed] = updateAction([createdFailure], createdFailure.id, { status: "failed", updatedAt: 2_500 });
+
+  assert.equal(countPendingActions([running, failed]), 1);
 });

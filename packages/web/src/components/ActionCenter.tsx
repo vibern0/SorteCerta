@@ -12,6 +12,7 @@ import {
 } from "react";
 import {
   addAction,
+  countPendingActions,
   createActionId,
   dismissAction as dismissActionRecord,
   isFinalActionStatus,
@@ -101,10 +102,6 @@ function formatTime(timestamp: number) {
   }).format(new Date(timestamp));
 }
 
-function getLiveCount(actions: AsyncAction[]) {
-  return actions.filter((action) => !isFinalActionStatus(action.status)).length;
-}
-
 export function ActionCenterProvider({ children }: { children: ReactNode }) {
   const [actions, setActions] = useState<AsyncAction[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -184,12 +181,17 @@ export function ActionCenterProvider({ children }: { children: ReactNode }) {
     [actions, dismissTrackedAction, retryTrackedAction, runAction, updateTrackedAction],
   );
 
-  const liveCount = getLiveCount(actions);
+  const liveCount = countPendingActions(actions);
+  const pendingActions = actions.filter((action) => !isFinalActionStatus(action.status));
+
+  useEffect(() => {
+    if (liveCount === 0) setSheetOpen(false);
+  }, [liveCount]);
 
   return (
     <ActionCenterContext.Provider value={value}>
       {children}
-      {actions.length > 0 && (
+      {liveCount > 0 && (
         <div className="pointer-events-none fixed inset-x-0 bottom-5 z-40 mx-auto flex w-full max-w-[480px] justify-end px-5">
           <button
             type="button"
@@ -212,7 +214,7 @@ export function ActionCenterProvider({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      {sheetOpen && (
+      {sheetOpen && liveCount > 0 && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-text/30 px-4 pb-4 backdrop-blur-sm">
           <button
             type="button"
@@ -231,7 +233,7 @@ export function ActionCenterProvider({ children }: { children: ReactNode }) {
               <div>
                 <p className="label">Activity</p>
                 <h2 id="activity-sheet-title" className="font-display text-xl font-bold">
-                  Recent actions
+                  Pending actions
                 </h2>
               </div>
               <button
@@ -244,11 +246,11 @@ export function ActionCenterProvider({ children }: { children: ReactNode }) {
               </button>
             </div>
 
-            {actions.length === 0 ? (
-              <p className="text-sm text-muted">No recent actions.</p>
+            {pendingActions.length === 0 ? (
+              <p className="text-sm text-muted">No pending actions.</p>
             ) : (
               <div className="space-y-2">
-                {actions.map((action) => (
+                {pendingActions.map((action) => (
                   <div key={action.id} className="rounded-3xl border border-white/55 bg-white/35 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -268,26 +270,6 @@ export function ActionCenterProvider({ children }: { children: ReactNode }) {
                       </div>
                     )}
 
-                    {isFinalActionStatus(action.status) && (
-                      <div className="mt-3 flex gap-3">
-                        {action.status === "failed" && runnersRef.current.has(action.id) && (
-                          <button
-                            type="button"
-                            className="btn-ghost !px-0 !py-1 !text-xs"
-                            onClick={() => retryTrackedAction(action.id)}
-                          >
-                            Retry
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className="btn-ghost !px-0 !py-1 !text-xs"
-                          onClick={() => dismissTrackedAction(action.id)}
-                        >
-                          Dismiss
-                        </button>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
