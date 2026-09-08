@@ -13,3 +13,9 @@ test("does not request accounts after Web3Auth connect", () => {
 
   assert.doesNotMatch(source, /eth_requestAccounts/);
 });
+
+test("keeps Web3Auth sessions alive across page reloads", () => {
+  const source = readFileSync(new URL("../src/lib/web3auth.ts", import.meta.url), "utf8");
+
+  assert.match(source, /sessionTime:\s*60\s*\*\s*60\s*\*\s*24\s*\*\s*7/);
+});
