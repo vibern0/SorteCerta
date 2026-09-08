@@ -3,6 +3,8 @@
 Mobile-first PWA. Next.js 14 (App Router) + Tailwind + wagmi v2 + Web3Auth +
 permissionless (Safe smart account) + Pimlico.
 
+Live app: https://sortecerta.netlify.app
+
 ## Stack
 
 - **Next.js 14** — App Router, RSC where it makes sense, `"use client"` for

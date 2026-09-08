@@ -2,6 +2,8 @@
 
 > Your savings, with a chance to win. Test version on Ethereum Sepolia.
 
+**Live app:** https://sortecerta.netlify.app
+
 Mobile-first confidential prize-savings app for the Zama Developer Program
 Mainnet Season 4 bounty. SorteCerta recreates the core PoolTogether no-loss
 mechanic on Ethereum Sepolia using Zama FHE; it does not integrate with the
@@ -86,6 +88,13 @@ claims, Morpho yield routing, and the old plaintext prototype.
 
 ## Sepolia deployment
 
+Frontend:
+
+- **Live app:** https://sortecerta.netlify.app
+- **Host:** Netlify
+- **Status:** login, deposit, draw, claim, withdraw, and unwrap flow verified
+  end to end on the deployed app
+
 Current confidential deployment:
 
 - **USDC underlying:** `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`
@@ -134,6 +143,21 @@ Useful example transactions:
 
 Explorer links use the Sepolia Etherscan transaction URL format:
 `https://sepolia.etherscan.io/tx/<hash>`.
+
+## How to test the live app
+
+Use the hosted app at https://sortecerta.netlify.app.
+
+1. Create an account in the app.
+2. Fund that account with Circle's faucet: https://faucet.circle.com.
+3. Deposit some funds for saving. To test weighted winner selection, repeat
+   this with more than one account.
+4. Go to the admin tab and close the current round. A new round starts
+   automatically.
+5. Fund the new round from the admin tab.
+6. Wait for the round to end, close it, then check and claim any prize.
+7. Fund each new round before testing it. This sponsor-funded amount stands in
+   for the yield that would fund prizes in a production PoolTogether-style pool.
 
 ## Architecture
 
@@ -280,8 +304,8 @@ Important current limitations:
 
 ## Current implementation status
 
-- **Confidential lifecycle is in progress and is the active bounty
-  implementation.** `ConfidentialUSDC` wraps USDC as ERC-7984, and
+- **Confidential lifecycle is deployed and working end to end on Sepolia.**
+  `ConfidentialUSDC` wraps USDC as ERC-7984, and
   `ConfidentialPrizePool` supports encrypted deposits, encrypted-amount
   withdrawals, public mocked prize funding, encrypted winnings, claim, and
   Zama EIP-712 user decryption from the frontend.
@@ -318,11 +342,9 @@ Important current limitations:
 
 ## Where to go from here
 
-1. Finish the judge-facing confidential frontend: faucet/onboarding, prize
-   funding, close draw, decrypt winnings, claim, withdraw, and unwrap.
-2. Deploy `ConfidentialUSDC` and `ConfidentialPrizePool` to Ethereum Sepolia.
-3. Run a clean-browser, multi-wallet Sepolia test of deposit, decrypt, fund,
-   close, claim, withdraw, and finalize unwrap.
-4. Document leakage, sponsor-funded mocked prize/yield, faucet, keeper flow, and
-   deployed addresses.
-5. Record the real-person demo and publish the X thread/article.
+1. Keep the funded Netlify app and Sepolia contracts available for judges:
+   https://sortecerta.netlify.app.
+2. Record the real-person demo using the verified hosted flow.
+3. Publish the X thread/article and add the final link here.
+4. Continue hardening after submission: draw-start snapshots, larger participant
+   sets, real yield integration, and production legal review.

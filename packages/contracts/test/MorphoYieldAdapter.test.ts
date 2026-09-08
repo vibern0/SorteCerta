@@ -76,6 +76,11 @@ describe("MorphoYieldAdapter", function () {
       );
   }
 
+  async function encryptedWithdraw(pool: any, poolAddress: string, user: any, amount: bigint) {
+    const encryptedAmount = await fhevm.createEncryptedInput(poolAddress, user.address).add64(amount).encrypt();
+    await pool.connect(user).withdraw(encryptedAmount.handles[0], encryptedAmount.inputProof);
+  }
+
   it("batches pool deposits into one principal unwrap request", async function () {
     const { owner, keeper, usdc, confidentialUsdc, pool, adapter } = await deployFixture();
     const users = [owner, keeper];
@@ -117,6 +122,21 @@ describe("MorphoYieldAdapter", function () {
 
     const pending = await pool.encryptedPendingMorphoPrincipal();
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, pending)).to.equal(0n);
+  });
+
+  it("removes withdrawals from pending Morpho principal before a batch unwrap", async function () {
+    const { owner, usdc, confidentialUsdc, pool } = await deployFixture();
+    const confidentialUsdcAddress = await confidentialUsdc.getAddress();
+    const poolAddress = await pool.getAddress();
+
+    await usdc.connect(owner).approve(confidentialUsdcAddress, USDC(4));
+    await confidentialUsdc.connect(owner).wrap(owner.address, USDC(4));
+
+    await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, owner, USDC(4));
+    await encryptedWithdraw(pool, poolAddress, owner, USDC(1));
+
+    const pending = await pool.encryptedPendingMorphoPrincipal();
+    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, pending)).to.equal(USDC(3));
   });
 
   it("supplies finalized batch principal to Morpho and can restore it to the pool", async function () {

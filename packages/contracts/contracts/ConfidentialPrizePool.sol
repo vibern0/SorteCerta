@@ -64,7 +64,6 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     error TooManyParticipants();
     error InvalidPrizeFundingData();
     error MorphoYieldAdapterNotSet();
-    error InvalidMorphoDepositBatchSize();
 
     /// @notice Creates a pool for one confidential token and starts the first draw.
     constructor(IERC7984 token_, uint256 drawInterval_) {
@@ -261,9 +260,11 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
 
         _principal[account] = FHE.sub(available, withdrawn);
         _totalPrincipal = FHE.sub(_totalPrincipal, withdrawn);
+        _pendingMorphoPrincipal = FHE.sub(_pendingMorphoPrincipal, FHE.min(withdrawn, _pendingMorphoPrincipal));
 
         _allowAccount(_principal[account], account);
         FHE.allowThis(_totalPrincipal);
+        FHE.allowThis(_pendingMorphoPrincipal);
         FHE.allowThis(withdrawn);
 
         return withdrawn;
