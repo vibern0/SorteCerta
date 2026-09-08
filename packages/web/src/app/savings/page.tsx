@@ -11,7 +11,7 @@ import {
   confidentialUsdcAbi,
   erc20Abi,
 } from "@/lib/contracts";
-import { formatUSDC, formatUSDCCompact, parseUSDC } from "@/lib/format";
+import { formatUSDC, parseUSDC } from "@/lib/format";
 import { useWallet } from "@/lib/wallet-context";
 import { sendSmartTransaction, sendSmartTransactionBatch, type SmartSession } from "@/lib/web3auth";
 import { getZamaInstance } from "@/lib/zama";
@@ -656,15 +656,15 @@ export default function SavingsPage() {
                   <div className="mt-3 space-y-2 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Deposit</span>
-                      <span className="font-semibold tabular-nums">{formatUSDCCompact(parsedDepositAmount)} USDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(parsedDepositAmount)} USDC</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Wallet after</span>
-                      <span className="font-semibold tabular-nums">{formatUSDCCompact(depositBalanceAfter)} USDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(depositBalanceAfter)} USDC</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Pool after</span>
-                      <span className="font-semibold tabular-nums">{formatUSDCCompact(depositPoolAfter)} cUSDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(depositPoolAfter)} cUSDC</span>
                     </div>
                   </div>
                 </div>
@@ -682,7 +682,7 @@ export default function SavingsPage() {
                     disabled={!session || !poolReady || confirmingAction === "deposit"}
                     onClick={() =>
                       runTrackedTransaction(
-                        `Deposit ${formatUSDCCompact(parsedDepositAmount)} USDC`,
+                        `Deposit ${formatUSDC(parsedDepositAmount)} USDC`,
                         "deposit",
                         (update) => depositConfidential(parsedDepositAmount, update),
                         "Deposit complete.",
@@ -777,11 +777,11 @@ export default function SavingsPage() {
                   <div className="mt-3 space-y-2 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Withdraw</span>
-                      <span className="font-semibold tabular-nums">{formatUSDCCompact(parsedWithdrawAmount)} cUSDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(parsedWithdrawAmount)} cUSDC</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Pool after</span>
-                      <span className="font-semibold tabular-nums">{formatUSDCCompact(withdrawPoolAfter)} cUSDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(withdrawPoolAfter)} cUSDC</span>
                     </div>
                   </div>
                   <p className="mt-3 rounded-2xl bg-white/45 px-3 py-2 text-xs text-muted">
@@ -802,7 +802,7 @@ export default function SavingsPage() {
                     disabled={!session || !poolReady || confirmingAction === "withdraw"}
                     onClick={() =>
                       runTrackedTransaction(
-                        `Withdraw ${formatUSDCCompact(parsedWithdrawAmount)} cUSDC`,
+                        `Withdraw ${formatUSDC(parsedWithdrawAmount)} cUSDC`,
                         "withdraw",
                         (update) => withdrawConfidential(parsedWithdrawAmount, update),
                         "Withdrawal requested.",

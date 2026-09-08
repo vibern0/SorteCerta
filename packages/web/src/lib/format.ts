@@ -7,10 +7,6 @@ export function formatUSDC(amount: bigint | undefined, maxDecimals = 2): string 
   return `${whole.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${fracStr}`;
 }
 
-export function formatUSDCCompact(amount: bigint | undefined): string {
-  return formatUSDC(amount, 2);
-}
-
 /** Parse a USDC string ("10.5") into 6-decimal bigint. */
 export function parseUSDC(input: string): bigint {
   const cleaned = input.replace(/,/g, "").trim();
