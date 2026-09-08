@@ -16,3 +16,8 @@ test("shows the minimum USDC unit when six decimals are requested", () => {
   assert.equal(formatUSDC(1n, 6), "0.000001");
   assert.equal(formatUSDC(10n, 6), "0.000010");
 });
+
+test("uses the requested number of decimals", () => {
+  assert.equal(formatUSDC(1_800_000n, 6), "1.800000");
+  assert.equal(formatUSDC(1_234_567n, 6), "1.234567");
+});

@@ -15,6 +15,7 @@ import { formatUSDC, parseUSDC } from "@/lib/format";
 import { useWallet } from "@/lib/wallet-context";
 import { sendSmartTransaction, sendSmartTransactionBatch, type SmartSession } from "@/lib/web3auth";
 import { getZamaInstance } from "@/lib/zama";
+import { afterNextPaint } from "@/lib/paint";
 import { useToast } from "@/components/Toast";
 import { AmountInput } from "@/components/AmountInput";
 import { LoadingAmount } from "@/components/LoadingAmount";
@@ -454,13 +455,16 @@ export default function SavingsPage() {
     setWithdrawSheetStep("confirm");
   }
 
-  function runTrackedTransaction(
+  async function runTrackedTransaction(
     label: string,
     type: "deposit" | "withdraw",
     action: (update: (patch: ActionPatch) => void) => Promise<void>,
     ok: string,
   ) {
-    setConfirmingAction(type);
+    flushSync(() => {
+      setConfirmingAction(type);
+    });
+    await afterNextPaint();
     window.setTimeout(() => {
       setConfirmingAction(undefined);
       setDepositSheetStep(undefined);
@@ -491,7 +495,7 @@ export default function SavingsPage() {
       setStatus("working");
       setWorkingAction(currentAction);
     });
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    await afterNextPaint();
     try {
       await action();
       setStatus("success");
@@ -681,7 +685,7 @@ export default function SavingsPage() {
                     className="btn-primary !px-3"
                     disabled={!session || !poolReady || confirmingAction === "deposit"}
                     onClick={() =>
-                      runTrackedTransaction(
+                      void runTrackedTransaction(
                         `Deposit ${formatUSDC(parsedDepositAmount)} USDC`,
                         "deposit",
                         (update) => depositConfidential(parsedDepositAmount, update),
@@ -801,7 +805,7 @@ export default function SavingsPage() {
                     className="btn-primary !px-3"
                     disabled={!session || !poolReady || confirmingAction === "withdraw"}
                     onClick={() =>
-                      runTrackedTransaction(
+                      void runTrackedTransaction(
                         `Withdraw ${formatUSDC(parsedWithdrawAmount)} cUSDC`,
                         "withdraw",
                         (update) => withdrawConfidential(parsedWithdrawAmount, update),
