@@ -4,7 +4,7 @@ import { FhevmType } from "@fhevm/hardhat-plugin";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 
-const DRAW_INTERVAL = 5n * 60n;
+const DRAW_INTERVAL = 15n * 60n;
 
 describe("ConfidentialPrizePool", function () {
   let alice: HardhatEthersSigner;

@@ -3,7 +3,7 @@ import { ethers, fhevm } from "hardhat";
 import { FhevmType } from "@fhevm/hardhat-plugin";
 
 const USDC = (n: number) => BigInt(n) * 1_000_000n;
-const DRAW_INTERVAL = 5n * 60n;
+const DRAW_INTERVAL = 15n * 60n;
 
 describe("MorphoYieldAdapter", function () {
   beforeEach(async function () {
