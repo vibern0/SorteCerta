@@ -1,5 +1,75 @@
 # TODO
 
+## Frontend: deposit and withdraw confirmation bottom sheets
+
+Status: queued for the judge-facing frontend work.
+
+Goal: show a bottom sheet before a user submits a deposit or withdrawal so they
+can review the action, understand the account impact, and explicitly confirm.
+
+Deposit confirmation should show:
+
+- Deposit amount.
+- Estimated eligible balance after the deposit.
+- Any required preparation step, such as approval, wrapping, or account setup.
+- A clear primary action to confirm and submit the deposit.
+- A secondary action to go back and edit the amount.
+
+Withdrawal confirmation should show:
+
+- Withdrawal amount.
+- Estimated eligible balance after the withdrawal.
+- Whether the withdrawal affects eligibility for the current draw.
+- A clear primary action to confirm and submit the withdrawal.
+- A secondary action to go back and edit the amount.
+
+UX notes:
+
+- Keep copy short, concrete, and product-facing. Avoid implementation/privacy
+  words banned by `AGENTS.md`.
+- The amount entry view should handle field-level errors before opening the
+  confirmation sheet.
+- The confirmation sheet can show blocking account, network, balance, allowance,
+  or app-state issues if they appear after the sheet opens.
+- Re-check readiness immediately before submit so stale balance or allowance
+  data cannot launch a doomed transaction.
+- After submit, close or collapse the sheet into the background action flow.
+
+## Frontend: background async actions
+
+Status: queued for the judge-facing frontend work.
+
+Goal: let long-running user actions continue in the background so the user can
+leave the current screen after submitting a deposit, withdrawal, claim, faucet,
+approval, wrap, draw, or balance/winnings check.
+
+Expected behavior:
+
+- When an action is submitted, create a tracked action record with label, type,
+  timestamps, account, relevant transaction hash or request id, and current
+  status.
+- Let the UI return to the normal app state while the action progresses.
+- Add a persistent UI access point where users can review running, completed,
+  and failed actions.
+- Show useful per-action states: preparing, waiting for wallet, submitted,
+  confirming, updating account, completed, failed, and dismissed.
+- Allow retry for recoverable failed actions and safe dismissal for completed or
+  failed actions.
+- Keep action tracking resilient across route changes and browser refreshes when
+  possible.
+- Refresh affected account and pool data when an action completes.
+
+Implementation notes:
+
+- Model async actions centrally instead of burying transaction state inside each
+  page component.
+- Store enough metadata to resume watching known transaction hashes after a
+  refresh.
+- Treat rejected wallet prompts differently from submitted transactions that
+  later fail.
+- The access point should be visible from core app screens without trapping the
+  user in the originating bottom sheet.
+
 ## Later: Morpho USDC/WETH yield adapter
 
 Status: deferred until the Sepolia bounty demo is stable end to end.
