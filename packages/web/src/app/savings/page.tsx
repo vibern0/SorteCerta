@@ -11,7 +11,7 @@ import {
   confidentialUsdcAbi,
   erc20Abi,
 } from "@/lib/contracts";
-import { formatUSDC, parseUSDC } from "@/lib/format";
+import { formatUSDC, formatUSDCCompact, parseUSDC } from "@/lib/format";
 import { useWallet } from "@/lib/wallet-context";
 import { sendSmartTransaction, sendSmartTransactionBatch, type SmartSession } from "@/lib/web3auth";
 import { getZamaInstance } from "@/lib/zama";
@@ -107,6 +107,7 @@ export default function SavingsPage() {
   const [pendingUnwraps, setPendingUnwraps] = useState<PendingUnwrap[]>([]);
   const [depositSheetStep, setDepositSheetStep] = useState<SheetStep>();
   const [withdrawSheetStep, setWithdrawSheetStep] = useState<SheetStep>();
+  const [confirmingAction, setConfirmingAction] = useState<"deposit" | "withdraw">();
 
   const addresses = useMemo(
     () => ({
@@ -407,6 +408,7 @@ export default function SavingsPage() {
   }
 
   function closeSheets() {
+    if (confirmingAction) return;
     setDepositSheetStep(undefined);
     setWithdrawSheetStep(undefined);
   }
@@ -421,7 +423,6 @@ export default function SavingsPage() {
 
   const parsedDepositAmount = parsedAmount(depositAmount);
   const parsedWithdrawAmount = parsedAmount(withdrawAmount);
-  const depositNeedsApproval = parsedDepositAmount > 0n && (allowance ?? 0n) < parsedDepositAmount;
   const depositBalanceAfter =
     usdcBalance === undefined || parsedDepositAmount > usdcBalance ? undefined : usdcBalance - parsedDepositAmount;
   const depositPoolAfter =
@@ -459,7 +460,12 @@ export default function SavingsPage() {
     action: (update: (patch: ActionPatch) => void) => Promise<void>,
     ok: string,
   ) {
-    closeSheets();
+    setConfirmingAction(type);
+    window.setTimeout(() => {
+      setConfirmingAction(undefined);
+      setDepositSheetStep(undefined);
+      setWithdrawSheetStep(undefined);
+    }, 150);
     runAction(
       {
         label,
@@ -650,22 +656,17 @@ export default function SavingsPage() {
                   <div className="mt-3 space-y-2 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Deposit</span>
-                      <span className="font-semibold tabular-nums">{formatUSDC(parsedDepositAmount, 6)} USDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDCCompact(parsedDepositAmount)} USDC</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Wallet after</span>
-                      <span className="font-semibold tabular-nums">{formatUSDC(depositBalanceAfter)} USDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDCCompact(depositBalanceAfter)} USDC</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Pool after</span>
-                      <span className="font-semibold tabular-nums">{formatUSDC(depositPoolAfter)} cUSDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDCCompact(depositPoolAfter)} cUSDC</span>
                     </div>
                   </div>
-                  {depositNeedsApproval && (
-                    <p className="mt-3 rounded-2xl bg-white/45 px-3 py-2 text-xs text-muted">
-                      Your wallet will ask for a preparation step before the deposit.
-                    </p>
-                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -678,17 +679,24 @@ export default function SavingsPage() {
                   <button
                     type="button"
                     className="btn-primary !px-3"
-                    disabled={!session || !poolReady}
+                    disabled={!session || !poolReady || confirmingAction === "deposit"}
                     onClick={() =>
                       runTrackedTransaction(
-                        `Deposit ${formatUSDC(parsedDepositAmount, 6)} USDC`,
+                        `Deposit ${formatUSDCCompact(parsedDepositAmount)} USDC`,
                         "deposit",
                         (update) => depositConfidential(parsedDepositAmount, update),
                         "Deposit complete.",
                       )
                     }
                   >
-                    Confirm
+                    {confirmingAction === "deposit" ? (
+                      <>
+                        <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                        Confirming...
+                      </>
+                    ) : (
+                      "Confirm"
+                    )}
                   </button>
                 </div>
               </div>
@@ -769,11 +777,11 @@ export default function SavingsPage() {
                   <div className="mt-3 space-y-2 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Withdraw</span>
-                      <span className="font-semibold tabular-nums">{formatUSDC(parsedWithdrawAmount, 6)} cUSDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDCCompact(parsedWithdrawAmount)} cUSDC</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Pool after</span>
-                      <span className="font-semibold tabular-nums">{formatUSDC(withdrawPoolAfter)} cUSDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDCCompact(withdrawPoolAfter)} cUSDC</span>
                     </div>
                   </div>
                   <p className="mt-3 rounded-2xl bg-white/45 px-3 py-2 text-xs text-muted">
@@ -791,17 +799,24 @@ export default function SavingsPage() {
                   <button
                     type="button"
                     className="btn-primary !px-3"
-                    disabled={!session || !poolReady}
+                    disabled={!session || !poolReady || confirmingAction === "withdraw"}
                     onClick={() =>
                       runTrackedTransaction(
-                        `Withdraw ${formatUSDC(parsedWithdrawAmount, 6)} cUSDC`,
+                        `Withdraw ${formatUSDCCompact(parsedWithdrawAmount)} cUSDC`,
                         "withdraw",
                         (update) => withdrawConfidential(parsedWithdrawAmount, update),
                         "Withdrawal requested.",
                       )
                     }
                   >
-                    Confirm
+                    {confirmingAction === "withdraw" ? (
+                      <>
+                        <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                        Confirming...
+                      </>
+                    ) : (
+                      "Confirm"
+                    )}
                   </button>
                 </div>
               </div>
