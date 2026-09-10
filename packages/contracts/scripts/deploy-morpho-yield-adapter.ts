@@ -8,7 +8,7 @@ const SEPOLIA_USDC_WETH_MARKET_ID = "0x8c561f0929c3a3e2b20fba99c2ae15fc57b4d0599
 const morphoAbi = [
   "function idToMarketParams(bytes32) view returns (address loanToken,address collateralToken,address oracle,address irm,uint256 lltv)",
 ];
-const prizePoolAbi = ["function setMorphoYieldAdapter(address adapter,uint256 depositBatchSize)"];
+const prizePoolAbi = ["function setMorphoYieldAdapter(address adapter,uint256 unwrapInterval)"];
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -17,7 +17,7 @@ async function main() {
   const prizePool = process.env.CONFIDENTIAL_PRIZE_POOL_ADDRESS;
   const morpho = process.env.MORPHO_BLUE_ADDRESS ?? SEPOLIA_MORPHO_BLUE;
   const marketId = process.env.MORPHO_MARKET_ID ?? SEPOLIA_USDC_WETH_MARKET_ID;
-  const depositBatchSize = BigInt(process.env.MORPHO_DEPOSIT_BATCH_SIZE ?? "4");
+  const unwrapInterval = BigInt(process.env.MORPHO_UNWRAP_INTERVAL_SECONDS ?? "300");
 
   if (!confidentialUsdc || !prizePool) {
     throw new Error("CONFIDENTIAL_USDC_ADDRESS and CONFIDENTIAL_PRIZE_POOL_ADDRESS are required");
@@ -48,7 +48,7 @@ async function main() {
   const adapterAddress = await adapter.getAddress();
 
   const prizePoolContract = new ethers.Contract(prizePool, prizePoolAbi, deployer);
-  const tx = await prizePoolContract.setMorphoYieldAdapter(adapterAddress, depositBatchSize);
+  const tx = await prizePoolContract.setMorphoYieldAdapter(adapterAddress, unwrapInterval);
   await tx.wait();
 
   console.log(`Deploying MorphoYieldAdapter with: ${deployer.address}`);
@@ -57,7 +57,7 @@ async function main() {
   console.log(`ConfidentialPrizePool: ${prizePool}`);
   console.log(`Morpho Blue: ${morpho}`);
   console.log(`MorphoYieldAdapter: ${adapterAddress}`);
-  console.log(`Morpho deposit batch size: ${depositBatchSize}`);
+  console.log(`Morpho unwrap interval: ${unwrapInterval}s`);
   console.log(`Market id: ${await adapter.marketId()}`);
 }
 

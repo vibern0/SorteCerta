@@ -4,6 +4,7 @@ import { FhevmType } from "@fhevm/hardhat-plugin";
 
 const USDC = (n: number) => BigInt(n) * 1_000_000n;
 const DRAW_INTERVAL = 15n * 60n;
+const MORPHO_UNWRAP_INTERVAL = 5n * 60n;
 
 describe("MorphoYieldAdapter", function () {
   beforeEach(async function () {
@@ -52,7 +53,7 @@ describe("MorphoYieldAdapter", function () {
 
     await usdc.faucet(owner.address, USDC(1_500));
     await usdc.faucet(keeper.address, USDC(50));
-    await pool.setMorphoYieldAdapter(await adapter.getAddress(), 4);
+    await pool.setMorphoYieldAdapter(await adapter.getAddress(), MORPHO_UNWRAP_INTERVAL);
 
     return { owner, keeper, usdc, confidentialUsdc, pool, morpho, adapter, marketParams };
   }
@@ -81,7 +82,7 @@ describe("MorphoYieldAdapter", function () {
     await pool.connect(user).withdraw(encryptedAmount.handles[0], encryptedAmount.inputProof);
   }
 
-  it("batches pool deposits into one principal unwrap request", async function () {
+  it("lets a keeper request one timed principal unwrap", async function () {
     const { owner, keeper, usdc, confidentialUsdc, pool, adapter } = await deployFixture();
     const users = [owner, keeper];
     const confidentialUsdcAddress = await confidentialUsdc.getAddress();
@@ -95,15 +96,16 @@ describe("MorphoYieldAdapter", function () {
     await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, owner, USDC(1));
     await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, keeper, USDC(2));
     await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, owner, USDC(3));
-    const encryptedAmount = await fhevm.createEncryptedInput(confidentialUsdcAddress, keeper.address).add64(USDC(4)).encrypt();
-    const tx = await confidentialUsdc
-      .connect(keeper)
-      ["confidentialTransferAndCall(address,bytes32,bytes,bytes)"](
-        poolAddress,
-        encryptedAmount.handles[0],
-        encryptedAmount.inputProof,
-        "0x",
-      );
+
+    await expect(pool.connect(keeper).requestMorphoPrincipalUnwrap()).to.be.revertedWithCustomError(
+      pool,
+      "MorphoUnwrapNotReady",
+    );
+
+    await ethers.provider.send("evm_increaseTime", [Number(MORPHO_UNWRAP_INTERVAL)]);
+    await ethers.provider.send("evm_mine", []);
+
+    const tx = await pool.connect(keeper).requestMorphoPrincipalUnwrap();
     const receipt = await tx.wait();
     const parsedLogs = receipt?.logs
       .map((log: any) => {
@@ -119,6 +121,7 @@ describe("MorphoYieldAdapter", function () {
     expect(unwrapRequestId).to.not.equal(undefined);
     expect(await confidentialUsdc.unwrapRequester(unwrapRequestId)).to.equal(await adapter.getAddress());
     expect(await pool.morphoPendingDepositCount()).to.equal(0n);
+    expect(await pool.lastMorphoUnwrapAt()).to.be.greaterThan(0n);
 
     const pending = await pool.encryptedPendingMorphoPrincipal();
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, pending)).to.equal(0n);
@@ -137,6 +140,17 @@ describe("MorphoYieldAdapter", function () {
 
     const pending = await pool.encryptedPendingMorphoPrincipal();
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, pending)).to.equal(USDC(3));
+  });
+
+  it("supplies available finalized principal from the adapter to Morpho", async function () {
+    const { usdc, pool, adapter } = await deployFixture();
+
+    await usdc.transfer(await adapter.getAddress(), USDC(125));
+    await pool.supplyAvailableMorphoPrincipal();
+
+    expect(await adapter.suppliedPrincipal()).to.equal(USDC(125));
+    expect(await adapter.suppliedAssets()).to.equal(USDC(125));
+    expect(await usdc.balanceOf(await adapter.getAddress())).to.equal(0n);
   });
 
   it("supplies finalized batch principal to Morpho and can restore it to the pool", async function () {

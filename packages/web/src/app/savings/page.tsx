@@ -28,6 +28,7 @@ type SheetStep = "entry" | "confirm";
 
 const PENDING_UNWRAPS_STORAGE_PREFIX = "sortecerta:pending-unwraps";
 const UNWRAP_LOG_LOOKBACK_BLOCKS = 512n;
+const MAX_USER_PRINCIPAL = 1_000_000_000n;
 
 const publicClient = createPublicClient({
   chain: sepolia,
@@ -331,6 +332,8 @@ export default function SavingsPage() {
     const user = currentSession.address;
     if (value === 0n) throw new Error("Valor invalido.");
     if (!poolReady) throw new Error("Deposits are unavailable right now.");
+    const maxDeposit = remainingDepositCapacity();
+    if (value > maxDeposit) throw new Error("Amount is above the current account limit.");
 
     const usdc = asAddress(addresses.usdc, "USDC");
     const token = asAddress(addresses.confidentialUsdc, "Savings token");
@@ -424,10 +427,18 @@ export default function SavingsPage() {
 
   const parsedDepositAmount = parsedAmount(depositAmount);
   const parsedWithdrawAmount = parsedAmount(withdrawAmount);
+  const remainingDeposit =
+    principal === undefined
+      ? MAX_USER_PRINCIPAL
+      : principal >= MAX_USER_PRINCIPAL
+        ? 0n
+        : MAX_USER_PRINCIPAL - principal;
   const depositBalanceAfter =
     usdcBalance === undefined || parsedDepositAmount > usdcBalance ? undefined : usdcBalance - parsedDepositAmount;
   const depositPoolAfter =
-    principal === undefined || parsedDepositAmount === 0n ? principal : principal + parsedDepositAmount;
+    principal === undefined || parsedDepositAmount === 0n || parsedDepositAmount > remainingDeposit
+      ? principal
+      : principal + parsedDepositAmount;
   const withdrawPoolAfter =
     principal === undefined || parsedWithdrawAmount > principal ? undefined : principal - parsedWithdrawAmount;
 
@@ -440,7 +451,16 @@ export default function SavingsPage() {
       toast({ tone: "error", title: "Amount is above your wallet balance." });
       return;
     }
+    if (parsedDepositAmount > remainingDepositCapacity()) {
+      toast({ tone: "error", title: "Amount is above the current account limit." });
+      return;
+    }
     setDepositSheetStep("confirm");
+  }
+
+  function remainingDepositCapacity() {
+    if (principal === undefined) return MAX_USER_PRINCIPAL;
+    return principal >= MAX_USER_PRINCIPAL ? 0n : MAX_USER_PRINCIPAL - principal;
   }
 
   function reviewWithdraw() {
@@ -638,12 +658,18 @@ export default function SavingsPage() {
 
             <AmountInput
               label="Amount"
-              maxLabel={`${formatUSDC(usdcBalance)} USDC`}
+              maxLabel={`${formatUSDC(usdcBalance !== undefined && usdcBalance < remainingDeposit ? usdcBalance : remainingDeposit)} USDC`}
               value={depositAmount}
               onChange={setDepositAmount}
-              onMax={() => setDepositAmount(usdcBalance !== undefined ? formatUSDC(usdcBalance, 6) : "0")}
+              onMax={() => {
+                const max = usdcBalance !== undefined && usdcBalance < remainingDeposit ? usdcBalance : remainingDeposit;
+                setDepositAmount(formatUSDC(max, 6));
+              }}
               disabled={depositSheetStep === "confirm"}
             />
+            <p className="rounded-2xl bg-white/45 px-3 py-2 text-xs text-muted">
+              Current account limit: 1,000.00 USDC.
+            </p>
 
             {depositSheetStep === "entry" ? (
               <button

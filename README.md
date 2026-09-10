@@ -60,7 +60,7 @@ CONFIDENTIAL_USDC_ADDRESS=0x... npm run deploy:confidential-pool
 # Optional: deploy and connect Morpho yield adapter.
 CONFIDENTIAL_USDC_ADDRESS=0x... \
 CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x... \
-MORPHO_DEPOSIT_BATCH_SIZE=4 \
+MORPHO_UNWRAP_INTERVAL_SECONDS=300 \
 npm run deploy:morpho-yield-adapter
 
 # 3. Configure the web app.
@@ -69,6 +69,8 @@ cp .env.example .env.local
 # fill NEXT_PUBLIC_USDC_ADDRESS, NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS,
 #       NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS,
 #       NEXT_PUBLIC_WEB3AUTH_CLIENT_ID, NEXT_PUBLIC_PIMLICO_API_KEY
+# On Netlify, also set private keeper env vars:
+#       SEPOLIA_RPC_URL, KEEPER_PRIVATE_KEY, MORPHO_KEEPER_MAX_TXS
 
 # 4. Run.
 npm run dev
@@ -183,18 +185,21 @@ Use the hosted app at https://sortecerta.netlify.app.
 The Morpho integration keeps the user's direct action confidential: users only
 deposit `cUSDC` into `ConfidentialPrizePool`. They never deposit into Morpho
 directly and Morpho positions are not used as per-user balances.
+See [docs/PRIVACY_AND_KEEPER.md](docs/PRIVACY_AND_KEEPER.md) for the current
+keeper cadence and privacy tradeoffs.
 
-After a configured number of deposits, default `MORPHO_DEPOSIT_BATCH_SIZE=4`,
-`ConfidentialPrizePool` batches the encrypted pending principal and creates one
-`ConfidentialUSDC.unwrap` request with `MorphoYieldAdapter` as the USDC receiver.
-That request reveals only the finalized batch amount, not each depositor's
-amount. Once the unwrap is finalized, the owner/keeper calls
-`supplyFinalizedMorphoPrincipal(assets)` on the pool, and the pool instructs the
-adapter to supply that USDC to Morpho Blue.
+The pool enforces a first-phase `1,000 USDC` principal limit per account. After
+deposits arrive, `ConfidentialPrizePool` accumulates encrypted pending principal.
+A keeper runs on a timed cadence, default `MORPHO_UNWRAP_INTERVAL_SECONDS=300`,
+and requests one `ConfidentialUSDC.unwrap` with `MorphoYieldAdapter` as the USDC
+receiver. That request reveals only the finalized window amount, not each
+depositor's amount. Once the unwrap is finalized, the keeper calls
+`supplyAvailableMorphoPrincipal()` on the pool, and the pool instructs the
+adapter to supply all available adapter USDC to Morpho Blue.
 
 The adapter tracks pool principal separately from market value. The prize is the
 surplus reported by `accruedYieldAssets()`: current Morpho supplied assets minus
-tracked principal. When the owner/keeper calls `harvestMorphoYield(maxAssets)`,
+tracked principal. When the keeper calls `harvestMorphoYield(maxAssets)`,
 the pool instructs the adapter to withdraw only that surplus, wrap it back into
 `cUSDC`, and send it to `ConfidentialPrizePool` using the existing
 `PRIZE_FUNDING_DATA` callback. The pool then holds the harvested yield as the
@@ -212,7 +217,15 @@ Sepolia defaults:
 ```bash
 MORPHO_BLUE_ADDRESS=0xd011EE229E7459ba1ddd22631eF7bF528d424A14
 MORPHO_MARKET_ID=0x8c561f0929c3a3e2b20fba99c2ae15fc57b4d0599e4371b67c9a58388a27b9d2
-MORPHO_DEPOSIT_BATCH_SIZE=4
+MORPHO_UNWRAP_INTERVAL_SECONDS=300
+```
+
+Netlify keeper env values:
+
+```bash
+SEPOLIA_RPC_URL=https://...
+KEEPER_PRIVATE_KEY=0x...
+MORPHO_KEEPER_MAX_TXS=3
 ```
 
 Current confidential architecture:
@@ -261,10 +274,10 @@ Current confidential architecture:
   encrypted total principal, then grant decrypt access to the account and its
   optional delegate. If Morpho is enabled, the pool also adds the deposit amount
   to an encrypted pending-Morpho batch.
-- Morpho principal movement is batched. Once `morphoPendingDepositCount` reaches
-  `morphoDepositBatchSize`, the pool requests one unwrap for the encrypted batch
-  and sends the resulting USDC to `MorphoYieldAdapter`. After unwrap
-  finalization, the owner/keeper calls `supplyFinalizedMorphoPrincipal`.
+- Morpho principal movement is keeper-timed. Once `morphoUnwrapInterval` has
+  elapsed and deposit activity exists, the keeper requests one unwrap for the
+  encrypted pending batch and sends the resulting USDC to `MorphoYieldAdapter`.
+  After unwrap finalization, the keeper calls `supplyAvailableMorphoPrincipal`.
 - Prize funding uses callback data prefixed with `PRIZE_FUNDING_DATA`. The
   encrypted cUSDC reserve is held by the pool, while the same amount is mirrored
   in `publicPrizeReserve` so the app can show the active prize. Morpho-harvested
@@ -325,10 +338,10 @@ Important current limitations:
   signing; plain `JSON.stringify` can throw
   `Do not know how to serialize a BigInt`.
 - **Morpho yield adapter exists but is not the live judge fallback.** Users
-  still deposit only `cUSDC` into `ConfidentialPrizePool`; the pool batches
-  principal unwraps to `MorphoYieldAdapter`, the adapter supplies USDC to Morpho
-  Blue, and harvested surplus is wrapped back into `cUSDC` as the prize reserve.
-  The sponsor-funded path remains available for demos. If an encrypted
+  still deposit only `cUSDC` into `ConfidentialPrizePool`; the keeper requests
+  timed principal unwraps to `MorphoYieldAdapter`, the adapter supplies USDC to
+  Morpho Blue, and harvested surplus is wrapped back into `cUSDC` as the prize
+  reserve. The sponsor-funded path remains available for demos. If an encrypted
   no-winner branch carries funds forward, that carry is intentionally not
   disclosed by the public mirror.
 - **Tickets = live share balance**. Should be a snapshot at draw start to

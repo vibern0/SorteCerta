@@ -124,6 +124,25 @@ contract MorphoYieldAdapter is Ownable, ReentrancyGuard {
         return sharesSupplied;
     }
 
+    function supplyAvailablePrincipal()
+        external
+        onlyPrizePool
+        nonReentrant
+        returns (uint256 assetsSupplied, uint256 sharesSupplied)
+    {
+        uint256 assets = usdc.balanceOf(address(this));
+        usdc.forceApprove(address(morpho), assets);
+
+        (assetsSupplied, sharesSupplied) = morpho.supply(_marketParams, assets, 0, address(this), "");
+        suppliedPrincipal += assetsSupplied;
+
+        emit PoolPrincipalSupplied(assetsSupplied, sharesSupplied);
+    }
+
+    function availablePrincipalAssets() external view returns (uint256) {
+        return usdc.balanceOf(address(this));
+    }
+
     function restorePrincipalToPool(uint256 assets) external onlyPrizePool nonReentrant returns (uint256 restoredAssets) {
         if (assets > suppliedPrincipal) revert PrincipalWithdrawalExceedsSupply(assets, suppliedPrincipal);
 

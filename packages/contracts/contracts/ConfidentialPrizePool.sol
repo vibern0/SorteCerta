@@ -15,6 +15,8 @@ interface IERC7984ERC20WrapperInternalAmount is IERC7984ERC20Wrapper {
 interface IMorphoPrizeYieldAdapter {
     function accruedYieldAssets() external view returns (uint256);
     function supplyPoolPrincipal(uint256 assets) external returns (uint256 shares);
+    function supplyAvailablePrincipal() external returns (uint256 assetsSupplied, uint256 sharesSupplied);
+    function availablePrincipalAssets() external view returns (uint256);
     function harvestYieldToPrizePool(uint256 maxAssets) external returns (uint256 harvestedAssets);
     function restorePrincipalToPool(uint256 assets) external returns (uint256 restoredAssets);
 }
@@ -23,6 +25,7 @@ interface IMorphoPrizeYieldAdapter {
 contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     uint256 public constant MAX_PARTICIPANTS = 32;
     uint64 public constant MAX_DRAW_TICKETS = 1_048_576;
+    uint64 public constant MAX_USER_PRINCIPAL = 1_000_000_000;
     bytes4 public constant PRIZE_FUNDING_DATA = bytes4(keccak256("SorteCerta.prize"));
 
     IERC7984 public immutable token;
@@ -30,7 +33,8 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     uint256 public immutable drawInterval;
     uint256 public nextDrawAt;
     IMorphoPrizeYieldAdapter public morphoYieldAdapter;
-    uint256 public morphoDepositBatchSize;
+    uint256 public morphoUnwrapInterval;
+    uint256 public lastMorphoUnwrapAt;
     uint256 public morphoPendingDepositCount;
 
     mapping(address account => euint64 principal) private _principal;
@@ -52,7 +56,7 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     event ConfidentialWithdrawal(address indexed account, euint64 indexed amount);
     event ConfidentialWithdrawalToUsdc(address indexed account, address indexed to, euint64 indexed amount, bytes32 unwrapRequestId);
     event DecryptDelegateUpdated(address indexed account, address indexed delegate);
-    event MorphoYieldAdapterUpdated(address indexed adapter, uint256 depositBatchSize);
+    event MorphoYieldAdapterUpdated(address indexed adapter, uint256 unwrapInterval);
     event MorphoPrincipalUnwrapRequested(bytes32 indexed unwrapRequestId, uint256 depositCount);
     event MorphoPrincipalSupplied(uint256 assets, uint256 shares);
     event MorphoYieldHarvested(uint256 assets);
@@ -64,6 +68,8 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     error TooManyParticipants();
     error InvalidPrizeFundingData();
     error MorphoYieldAdapterNotSet();
+    error MorphoUnwrapNotReady(uint256 readyAt);
+    error NoPendingMorphoPrincipal();
 
     /// @notice Creates a pool for one confidential token and starts the first draw.
     constructor(IERC7984 token_, uint256 drawInterval_) {
@@ -105,20 +111,22 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
 
         _registerParticipant(from);
 
-        _principal[from] = FHE.add(_principal[from], amount);
-        _totalPrincipal = FHE.add(_totalPrincipal, amount);
-        _pendingMorphoPrincipal = FHE.add(_pendingMorphoPrincipal, amount);
+        euint64 nextPrincipal = FHE.add(_principal[from], amount);
+        ebool success = FHE.le(nextPrincipal, MAX_USER_PRINCIPAL);
+        euint64 acceptedAmount = FHE.select(success, amount, FHE.asEuint64(0));
+
+        _principal[from] = FHE.add(_principal[from], acceptedAmount);
+        _totalPrincipal = FHE.add(_totalPrincipal, acceptedAmount);
+        _pendingMorphoPrincipal = FHE.add(_pendingMorphoPrincipal, acceptedAmount);
         morphoPendingDepositCount++;
 
         _allowAccount(_principal[from], from);
         FHE.allowThis(_totalPrincipal);
         FHE.allowThis(_pendingMorphoPrincipal);
 
-        ebool success = FHE.asEbool(true);
         FHE.allowTransient(success, msg.sender);
 
-        emit ConfidentialDeposit(from, amount);
-        _requestMorphoPrincipalUnwrapIfReady();
+        emit ConfidentialDeposit(from, acceptedAmount);
         return success;
     }
 
@@ -185,15 +193,16 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         emit DecryptDelegateUpdated(msg.sender, delegate);
     }
 
-    /// @notice Configures optional batched Morpho principal routing.
-    function setMorphoYieldAdapter(IMorphoPrizeYieldAdapter adapter, uint256 depositBatchSize) external {
+    /// @notice Configures optional timed Morpho principal routing.
+    function setMorphoYieldAdapter(IMorphoPrizeYieldAdapter adapter, uint256 unwrapInterval) external {
         _onlyOwner();
-        if (depositBatchSize > 0 && address(adapter) == address(0)) revert MorphoYieldAdapterNotSet();
+        if (unwrapInterval > 0 && address(adapter) == address(0)) revert MorphoYieldAdapterNotSet();
 
         morphoYieldAdapter = adapter;
-        morphoDepositBatchSize = depositBatchSize;
+        morphoUnwrapInterval = unwrapInterval;
+        lastMorphoUnwrapAt = block.timestamp;
 
-        emit MorphoYieldAdapterUpdated(address(adapter), depositBatchSize);
+        emit MorphoYieldAdapterUpdated(address(adapter), unwrapInterval);
     }
 
     /// @notice Supplies finalized USDC batch principal from the adapter into Morpho.
@@ -205,9 +214,16 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         emit MorphoPrincipalSupplied(assets, shares);
     }
 
+    /// @notice Supplies all finalized USDC principal currently held by the adapter.
+    function supplyAvailableMorphoPrincipal() external returns (uint256 assetsSupplied, uint256 sharesSupplied) {
+        IMorphoPrizeYieldAdapter adapter = _requireMorphoYieldAdapter();
+
+        (assetsSupplied, sharesSupplied) = adapter.supplyAvailablePrincipal();
+        emit MorphoPrincipalSupplied(assetsSupplied, sharesSupplied);
+    }
+
     /// @notice Harvests accrued Morpho surplus and routes it back as prize funding.
     function harvestMorphoYield(uint256 maxAssets) external returns (uint256 harvestedAssets) {
-        _onlyOwner();
         IMorphoPrizeYieldAdapter adapter = _requireMorphoYieldAdapter();
 
         harvestedAssets = adapter.harvestYieldToPrizePool(maxAssets);
@@ -276,20 +292,29 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         return abi.decode(data, (address));
     }
 
-    /// @notice Requests a batched unwrap for Morpho once enough deposits have accumulated.
-    function _requestMorphoPrincipalUnwrapIfReady() internal {
-        if (address(morphoYieldAdapter) == address(0) || morphoDepositBatchSize == 0) return;
-        if (morphoPendingDepositCount < morphoDepositBatchSize) return;
+    /// @notice Requests a timed pending-principal unwrap for Morpho keepers.
+    function requestMorphoPrincipalUnwrap() external returns (bytes32 unwrapRequestId) {
+        if (morphoPendingDepositCount == 0) revert NoPendingMorphoPrincipal();
+
+        uint256 readyAt = lastMorphoUnwrapAt + morphoUnwrapInterval;
+        if (block.timestamp < readyAt) revert MorphoUnwrapNotReady(readyAt);
+
+        return _requestMorphoPrincipalUnwrap();
+    }
+
+    function _requestMorphoPrincipalUnwrap() internal returns (bytes32 unwrapRequestId) {
+        if (address(morphoYieldAdapter) == address(0) || morphoUnwrapInterval == 0) revert MorphoYieldAdapterNotSet();
 
         euint64 amount = _pendingMorphoPrincipal;
         uint256 depositCount = morphoPendingDepositCount;
 
         _pendingMorphoPrincipal = FHE.asEuint64(0);
         morphoPendingDepositCount = 0;
+        lastMorphoUnwrapAt = block.timestamp;
         FHE.allowThis(_pendingMorphoPrincipal);
         FHE.allow(amount, address(token));
 
-        bytes32 unwrapRequestId = IERC7984ERC20WrapperInternalAmount(address(token)).unwrap(
+        unwrapRequestId = IERC7984ERC20WrapperInternalAmount(address(token)).unwrap(
             address(this),
             address(morphoYieldAdapter),
             amount
@@ -369,6 +394,12 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     function morphoAccruedYieldAssets() external view returns (uint256) {
         if (address(morphoYieldAdapter) == address(0)) return 0;
         return morphoYieldAdapter.accruedYieldAssets();
+    }
+
+    /// @notice Public USDC principal finalized into the adapter and ready to supply.
+    function morphoAvailablePrincipalAssets() external view returns (uint256) {
+        if (address(morphoYieldAdapter) == address(0)) return 0;
+        return morphoYieldAdapter.availablePrincipalAssets();
     }
 
     /// @notice Number of known participants in the bounded draw list.

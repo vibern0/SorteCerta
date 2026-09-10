@@ -240,6 +240,29 @@ describe("ConfidentialPrizePool", function () {
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(0n);
   });
 
+  it("rejects deposits that would push an account above 1,000 USDC", async function () {
+    const { usdc, confidentialUsdc, confidentialUsdcAddress, pool, poolAddress } = await deployFixture();
+
+    await usdc.connect(alice).faucet(alice.address, 1_100_000_000n);
+    await usdc.connect(alice).approve(confidentialUsdcAddress, 1_100_000_000n);
+    await confidentialUsdc.connect(alice).wrap(alice.address, 1_100_000_000n);
+
+    await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, alice, 1_000_000_000n);
+    await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, alice, 1n);
+
+    const encryptedPrincipal = await pool.encryptedPrincipalOf(alice.address);
+    const encryptedAliceBalance = await confidentialUsdc.confidentialBalanceOf(alice.address);
+    const encryptedPoolBalance = await confidentialUsdc.confidentialBalanceOf(poolAddress);
+
+    expect(await fhevm.userDecryptEuint(FhevmType.euint64, encryptedPrincipal, poolAddress, alice)).to.equal(
+      1_000_000_000n,
+    );
+    expect(
+      await fhevm.userDecryptEuint(FhevmType.euint64, encryptedAliceBalance, confidentialUsdcAddress, alice),
+    ).to.equal(110_000_000n);
+    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(1_000_000_000n);
+  });
+
   it("withdraws principal into an underlying USDC unwrap request", async function () {
     const { confidentialUsdc, confidentialUsdcAddress, pool, poolAddress } = await deployFixture();
 

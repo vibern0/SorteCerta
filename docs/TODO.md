@@ -128,6 +128,5 @@ supplies owner-managed USDC to Morpho Blue, tracks principal separately, harvest
 only accrued surplus, wraps harvested USDC as `cUSDC`, and forwards it into
 `ConfidentialPrizePool` with the existing prize-funding callback. The deploy
 script can read `MarketParams` directly from Morpho using `MORPHO_MARKET_ID`.
-`ConfidentialPrizePool` requests a pooled principal unwrap every
-`MORPHO_DEPOSIT_BATCH_SIZE` deposits, so Morpho receives batched USDC rather
-than per-user deposits.
+`ConfidentialPrizePool` lets the keeper request a pooled principal unwrap on a
+timed cadence, so Morpho receives windowed USDC rather than per-user deposits.

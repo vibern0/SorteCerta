@@ -31,10 +31,20 @@ Live app: https://sortecerta.netlify.app
 ```bash
 cp .env.example .env.local
 # fill in:
-#   NEXT_PUBLIC_USDC_ADDRESS, NEXT_PUBLIC_VAULT_ADDRESS, NEXT_PUBLIC_PRIZE_POOL_ADDRESS
+#   NEXT_PUBLIC_USDC_ADDRESS, NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS
+#   NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS
 #   NEXT_PUBLIC_WEB3AUTH_CLIENT_ID
 #   NEXT_PUBLIC_PIMLICO_API_KEY
 npm run dev
+```
+
+Netlify also runs the Morpho keeper as a Scheduled Function. Configure these as
+private Netlify environment variables, not `NEXT_PUBLIC_*`:
+
+```bash
+SEPOLIA_RPC_URL=https://...
+KEEPER_PRIVATE_KEY=0x...
+MORPHO_KEEPER_MAX_TXS=3
 ```
 
 ## Where things live
@@ -59,6 +69,7 @@ src/
     web3auth.ts          # AA flow — Web3Auth + Safe + Pimlico
     wallet-context.tsx   # React context exposing session
     usePoolData.ts       # wagmi hooks for prize-pool reads
+    morpho-keeper.ts     # scheduled keeper decision logic
     format.ts            # USDC + countdown formatters
     cn.ts                # tailwind-merge className helper
 ```
