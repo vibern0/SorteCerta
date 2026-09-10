@@ -3,17 +3,8 @@ export function formatUSDC(amount: bigint | undefined, maxDecimals = 2): string 
   if (amount === undefined) return "—";
   const whole = amount / 1_000_000n;
   const frac = amount % 1_000_000n;
-  const fracStr = frac
-    .toString()
-    .padStart(6, "0")
-    .slice(0, maxDecimals)
-    .replace(/0+$/, "")
-    .padEnd(2, "0");
+  const fracStr = frac.toString().padStart(6, "0").slice(0, maxDecimals);
   return `${whole.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${fracStr}`;
-}
-
-export function formatUSDCCompact(amount: bigint | undefined): string {
-  return formatUSDC(amount, 2);
 }
 
 /** Parse a USDC string ("10.5") into 6-decimal bigint. */

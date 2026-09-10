@@ -31,3 +31,6 @@ deployments/
 # Next.js
 .next/
 next-env.d.ts
+
+# Local Netlify folder
+.netlify

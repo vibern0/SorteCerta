@@ -2,6 +2,8 @@
 
 > Your savings, with a chance to win. Test version on Ethereum Sepolia.
 
+**Live app:** https://sortecerta.netlify.app
+
 Mobile-first confidential prize-savings app for the Zama Developer Program
 Mainnet Season 4 bounty. SorteCerta recreates the core PoolTogether no-loss
 mechanic on Ethereum Sepolia using Zama FHE; it does not integrate with the
@@ -55,12 +57,20 @@ npm run deploy:confidential-usdc
 CONFIDENTIAL_USDC_ADDRESS=0x... npm run deploy:confidential-pool
 # -> prints ConfidentialPrizePool address
 
+# Optional: deploy and connect Morpho yield adapter.
+CONFIDENTIAL_USDC_ADDRESS=0x... \
+CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x... \
+MORPHO_UNWRAP_INTERVAL_SECONDS=300 \
+npm run deploy:morpho-yield-adapter
+
 # 3. Configure the web app.
 cd ../web
 cp .env.example .env.local
 # fill NEXT_PUBLIC_USDC_ADDRESS, NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS,
 #       NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS,
 #       NEXT_PUBLIC_WEB3AUTH_CLIENT_ID, NEXT_PUBLIC_PIMLICO_API_KEY
+# On Netlify, also set private keeper env vars:
+#       SEPOLIA_RPC_URL, KEEPER_PRIVATE_KEY, MORPHO_KEEPER_MAX_TXS
 
 # 4. Run.
 npm run dev
@@ -74,26 +84,34 @@ cd packages/contracts
 npm test
 ```
 
-25 tests covering confidential deposits, encrypted principal decryption,
+30 tests covering confidential deposits, encrypted principal decryption,
 withdrawal/unwrap, public mocked prize funding, FHE-random draws, confidential
-claims, and the old plaintext prototype.
+claims, Morpho yield routing, and the old plaintext prototype.
 
 ## Sepolia deployment
+
+Frontend:
+
+- **Live app:** https://sortecerta.netlify.app
+- **Host:** Netlify
+- **Status:** login, deposit, draw, claim, withdraw, and unwrap flow verified
+  end to end on the deployed app
 
 Current confidential deployment:
 
 - **USDC underlying:** `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`
 - **ConfidentialUSDC:** `0x47E6c485506C6b1F97872028f127a2943B5559c3`
-- **ConfidentialPrizePool:** `0x1A31302BDEF9f21E897dbe1c32BDCE90b68B8085`
+- **ConfidentialPrizePool:** `0x596446cBC5fc0Db5e27293AE18ad56284E5cd85C`
+- **MorphoYieldAdapter:** `0xDc36Ee07B90cbB0096a8ba79bCDdFC7bde9FBEaf`
 - **Chain:** Ethereum Sepolia (`11155111`)
-- **Draw interval:** `300` seconds for demo testing
+- **Draw interval:** `900` seconds for Morpho-yield demo testing
 
 Frontend env values:
 
 ```bash
 NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS=0x47E6c485506C6b1F97872028f127a2943B5559c3
-NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x1A31302BDEF9f21E897dbe1c32BDCE90b68B8085
+NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x596446cBC5fc0Db5e27293AE18ad56284E5cd85C
 NEXT_PUBLIC_CHAIN_ID=11155111
 ```
 
@@ -129,6 +147,21 @@ Useful example transactions:
 Explorer links use the Sepolia Etherscan transaction URL format:
 `https://sepolia.etherscan.io/tx/<hash>`.
 
+## How to test the live app
+
+Use the hosted app at https://sortecerta.netlify.app.
+
+1. Create an account in the app.
+2. Fund that account with Circle's faucet: https://faucet.circle.com.
+3. Deposit some funds for saving. To test weighted winner selection, repeat
+   this with more than one account.
+4. Go to the admin tab and close the current round. A new round starts
+   automatically.
+5. Fund the new round from the admin tab.
+6. Wait for the round to end, close it, then check and claim any prize.
+7. Fund each new round before testing it. This sponsor-funded amount stands in
+   for the yield that would fund prizes in a production PoolTogether-style pool.
+
 ## Architecture
 
 ### Bounty target
@@ -147,6 +180,54 @@ Explorer links use the Sepolia Etherscan transaction URL format:
   mocked by sponsor/admin funding on Sepolia; Aave/Morpho/Superlend-style yield
   can replace that funding source later.
 - **PoolTogether:** mechanic reference only; no official protocol dependency.
+
+### Morpho Yield Flow
+
+The Morpho integration keeps the user's direct action confidential: users only
+deposit `cUSDC` into `ConfidentialPrizePool`. They never deposit into Morpho
+directly and Morpho positions are not used as per-user balances.
+See [docs/PRIVACY_AND_KEEPER.md](docs/PRIVACY_AND_KEEPER.md) for the current
+keeper cadence and privacy tradeoffs.
+
+The pool enforces a first-phase `1,000 USDC` principal limit per account. After
+deposits arrive, `ConfidentialPrizePool` accumulates encrypted pending principal.
+A keeper runs on a timed cadence, default `MORPHO_UNWRAP_INTERVAL_SECONDS=300`,
+and requests one `ConfidentialUSDC.unwrap` with `MorphoYieldAdapter` as the USDC
+receiver. That request reveals only the finalized window amount, not each
+depositor's amount. Once the unwrap is finalized, the keeper calls
+`supplyAvailableMorphoPrincipal()` on the pool, and the pool instructs the
+adapter to supply all available adapter USDC to Morpho Blue.
+
+The adapter tracks pool principal separately from market value. The prize is the
+surplus reported by `accruedYieldAssets()`: current Morpho supplied assets minus
+tracked principal. When the keeper calls `harvestMorphoYield(maxAssets)`,
+the pool instructs the adapter to withdraw only that surplus, wrap it back into
+`cUSDC`, and send it to `ConfidentialPrizePool` using the existing
+`PRIZE_FUNDING_DATA` callback. The pool then holds the harvested yield as the
+active prize reserve. The smallest harvestable prize is one USDC base unit:
+`0.000001 USDC`.
+
+If the pool needs more withdrawal liquidity, the owner/keeper calls
+`restoreMorphoPrincipal(assets)`. The adapter withdraws principal from Morpho,
+wraps the returned USDC as `cUSDC`, and transfers it back to the pool. User
+withdrawals still reduce encrypted principal and pay from the pool's `cUSDC`
+balance, so keep enough restored liquidity available before large withdrawals.
+
+Sepolia defaults:
+
+```bash
+MORPHO_BLUE_ADDRESS=0xd011EE229E7459ba1ddd22631eF7bF528d424A14
+MORPHO_MARKET_ID=0x8c561f0929c3a3e2b20fba99c2ae15fc57b4d0599e4371b67c9a58388a27b9d2
+MORPHO_UNWRAP_INTERVAL_SECONDS=300
+```
+
+Netlify keeper env values:
+
+```bash
+SEPOLIA_RPC_URL=https://...
+KEEPER_PRIVATE_KEY=0x...
+MORPHO_KEEPER_MAX_TXS=3
+```
 
 Current confidential architecture:
 
@@ -173,9 +254,14 @@ Current confidential architecture:
         │                                                  │
         │  USDC ──► ConfidentialUSDC ──► ConfidentialPrizePool │
         │             ERC-7984 cUSDC          │                │
-        │                   │                 │ FHE draw       │
-        │                   ▼                 ▼                │
-        │          encrypted balances   private winnings       │
+        │                   ▲                 │ FHE draw       │
+        │                   │                 ▼                │
+        │           MorphoYieldAdapter  private winnings       │
+        │                   ▲                 │                │
+        │                   └──── USDC ◄──── unwrap batches    │
+        │                         │                            │
+        │                         ▼                            │
+        │                    Morpho Blue                       │
         └──────────────────────────────────────────────────┘
 ```
 
@@ -187,10 +273,16 @@ Current confidential architecture:
 - Deposits arrive through `ConfidentialUSDC.confidentialTransferAndCall`.
   Normal transfer callbacks increase the sender's encrypted principal and the
   encrypted total principal, then grant decrypt access to the account and its
-  optional delegate.
+  optional delegate. If Morpho is enabled, the pool also adds the deposit amount
+  to an encrypted pending-Morpho batch.
+- Morpho principal movement is keeper-timed. Once `morphoUnwrapInterval` has
+  elapsed and deposit activity exists, the keeper requests one unwrap for the
+  encrypted pending batch and sends the resulting USDC to `MorphoYieldAdapter`.
+  After unwrap finalization, the keeper calls `supplyAvailableMorphoPrincipal`.
 - Prize funding uses callback data prefixed with `PRIZE_FUNDING_DATA`. The
   encrypted cUSDC reserve is held by the pool, while the same amount is mirrored
-  in `publicPrizeReserve` so the app can show the active prize.
+  in `publicPrizeReserve` so the app can show the active prize. Morpho-harvested
+  yield uses this same callback after the adapter wraps harvested USDC.
 - Draw closing is permissionless once `nextDrawAt` has passed. The contract
   draws `FHE.randEuint64(MAX_DRAW_TICKETS)` and scans the bounded participant
   list using encrypted cumulative balances.
@@ -204,6 +296,8 @@ Current confidential architecture:
   cUSDC or create an underlying USDC unwrap request.
 - The no-loss invariant is principal-backed by pool-held cUSDC. Prize funds sit
   in the separate encrypted prize reserve and are not consumed by withdrawal.
+  Principal supplied to Morpho must be restored as cUSDC before it can satisfy
+  user withdrawals from the pool.
 
 Important current limitations:
 
@@ -224,8 +318,8 @@ Important current limitations:
 
 ## Current implementation status
 
-- **Confidential lifecycle is in progress and is the active bounty
-  implementation.** `ConfidentialUSDC` wraps USDC as ERC-7984, and
+- **Confidential lifecycle is deployed and working end to end on Sepolia.**
+  `ConfidentialUSDC` wraps USDC as ERC-7984, and
   `ConfidentialPrizePool` supports encrypted deposits, encrypted-amount
   withdrawals, public mocked prize funding, encrypted winnings, claim, and
   Zama EIP-712 user decryption from the frontend.
@@ -244,12 +338,13 @@ Important current limitations:
 - **Zama EIP-712 serialization** needs bigint-safe handling before typed-data
   signing; plain `JSON.stringify` can throw
   `Do not know how to serialize a BigInt`.
-- **Yield source** is mocked. A sponsor wraps USDC to cUSDC and sends it to
-  `ConfidentialPrizePool` with `PRIZE_FUNDING_DATA`; the sponsor-funded amount
-  is mirrored as the public global prize while user winnings remain encrypted.
-  Plug in Aave / Morpho / Superlend only after the Sepolia bounty demo is
-  stable. If an encrypted no-winner branch carries funds forward, that carry is
-  intentionally not disclosed by the public mirror.
+- **Morpho yield adapter exists but is not the live judge fallback.** Users
+  still deposit only `cUSDC` into `ConfidentialPrizePool`; the keeper requests
+  timed principal unwraps to `MorphoYieldAdapter`, the adapter supplies USDC to
+  Morpho Blue, and harvested surplus is wrapped back into `cUSDC` as the prize
+  reserve. The sponsor-funded path remains available for demos. If an encrypted
+  no-winner branch carries funds forward, that carry is intentionally not
+  disclosed by the public mirror.
 - **Tickets = live share balance**. Should be a snapshot at draw start to
   prevent last-minute deposit/withdraw manipulation.
 - **USDC** uses Circle Sepolia USDC for deployment when practical, with
@@ -261,11 +356,9 @@ Important current limitations:
 
 ## Where to go from here
 
-1. Finish the judge-facing confidential frontend: faucet/onboarding, prize
-   funding, close draw, decrypt winnings, claim, withdraw, and unwrap.
-2. Deploy `ConfidentialUSDC` and `ConfidentialPrizePool` to Ethereum Sepolia.
-3. Run a clean-browser, multi-wallet Sepolia test of deposit, decrypt, fund,
-   close, claim, withdraw, and finalize unwrap.
-4. Document leakage, sponsor-funded mocked prize/yield, faucet, keeper flow, and
-   deployed addresses.
-5. Record the real-person demo and publish the X thread/article.
+1. Keep the funded Netlify app and Sepolia contracts available for judges:
+   https://sortecerta.netlify.app.
+2. Record the real-person demo using the verified hosted flow.
+3. Publish the X thread/article and add the final link here.
+4. Continue hardening after submission: draw-start snapshots, larger participant
+   sets, real yield integration, and production legal review.
