@@ -165,7 +165,6 @@ async function runAction(
       functionName: "finalizeUnwrap",
       args: [requestId, clearValue, decrypted.decryptionProof],
     });
-    await publicClient.waitForTransactionReceipt({ hash });
     return hash;
   }
 
@@ -188,7 +187,6 @@ async function runAction(
         lltv: marketParams[4],
       }],
     });
-    await publicClient.waitForTransactionReceipt({ hash });
     return hash;
   }
 
@@ -207,7 +205,6 @@ async function runAction(
     functionName,
     args,
   });
-  await publicClient.waitForTransactionReceipt({ hash });
   return hash;
 }
 
