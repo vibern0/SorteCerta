@@ -1,4 +1,4 @@
-export type MorphoKeeperAction = "supply" | "harvest" | "unwrap";
+export type MorphoKeeperAction = "supply" | "harvest" | "finalize" | "unwrap" | "accrue";
 
 export type MorphoKeeperSnapshot = {
   availablePrincipalAssets: bigint;
@@ -7,15 +7,44 @@ export type MorphoKeeperSnapshot = {
   lastMorphoUnwrapAt: bigint;
   morphoUnwrapInterval: bigint;
   now: bigint;
+  pendingUnwrapRequestId?: `0x${string}`;
+  suppliedPrincipalAssets: bigint;
 };
 
-const DEFAULT_MAX_TRANSACTIONS = 3;
-const HARD_MAX_TRANSACTIONS = 10;
+const HARD_MAX_TRANSACTIONS = 1;
 
 export function normalizeKeeperMaxTransactions(value: string | undefined): number {
-  const parsed = value === undefined ? DEFAULT_MAX_TRANSACTIONS : Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed)) return DEFAULT_MAX_TRANSACTIONS;
-  return Math.min(Math.max(parsed, 1), HARD_MAX_TRANSACTIONS);
+  void value;
+  return HARD_MAX_TRANSACTIONS;
+}
+
+export function buildInclusiveBlockRanges(fromBlock: bigint, toBlock: bigint, maxBlocks: bigint) {
+  if (maxBlocks < 1n) throw new Error("maxBlocks must be positive");
+  const ranges: Array<{ fromBlock: bigint; toBlock: bigint }> = [];
+  for (let start = fromBlock; start <= toBlock; start += maxBlocks) {
+    const end = start + maxBlocks - 1n;
+    ranges.push({ fromBlock: start, toBlock: end < toBlock ? end : toBlock });
+  }
+  return ranges;
+}
+
+export function sanitizeKeeperError(error: unknown) {
+  const candidate = error && typeof error === "object" ? error as Record<string, unknown> : undefined;
+  const name = typeof candidate?.name === "string" ? candidate.name : "Error";
+  const rawMessage = typeof candidate?.message === "string" ? candidate.message : "Keeper action failed";
+  const message = rawMessage.replace(/https?:\/\/\S+/gi, "[redacted-url]");
+  const sanitized: { name: string; message: string; code?: string | number; status?: string | number } = { name, message };
+  if (typeof candidate?.code === "string" || typeof candidate?.code === "number") sanitized.code = candidate.code;
+  if (typeof candidate?.status === "string" || typeof candidate?.status === "number") sanitized.status = candidate.status;
+  return sanitized;
+}
+
+export function findOldestPendingMorphoUnwrap(
+  requestedIds: readonly `0x${string}`[],
+  finalizedIds: readonly `0x${string}`[],
+) {
+  const finalized = new Set(finalizedIds.map((id) => id.toLowerCase()));
+  return requestedIds.find((id) => !finalized.has(id.toLowerCase()));
 }
 
 export function chooseMorphoKeeperActions(
@@ -28,10 +57,17 @@ export function chooseMorphoKeeperActions(
   if (snapshot.availablePrincipalAssets > 0n) actions.push("supply");
   if (snapshot.accruedYieldAssets > 0n) actions.push("harvest");
 
+  if (snapshot.pendingUnwrapRequestId) {
+    actions.push("finalize");
+    return actions.slice(0, max);
+  }
+
   const unwrapReadyAt = snapshot.lastMorphoUnwrapAt + snapshot.morphoUnwrapInterval;
   if (snapshot.morphoPendingDepositCount > 0n && snapshot.now >= unwrapReadyAt) {
     actions.push("unwrap");
   }
+
+  if (snapshot.suppliedPrincipalAssets > 0n) actions.push("accrue");
 
   return actions.slice(0, max);
 }

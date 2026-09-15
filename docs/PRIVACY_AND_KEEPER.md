@@ -12,10 +12,11 @@ principal bucket.
 
 A keeper runs on a fixed cadence, currently intended to be every five minutes.
 When the interval has elapsed and there has been deposit activity, it asks the
-pool to unwrap the pending principal to the Morpho adapter. After the unwrap is
-finalized and the adapter has public USDC, the keeper supplies that available
-USDC to Morpho. On later runs, if Morpho yield is available, the keeper harvests
-that yield back into the prize reserve.
+pool to unwrap the pending principal to the Morpho adapter. On a later run, the
+keeper discovers that request from wrapper events, obtains Zama's public
+decryption proof, and finalizes the unwrap. Once the adapter has USDC, the keeper
+supplies it to Morpho. Idle runs update Morpho's lazy interest accounting; when
+yield becomes observable, the keeper harvests it into the prize reserve.
 
 ## Known privacy tradeoffs
 
@@ -36,12 +37,22 @@ separate liquidity buffers, and more careful keeper scheduling.
 ## Keeper safety
 
 The Netlify keeper is intentionally idempotent. Each run reads current onchain
-state and can execute a bounded number of actions:
+state and executes at most one transaction, continuing the state machine on the
+next five-minute run:
 
 1. supply finalized adapter USDC to Morpho;
 2. harvest available Morpho yield into the prize reserve;
-3. request a timed unwrap for pending pool principal.
+3. finalize the oldest ready Morpho-bound unwrap;
+4. request a timed unwrap for pending pool principal;
+5. accrue Morpho interest when no higher-priority work is pending.
 
-`MORPHO_KEEPER_MAX_TXS` controls how many transactions one scheduled run may
-send. It defaults to `3` and is capped in code to avoid unbounded nonce, gas, or
-timeout behavior.
+The keeper scans from `MORPHO_KEEPER_START_BLOCK` (the wrapper deployment block)
+to the latest block in exact 10,000-block chunks for wrapper requests and matching
+finalizations. This prevents a delayed request from aging out of discovery. A
+temporarily unavailable Zama public-decryption proof leaves the request pending
+for the next scheduled run instead of submitting a transaction.
+
+`MORPHO_KEEPER_MAX_TXS` is retained for configuration compatibility, but the
+scheduled runtime hard-caps every run to one transaction to stay inside Netlify's
+execution limit. Set `MORPHO_KEEPER_START_BLOCK` to the new wrapper deployment
+block whenever the contracts are redeployed.

@@ -70,7 +70,7 @@ cp .env.example .env.local
 #       NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS,
 #       NEXT_PUBLIC_WEB3AUTH_CLIENT_ID, NEXT_PUBLIC_PIMLICO_API_KEY
 # On Netlify, also set private keeper env vars:
-#       SEPOLIA_RPC_URL, KEEPER_PRIVATE_KEY, MORPHO_KEEPER_MAX_TXS
+#       SEPOLIA_RPC_URL, KEEPER_PRIVATE_KEY, MORPHO_KEEPER_START_BLOCK
 
 # 4. Run.
 npm run dev
@@ -100,9 +100,9 @@ Frontend:
 Current confidential deployment:
 
 - **USDC underlying:** `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`
-- **ConfidentialUSDC:** `0x47E6c485506C6b1F97872028f127a2943B5559c3`
-- **ConfidentialPrizePool:** `0x596446cBC5fc0Db5e27293AE18ad56284E5cd85C`
-- **MorphoYieldAdapter:** `0xDc36Ee07B90cbB0096a8ba79bCDdFC7bde9FBEaf`
+- **ConfidentialUSDC:** `0xB4F98ca24DEe9AA9D7f931f77A202a0496642038`
+- **ConfidentialPrizePool:** `0x30Fa8BEEFe43a6174F22E548a3D96218831789D8`
+- **MorphoYieldAdapter:** `0xebb1C3515a7303dBD19C2bf0D0572F3eDa57f0d2`
 - **Chain:** Ethereum Sepolia (`11155111`)
 - **Draw interval:** `900` seconds for Morpho-yield demo testing
 
@@ -110,8 +110,8 @@ Frontend env values:
 
 ```bash
 NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
-NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS=0x47E6c485506C6b1F97872028f127a2943B5559c3
-NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x596446cBC5fc0Db5e27293AE18ad56284E5cd85C
+NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS=0xB4F98ca24DEe9AA9D7f931f77A202a0496642038
+NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x30Fa8BEEFe43a6174F22E548a3D96218831789D8
 NEXT_PUBLIC_CHAIN_ID=11155111
 ```
 
@@ -194,9 +194,11 @@ deposits arrive, `ConfidentialPrizePool` accumulates encrypted pending principal
 A keeper runs on a timed cadence, default `MORPHO_UNWRAP_INTERVAL_SECONDS=300`,
 and requests one `ConfidentialUSDC.unwrap` with `MorphoYieldAdapter` as the USDC
 receiver. That request reveals only the finalized window amount, not each
-depositor's amount. Once the unwrap is finalized, the keeper calls
-`supplyAvailableMorphoPrincipal()` on the pool, and the pool instructs the
-adapter to supply all available adapter USDC to Morpho Blue.
+depositor's amount. On the next ready run, the keeper obtains Zama's public
+decryption proof, finalizes the unwrap, and calls
+`supplyAvailableMorphoPrincipal()` so the adapter supplies all available USDC
+to Morpho Blue. Idle runs accrue Morpho's lazy interest accounting before
+harvesting any observable surplus into the prize reserve.
 
 The adapter tracks pool principal separately from market value. The prize is the
 surplus reported by `accruedYieldAssets()`: current Morpho supplied assets minus
@@ -226,7 +228,8 @@ Netlify keeper env values:
 ```bash
 SEPOLIA_RPC_URL=https://...
 KEEPER_PRIVATE_KEY=0x...
-MORPHO_KEEPER_MAX_TXS=3
+MORPHO_KEEPER_START_BLOCK=11711000
+MORPHO_KEEPER_MAX_TXS=1
 ```
 
 Current confidential architecture:
