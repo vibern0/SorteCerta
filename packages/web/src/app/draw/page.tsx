@@ -274,7 +274,7 @@ export default function DrawPage() {
           <div className="rounded-2xl bg-white/35 border border-white/50 p-3 min-h-24">
             <p className="text-xs text-muted">Prize</p>
             <p className="font-display text-xl font-bold tabular-nums">
-              {formatUSDC(publicPrizeReserve)} USDC
+              {formatUSDC(publicPrizeReserve, 6)} USDC
             </p>
           </div>
         </div>
@@ -291,7 +291,7 @@ export default function DrawPage() {
         <div className="flex min-h-20 items-center justify-between gap-3 rounded-2xl border border-white/50 bg-white/35 px-4 py-3">
           <span className="text-xs font-semibold text-muted">Prize ready</span>
           <span className="min-w-32 max-w-[68%] text-right font-display text-2xl font-bold leading-none tabular-nums text-brand break-words">
-            {formatUSDC(winnings)} cUSDC
+            {formatUSDC(winnings, 6)} cUSDC
           </span>
         </div>
         <button

@@ -53,7 +53,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between pt-2 text-sm">
             <span className="text-muted">Current prize</span>
             <span className="font-semibold text-text tabular-nums">
-              {formatUSDC(draw.prizeAmount)} USDC
+              {formatUSDC(draw.prizeAmount, 6)} USDC
             </span>
           </div>
         </section>

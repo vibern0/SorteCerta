@@ -14,7 +14,7 @@ async function main() {
   const drawInterval =
     process.env.DRAW_INTERVAL_SECONDS
       ? BigInt(process.env.DRAW_INTERVAL_SECONDS)
-      : 5n * 60n; // 5 minute demo default
+      : 15n * 60n; // 15 minute demo default
 
   const ConfidentialPrizePool = await ethers.getContractFactory("ConfidentialPrizePool");
   const pool = await ConfidentialPrizePool.deploy(token, drawInterval);

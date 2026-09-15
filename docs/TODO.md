@@ -72,7 +72,9 @@ Implementation notes:
 
 ## Later: Morpho USDC/WETH yield adapter
 
-Status: deferred until the Sepolia bounty demo is stable end to end.
+Status: adapter implemented behind owner/keeper controls. Keep the
+sponsor-funded prize path as the judge-demo fallback until Sepolia Morpho
+liquidity has been re-checked.
 
 Goal: replace or supplement the sponsor-funded prize source with real USDC yield
 from a Morpho Blue USDC/WETH market on Ethereum Sepolia.
@@ -121,5 +123,10 @@ Risks and open questions:
   before implementation.
 - Keep the sponsor-funded prize path as a fallback for judge demos.
 
-Implementation is intentionally out of the bounty-critical path. Build this only
-after deposit, draw, claim, withdraw, and frontend flows are stable on Sepolia.
+Implementation note: `packages/contracts/contracts/MorphoYieldAdapter.sol`
+supplies owner-managed USDC to Morpho Blue, tracks principal separately, harvests
+only accrued surplus, wraps harvested USDC as `cUSDC`, and forwards it into
+`ConfidentialPrizePool` with the existing prize-funding callback. The deploy
+script can read `MarketParams` directly from Morpho using `MORPHO_MARKET_ID`.
+`ConfidentialPrizePool` lets the keeper request a pooled principal unwrap on a
+timed cadence, so Morpho receives windowed USDC rather than per-user deposits.

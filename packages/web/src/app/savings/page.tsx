@@ -11,7 +11,7 @@ import {
   confidentialUsdcAbi,
   erc20Abi,
 } from "@/lib/contracts";
-import { formatUSDC, formatUSDCCompact, parseUSDC } from "@/lib/format";
+import { formatUSDC, parseUSDC } from "@/lib/format";
 import { useWallet } from "@/lib/wallet-context";
 import { sendSmartTransaction, sendSmartTransactionBatch, type SmartSession } from "@/lib/web3auth";
 import { getZamaInstance } from "@/lib/zama";
@@ -28,6 +28,7 @@ type SheetStep = "entry" | "confirm";
 
 const PENDING_UNWRAPS_STORAGE_PREFIX = "sortecerta:pending-unwraps";
 const UNWRAP_LOG_LOOKBACK_BLOCKS = 512n;
+const MAX_USER_PRINCIPAL = 1_000_000_000n;
 
 const publicClient = createPublicClient({
   chain: sepolia,
@@ -331,6 +332,8 @@ export default function SavingsPage() {
     const user = currentSession.address;
     if (value === 0n) throw new Error("Valor invalido.");
     if (!poolReady) throw new Error("Deposits are unavailable right now.");
+    const maxDeposit = remainingDepositCapacity();
+    if (value > maxDeposit) throw new Error("Amount is above the current account limit.");
 
     const usdc = asAddress(addresses.usdc, "USDC");
     const token = asAddress(addresses.confidentialUsdc, "Savings token");
@@ -424,10 +427,18 @@ export default function SavingsPage() {
 
   const parsedDepositAmount = parsedAmount(depositAmount);
   const parsedWithdrawAmount = parsedAmount(withdrawAmount);
+  const remainingDeposit =
+    principal === undefined
+      ? MAX_USER_PRINCIPAL
+      : principal >= MAX_USER_PRINCIPAL
+        ? 0n
+        : MAX_USER_PRINCIPAL - principal;
   const depositBalanceAfter =
     usdcBalance === undefined || parsedDepositAmount > usdcBalance ? undefined : usdcBalance - parsedDepositAmount;
   const depositPoolAfter =
-    principal === undefined || parsedDepositAmount === 0n ? principal : principal + parsedDepositAmount;
+    principal === undefined || parsedDepositAmount === 0n || parsedDepositAmount > remainingDeposit
+      ? principal
+      : principal + parsedDepositAmount;
   const withdrawPoolAfter =
     principal === undefined || parsedWithdrawAmount > principal ? undefined : principal - parsedWithdrawAmount;
 
@@ -440,7 +451,16 @@ export default function SavingsPage() {
       toast({ tone: "error", title: "Amount is above your wallet balance." });
       return;
     }
+    if (parsedDepositAmount > remainingDepositCapacity()) {
+      toast({ tone: "error", title: "Amount is above the current account limit." });
+      return;
+    }
     setDepositSheetStep("confirm");
+  }
+
+  function remainingDepositCapacity() {
+    if (principal === undefined) return MAX_USER_PRINCIPAL;
+    return principal >= MAX_USER_PRINCIPAL ? 0n : MAX_USER_PRINCIPAL - principal;
   }
 
   function reviewWithdraw() {
@@ -638,12 +658,18 @@ export default function SavingsPage() {
 
             <AmountInput
               label="Amount"
-              maxLabel={`${formatUSDC(usdcBalance)} USDC`}
+              maxLabel={`${formatUSDC(usdcBalance !== undefined && usdcBalance < remainingDeposit ? usdcBalance : remainingDeposit)} USDC`}
               value={depositAmount}
               onChange={setDepositAmount}
-              onMax={() => setDepositAmount(usdcBalance !== undefined ? formatUSDC(usdcBalance, 6) : "0")}
+              onMax={() => {
+                const max = usdcBalance !== undefined && usdcBalance < remainingDeposit ? usdcBalance : remainingDeposit;
+                setDepositAmount(formatUSDC(max, 6));
+              }}
               disabled={depositSheetStep === "confirm"}
             />
+            <p className="rounded-2xl bg-white/45 px-3 py-2 text-xs text-muted">
+              Current account limit: 1,000.00 USDC.
+            </p>
 
             {depositSheetStep === "entry" ? (
               <button
@@ -660,15 +686,15 @@ export default function SavingsPage() {
                   <div className="mt-3 space-y-2 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Deposit</span>
-                      <span className="font-semibold tabular-nums">{formatUSDCCompact(parsedDepositAmount)} USDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(parsedDepositAmount)} USDC</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Wallet after</span>
-                      <span className="font-semibold tabular-nums">{formatUSDCCompact(depositBalanceAfter)} USDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(depositBalanceAfter)} USDC</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Pool after</span>
-                      <span className="font-semibold tabular-nums">{formatUSDCCompact(depositPoolAfter)} cUSDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(depositPoolAfter)} cUSDC</span>
                     </div>
                   </div>
                 </div>
@@ -686,7 +712,7 @@ export default function SavingsPage() {
                     disabled={!session || !poolReady || confirmingAction === "deposit"}
                     onClick={() =>
                       void runTrackedTransaction(
-                        `Deposit ${formatUSDCCompact(parsedDepositAmount)} USDC`,
+                        `Deposit ${formatUSDC(parsedDepositAmount)} USDC`,
                         "deposit",
                         (update) => depositConfidential(parsedDepositAmount, update),
                         "Deposit complete.",
@@ -781,11 +807,11 @@ export default function SavingsPage() {
                   <div className="mt-3 space-y-2 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Withdraw</span>
-                      <span className="font-semibold tabular-nums">{formatUSDCCompact(parsedWithdrawAmount)} cUSDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(parsedWithdrawAmount)} cUSDC</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Pool after</span>
-                      <span className="font-semibold tabular-nums">{formatUSDCCompact(withdrawPoolAfter)} cUSDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(withdrawPoolAfter)} cUSDC</span>
                     </div>
                   </div>
                   <p className="mt-3 rounded-2xl bg-white/45 px-3 py-2 text-xs text-muted">
@@ -806,7 +832,7 @@ export default function SavingsPage() {
                     disabled={!session || !poolReady || confirmingAction === "withdraw"}
                     onClick={() =>
                       void runTrackedTransaction(
-                        `Withdraw ${formatUSDCCompact(parsedWithdrawAmount)} cUSDC`,
+                        `Withdraw ${formatUSDC(parsedWithdrawAmount)} cUSDC`,
                         "withdraw",
                         (update) => withdrawConfidential(parsedWithdrawAmount, update),
                         "Withdrawal requested.",
