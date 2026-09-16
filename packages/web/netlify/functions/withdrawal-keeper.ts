@@ -139,7 +139,13 @@ export default async () => {
     const action = chooseWithdrawalKeeperAction(snapshot);
     if (!action) continue;
 
-    const hash = await runAction(action, publicClient, walletClient, account, pool, batchId, rpcUrl);
+    let hash: Hex | undefined;
+    try {
+      hash = await runAction(action, publicClient, walletClient, account, pool, batchId, rpcUrl);
+    } catch (error) {
+      console.log(JSON.stringify({ action, batchId: batchId.toString(), status: "failed", error: sanitizeKeeperError(error) }));
+      break;
+    }
     if (!hash) break;
     transactions.push({ action, batchId: batchId.toString(), hash });
     break;
