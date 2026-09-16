@@ -8,6 +8,13 @@ export type PendingWithdrawal = {
   unwrapRequestId?: `0x${string}`;
 };
 
+export type StoredPendingWithdrawal = {
+  batchId: string;
+  txHash: `0x${string}`;
+  amount?: string;
+  unwrapRequestId?: `0x${string}`;
+};
+
 export type WithdrawalStageInputs = {
   batchStatus: WithdrawalBatchStatus;
   hasClaim: boolean;
@@ -31,6 +38,22 @@ export const balanceBucketLabels = {
 
 export function pendingWithdrawalTotal(requests: readonly PendingWithdrawal[]) {
   return requests.reduce((total, request) => total + (request.amount ?? 0n), 0n);
+}
+
+export function serializePendingWithdrawals(requests: readonly PendingWithdrawal[]): StoredPendingWithdrawal[] {
+  return requests.map((request) => {
+    const stored: StoredPendingWithdrawal = {
+      batchId: request.batchId.toString(),
+      txHash: request.txHash,
+    };
+    if (request.amount !== undefined) stored.amount = request.amount.toString();
+    if (request.unwrapRequestId) stored.unwrapRequestId = request.unwrapRequestId;
+    return stored;
+  });
+}
+
+export function pendingWithdrawalBatchLabel(request: PendingWithdrawal) {
+  return `Batch ${request.batchId.toString()}`;
 }
 
 export function mergePendingWithdrawals(

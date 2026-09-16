@@ -6,7 +6,9 @@ import {
   deriveWithdrawalStage,
   finalizationOutcome,
   mergePendingWithdrawals,
+  pendingWithdrawalBatchLabel,
   pendingWithdrawalTotal,
+  serializePendingWithdrawals,
   withdrawalStageCopy,
 } from "../src/lib/withdrawal-state.ts";
 
@@ -67,6 +69,25 @@ test("merges onchain-discovered withdrawals with locally known amounts", () => {
       { batchId: 2n, txHash: "0xolder" },
     ],
   );
+});
+
+test("serializes pending withdrawals without view-only bigint fields", () => {
+  const serialized = serializePendingWithdrawals([
+    {
+      batchId: 4n,
+      txHash: "0xlocal",
+      amount: 1_000_000n,
+      closesAt: 1_783_456_789n,
+      stage: "requested",
+    },
+  ]);
+
+  assert.doesNotThrow(() => JSON.stringify(serialized));
+  assert.deepEqual(serialized, [{ batchId: "4", txHash: "0xlocal", amount: "1000000" }]);
+});
+
+test("labels pending withdrawal batches distinctly", () => {
+  assert.equal(pendingWithdrawalBatchLabel({ batchId: 12n, txHash: "0xlocal" }), "Batch 12");
 });
 
 test("withdrawal model copy avoids restricted product terms", () => {

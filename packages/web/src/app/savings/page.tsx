@@ -26,7 +26,9 @@ import {
   deriveWithdrawalStage,
   finalizationOutcome,
   mergePendingWithdrawals,
+  pendingWithdrawalBatchLabel,
   pendingWithdrawalTotal,
+  serializePendingWithdrawals,
   withdrawalStageCopy,
   type PendingWithdrawal,
   type WithdrawalBatchStatus,
@@ -135,13 +137,7 @@ function writeStoredPendingWithdrawals(pool: `0x${string}`, user: `0x${string}`,
 
   window.localStorage.setItem(
     pendingWithdrawalStorageKey(pool, user),
-    JSON.stringify(
-      requests.map((request) => ({
-        ...request,
-        batchId: request.batchId.toString(),
-        amount: request.amount?.toString(),
-      })),
-    ),
+    JSON.stringify(serializePendingWithdrawals(requests)),
   );
 }
 
@@ -1156,6 +1152,7 @@ export default function SavingsPage() {
                         <span className="font-semibold tabular-nums">{formatUSDC(request.amount)} USDC</span>
                       )}
                     </div>
+                    <p className="text-xs text-muted">{pendingWithdrawalBatchLabel(request)}</p>
                     {request.stage === "requested" && request.closesAt !== undefined && (
                       <p className="text-xs text-muted">
                         Batch closes {new Intl.DateTimeFormat("en-US", { timeStyle: "short" }).format(new Date(Number(request.closesAt) * 1000))}.
