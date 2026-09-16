@@ -5,6 +5,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 const DRAW_INTERVAL = 15n * 60n;
+const WITHDRAWAL_BATCH_INTERVAL = 5n * 60n;
 
 describe("ConfidentialPrizePool", function () {
   let alice: HardhatEthersSigner;
@@ -35,7 +36,11 @@ describe("ConfidentialPrizePool", function () {
     const confidentialUsdcAddress = await confidentialUsdc.getAddress();
 
     const ConfidentialPrizePool = await ethers.getContractFactory("ConfidentialPrizePool");
-    const pool = await ConfidentialPrizePool.deploy(confidentialUsdcAddress, DRAW_INTERVAL);
+    const pool = await ConfidentialPrizePool.deploy(
+      confidentialUsdcAddress,
+      DRAW_INTERVAL,
+      WITHDRAWAL_BATCH_INTERVAL,
+    );
     await pool.waitForDeployment();
     const poolAddress = await pool.getAddress();
 
@@ -126,9 +131,9 @@ describe("ConfidentialPrizePool", function () {
     ]);
   }
 
-  async function encryptedWithdraw(pool: any, poolAddress: string, user: HardhatEthersSigner, amount: bigint) {
+  async function encryptedWithdrawInput(poolAddress: string, user: HardhatEthersSigner, amount: bigint) {
     const encryptedAmount = await fhevm.createEncryptedInput(poolAddress, user.address).add64(amount).encrypt();
-    await pool.connect(user).withdraw(encryptedAmount.handles[0], encryptedAmount.inputProof);
+    return encryptedAmount;
   }
 
   it("tracks encrypted principal for multiple depositors", async function () {
@@ -204,40 +209,47 @@ describe("ConfidentialPrizePool", function () {
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(2_500_000n);
   });
 
-  it("withdraws principal without exposing the stored balance", async function () {
+  it("rejects legacy immediate confidential withdrawals", async function () {
     const { confidentialUsdc, confidentialUsdcAddress, pool, poolAddress } = await deployFixture();
 
     await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, alice, 3_000_000n);
-    await encryptedWithdraw(pool, poolAddress, alice, 1_250_000n);
+    const encryptedAmount = await encryptedWithdrawInput(poolAddress, alice, 1_250_000n);
+
+    await expect(pool.connect(alice).withdraw(encryptedAmount.handles[0], encryptedAmount.inputProof))
+      .to.be.revertedWithCustomError(pool, "QueuedWithdrawalsOnly");
 
     const encryptedPrincipal = await pool.encryptedPrincipalOf(alice.address);
     const encryptedAliceBalance = await confidentialUsdc.confidentialBalanceOf(alice.address);
     const encryptedPoolBalance = await confidentialUsdc.confidentialBalanceOf(poolAddress);
 
     expect(await fhevm.userDecryptEuint(FhevmType.euint64, encryptedPrincipal, poolAddress, alice)).to.equal(
-      1_750_000n,
+      3_000_000n,
     );
     expect(
       await fhevm.userDecryptEuint(FhevmType.euint64, encryptedAliceBalance, confidentialUsdcAddress, alice),
-    ).to.equal(8_250_000n);
-    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(1_750_000n);
+    ).to.equal(7_000_000n);
+    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(3_000_000n);
   });
 
-  it("caps withdrawal at encrypted available principal", async function () {
+  it("rejects legacy immediate USDC withdrawals", async function () {
     const { confidentialUsdc, confidentialUsdcAddress, pool, poolAddress } = await deployFixture();
 
     await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, alice, 2_000_000n);
-    await encryptedWithdraw(pool, poolAddress, alice, 9_000_000n);
+    const encryptedAmount = await encryptedWithdrawInput(poolAddress, alice, 9_000_000n);
+
+    await expect(
+      pool.connect(alice).withdrawToUsdc(encryptedAmount.handles[0], encryptedAmount.inputProof, alice.address),
+    ).to.be.revertedWithCustomError(pool, "QueuedWithdrawalsOnly");
 
     const encryptedPrincipal = await pool.encryptedPrincipalOf(alice.address);
     const encryptedAliceBalance = await confidentialUsdc.confidentialBalanceOf(alice.address);
     const encryptedPoolBalance = await confidentialUsdc.confidentialBalanceOf(poolAddress);
 
-    expect(await fhevm.userDecryptEuint(FhevmType.euint64, encryptedPrincipal, poolAddress, alice)).to.equal(0n);
+    expect(await fhevm.userDecryptEuint(FhevmType.euint64, encryptedPrincipal, poolAddress, alice)).to.equal(2_000_000n);
     expect(
       await fhevm.userDecryptEuint(FhevmType.euint64, encryptedAliceBalance, confidentialUsdcAddress, alice),
-    ).to.equal(10_000_000n);
-    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(0n);
+    ).to.equal(8_000_000n);
+    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(2_000_000n);
   });
 
   it("rejects deposits that would push an account above 1,000 USDC", async function () {
@@ -261,35 +273,6 @@ describe("ConfidentialPrizePool", function () {
       await fhevm.userDecryptEuint(FhevmType.euint64, encryptedAliceBalance, confidentialUsdcAddress, alice),
     ).to.equal(110_000_000n);
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(1_000_000_000n);
-  });
-
-  it("withdraws principal into an underlying USDC unwrap request", async function () {
-    const { confidentialUsdc, confidentialUsdcAddress, pool, poolAddress } = await deployFixture();
-
-    await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, alice, 2_000_000n);
-
-    const encryptedAmount = await fhevm.createEncryptedInput(poolAddress, alice.address).add64(1_250_000n).encrypt();
-    const tx = await pool.connect(alice).withdrawToUsdc(encryptedAmount.handles[0], encryptedAmount.inputProof, alice.address);
-    const receipt = await tx.wait();
-    const parsedLogs = receipt?.logs
-      .map((log: any) => {
-        try {
-          return confidentialUsdc.interface.parseLog(log);
-        } catch {
-          return undefined;
-        }
-      })
-      .filter(Boolean);
-    const unwrapRequestId = parsedLogs?.find((log: any) => log.name === "UnwrapRequested")?.args.unwrapRequestId;
-
-    expect(unwrapRequestId).to.not.equal(undefined);
-    expect(await confidentialUsdc.unwrapRequester(unwrapRequestId)).to.equal(alice.address);
-
-    const encryptedPrincipal = await pool.encryptedPrincipalOf(alice.address);
-    const encryptedPoolBalance = await confidentialUsdc.confidentialBalanceOf(poolAddress);
-
-    expect(await fhevm.userDecryptEuint(FhevmType.euint64, encryptedPrincipal, poolAddress, alice)).to.equal(750_000n);
-    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(750_000n);
   });
 
   it("funds a public prize amount backed by a confidential reserve", async function () {
@@ -336,6 +319,30 @@ describe("ConfidentialPrizePool", function () {
     expect(
       await fhevm.userDecryptEuint(FhevmType.euint64, encryptedWinnerBalance, confidentialUsdcAddress, winner),
     ).to.be.greaterThan(0n);
+  });
+
+  it("lets the winner add a prize directly to savings", async function () {
+    const { confidentialUsdc, confidentialUsdcAddress, pool, poolAddress } = await deployFixture();
+
+    await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, alice, 600_000n);
+    await fundPrize(confidentialUsdc, confidentialUsdcAddress, pool, poolAddress, 1_000_000n);
+
+    await time.increase(Number(DRAW_INTERVAL) + 1);
+    await pool.connect(admin).closeDraw();
+
+    const encryptedAliceWinnings = await pool.encryptedWinningsOf(alice.address);
+    const aliceWinnings = await fhevm.userDecryptEuint(FhevmType.euint64, encryptedAliceWinnings, poolAddress, alice);
+    expect(aliceWinnings).to.equal(1_000_000n);
+
+    await pool.connect(alice).claimPrizeToSavings();
+
+    const encryptedClaimedWinnings = await pool.encryptedWinningsOf(alice.address);
+    const encryptedPrincipal = await pool.encryptedPrincipalOf(alice.address);
+
+    expect(await fhevm.userDecryptEuint(FhevmType.euint64, encryptedClaimedWinnings, poolAddress, alice)).to.equal(0n);
+    expect(await fhevm.userDecryptEuint(FhevmType.euint64, encryptedPrincipal, poolAddress, alice)).to.equal(
+      1_600_000n,
+    );
   });
 
   it("exposes the recurring draw schedule and lets anyone close a ready draw", async function () {

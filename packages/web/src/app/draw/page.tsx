@@ -16,7 +16,7 @@ import { getZamaInstance, userDecryptTimestamp } from "@/lib/zama";
 import { useToast } from "@/components/Toast";
 
 type Status = "idle" | "working" | "success" | "error";
-type WorkingAction = "checkPrize" | "claimPrize" | undefined;
+type WorkingAction = "checkPrize" | "claimPrize" | "addPrizeToSavings" | undefined;
 
 const ZERO_HANDLE = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
@@ -77,7 +77,7 @@ function formatInterval(seconds: bigint | undefined) {
 
 // Draw page for checking prizes, claiming winnings, and viewing round timing.
 export default function DrawPage() {
-  const { session } = useWallet();
+  const { session, refreshConfidentialBalances } = useWallet();
   const toast = useToast();
   const [status, setStatus] = useState<Status>("idle");
   const [workingAction, setWorkingAction] = useState<WorkingAction>();
@@ -191,11 +191,27 @@ export default function DrawPage() {
     await sendTx(currentSession, asAddress(addresses.pool, "Prize pool"), data);
     setWinnings(undefined);
     await refresh();
+    await refreshConfidentialBalances();
+  }
+
+  async function claimPrizeToSavings() {
+    const currentSession = activeSession();
+    if (!ready) throw new Error("Prize claims are unavailable right now.");
+
+    const data = encodeFunctionData({
+      abi: confidentialPrizePoolAbi,
+      functionName: "claimPrizeToSavings",
+      args: [],
+    });
+    await sendTx(currentSession, asAddress(addresses.pool, "Prize pool"), data);
+    setWinnings(undefined);
+    await refresh();
+    await refreshConfidentialBalances();
   }
 
   function handlePrizeAction() {
     return hasPrizeToClaim
-      ? run(claimPrize, "Prize claimed to your cUSDC balance.", "claimPrize")
+      ? run(claimPrizeToSavings, "Prize added to savings.", "addPrizeToSavings")
       : run(decryptWinnings, "Winnings revealed.", "checkPrize");
   }
 
@@ -291,7 +307,7 @@ export default function DrawPage() {
         <div className="flex min-h-20 items-center justify-between gap-3 rounded-2xl border border-white/50 bg-white/35 px-4 py-3">
           <span className="text-xs font-semibold text-muted">Prize ready</span>
           <span className="min-w-32 max-w-[68%] text-right font-display text-2xl font-bold leading-none tabular-nums text-brand break-words">
-            {formatUSDC(winnings, 6)} cUSDC
+            {formatUSDC(winnings, 6)} tokens
           </span>
         </div>
         <button
@@ -301,12 +317,23 @@ export default function DrawPage() {
         >
           {workingAction === "claimPrize"
             ? "Claiming..."
+            : workingAction === "addPrizeToSavings"
+              ? "Adding..."
             : workingAction === "checkPrize"
               ? "Checking..."
               : hasPrizeToClaim
-                ? "Claim prize"
+                ? "Add prize to savings"
                 : "Check prize"}
         </button>
+        {hasPrizeToClaim && (
+          <button
+            className="btn-secondary w-full"
+            disabled={!session || !ready || status === "working"}
+            onClick={() => void run(claimPrize, "Prize tokens claimed.", "claimPrize")}
+          >
+            {workingAction === "claimPrize" ? "Claiming..." : "Claim prize tokens"}
+          </button>
+        )}
       </div>
 
     </div>

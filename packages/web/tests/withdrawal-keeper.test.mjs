@@ -4,29 +4,22 @@ import test from "node:test";
 import { chooseWithdrawalKeeperAction } from "../src/lib/withdrawal-keeper.ts";
 
 const baseSnapshot = {
+  now: 1_000n,
+  closesAt: 900n,
   requestCount: 1n,
-  funded: false,
-  aggregateDecryptRequested: false,
-  aggregateAmountReady: false,
+  status: "open",
 };
 
-test("requests aggregate decryption for an unfunded batch with requests", () => {
-  assert.equal(chooseWithdrawalKeeperAction(baseSnapshot), "request_decrypt");
+test("closes an expired nonempty open batch", () => {
+  assert.equal(chooseWithdrawalKeeperAction(baseSnapshot), "close");
 });
 
-test("restores liquidity once the aggregate amount is ready", () => {
-  assert.equal(
-    chooseWithdrawalKeeperAction({
-      ...baseSnapshot,
-      aggregateDecryptRequested: true,
-      aggregateAmountReady: true,
-    }),
-    "restore",
-  );
+test("settles a closed batch", () => {
+  assert.equal(chooseWithdrawalKeeperAction({ ...baseSnapshot, status: "closed" }), "settle");
 });
 
-test("does nothing for empty, funded, or waiting batches", () => {
+test("does nothing for empty, funded, or unexpired batches", () => {
   assert.equal(chooseWithdrawalKeeperAction({ ...baseSnapshot, requestCount: 0n }), undefined);
-  assert.equal(chooseWithdrawalKeeperAction({ ...baseSnapshot, funded: true }), undefined);
-  assert.equal(chooseWithdrawalKeeperAction({ ...baseSnapshot, aggregateDecryptRequested: true }), undefined);
+  assert.equal(chooseWithdrawalKeeperAction({ ...baseSnapshot, status: "funded" }), undefined);
+  assert.equal(chooseWithdrawalKeeperAction({ ...baseSnapshot, now: 899n }), undefined);
 });

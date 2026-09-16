@@ -61,12 +61,19 @@ test("withdrawal worker derives stable batch-scoped idempotency keys", async () 
 
   await runWithdrawalWorker({
     snapshot: {},
-    planner: () => "restore",
+    planner: () => "settle",
     sender,
     signer: "keeper",
     poolAddress: "0xpool",
     batchId: 7n,
+    data: "settleWithdrawalBatch(7)",
   });
 
-  assert.equal(requests[0].idempotencyKey, "withdrawal:0xpool:7:restore");
+  assert.deepEqual(requests[0], {
+    signer: "keeper",
+    idempotencyKey: "withdrawal:0xpool:7:settle",
+    to: "0xpool",
+    action: "settle",
+    data: "settleWithdrawalBatch(7)",
+  });
 });

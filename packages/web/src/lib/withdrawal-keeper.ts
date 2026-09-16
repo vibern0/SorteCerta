@@ -1,15 +1,16 @@
-export type WithdrawalKeeperAction = "request_decrypt" | "restore";
+export type WithdrawalBatchStatus = "open" | "closed" | "funded";
+export type WithdrawalKeeperAction = "close" | "settle";
 
 export type WithdrawalKeeperSnapshot = {
+  now: bigint;
+  closesAt: bigint;
   requestCount: bigint;
-  funded: boolean;
-  aggregateDecryptRequested: boolean;
-  aggregateAmountReady: boolean;
+  status: WithdrawalBatchStatus;
 };
 
 export function chooseWithdrawalKeeperAction(snapshot: WithdrawalKeeperSnapshot): WithdrawalKeeperAction | undefined {
-  if (snapshot.funded || snapshot.requestCount <= 0n) return undefined;
-  if (!snapshot.aggregateDecryptRequested) return "request_decrypt";
-  if (snapshot.aggregateAmountReady) return "restore";
+  if (snapshot.requestCount <= 0n) return undefined;
+  if (snapshot.status === "closed") return "settle";
+  if (snapshot.status === "open" && snapshot.now >= snapshot.closesAt) return "close";
   return undefined;
 }

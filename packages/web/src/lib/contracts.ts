@@ -169,23 +169,67 @@ export const confidentialPrizePoolAbi = [
   },
   {
     type: "function",
-    name: "withdraw",
+    name: "claimPrizeToSavings",
     stateMutability: "nonpayable",
-    inputs: [
-      { name: "encryptedAmount", type: "bytes32" },
-      { name: "inputProof", type: "bytes" },
-    ],
+    inputs: [],
     outputs: [{ name: "", type: "bytes32" }],
   },
   {
     type: "function",
-    name: "withdrawToUsdc",
+    name: "requestWithdrawal",
     stateMutability: "nonpayable",
     inputs: [
       { name: "encryptedAmount", type: "bytes32" },
       { name: "inputProof", type: "bytes" },
+    ],
+    outputs: [{ name: "batchId", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "claimWithdrawalToUsdc",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "batchId", type: "uint256" },
       { name: "to", type: "address" },
     ],
+    outputs: [{ name: "unwrapRequestId", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "withdrawalBatchStatus",
+    stateMutability: "view",
+    inputs: [{ name: "batchId", type: "uint256" }],
+    outputs: [{ name: "", type: "uint8" }],
+  },
+  {
+    type: "function",
+    name: "withdrawalBatchClosesAt",
+    stateMutability: "view",
+    inputs: [{ name: "batchId", type: "uint256" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "hasWithdrawalClaim",
+    stateMutability: "view",
+    inputs: [
+      { name: "batchId", type: "uint256" },
+      { name: "account", type: "address" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "encryptedWithdrawalBatchTotal",
+    stateMutability: "view",
+    inputs: [{ name: "batchId", type: "uint256" }],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "encryptedWithdrawalBatchMorphoRestore",
+    stateMutability: "view",
+    inputs: [{ name: "batchId", type: "uint256" }],
     outputs: [{ name: "", type: "bytes32" }],
   },
   {
@@ -316,6 +360,26 @@ export const confidentialPrizePoolAbi = [
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "event",
+    name: "WithdrawalRequested",
+    inputs: [
+      { indexed: true, name: "account", type: "address" },
+      { indexed: true, name: "batchId", type: "uint256" },
+      { indexed: true, name: "amount", type: "bytes32" },
+    ],
+  },
+  {
+    type: "event",
+    name: "WithdrawalClaimedToUsdc",
+    inputs: [
+      { indexed: true, name: "account", type: "address" },
+      { indexed: true, name: "batchId", type: "uint256" },
+      { indexed: true, name: "to", type: "address" },
+      { indexed: false, name: "amount", type: "bytes32" },
+      { indexed: false, name: "unwrapRequestId", type: "bytes32" },
+    ],
   },
 ] as const;
 

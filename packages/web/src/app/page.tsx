@@ -7,6 +7,7 @@ import { LoadingAmount } from "@/components/LoadingAmount";
 import { useCurrentDraw, useUSDCBalance } from "@/lib/usePoolData";
 import { useWallet } from "@/lib/wallet-context";
 import { formatUSDC } from "@/lib/format";
+import { balanceBucketLabels } from "@/lib/withdrawal-state";
 
 // Home page summary for the active draw, account balances, and next action.
 export default function HomePage() {
@@ -64,21 +65,21 @@ export default function HomePage() {
         <section className="card space-y-3">
           <p className="label">Your account</p>
           <div className="flex items-baseline justify-between">
-            <span className="text-muted">USDC balance</span>
+            <span className="text-muted">{balanceBucketLabels.walletUsdc}</span>
             <span className="font-display text-2xl font-bold tabular-nums">
               {formatUSDC(usdcBalance)} <span className="text-muted text-base">USDC</span>
             </span>
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-muted">Savings balance</span>
+            <span className="text-muted">{balanceBucketLabels.prizeTokens}</span>
             <span className="font-semibold tabular-nums">
-              {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} cUSDC`}
+              {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} tokens`}
             </span>
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-muted">Deposited in pool</span>
+            <span className="text-muted">{balanceBucketLabels.savingsBalance}</span>
             <span className="font-semibold tabular-nums text-brand">
-              {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(principal)} cUSDC`}
+              {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(principal)} USDC`}
             </span>
           </div>
           {confidentialBalancesError && <p className="text-xs text-danger">{confidentialBalancesError}</p>}

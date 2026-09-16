@@ -15,9 +15,13 @@ async function main() {
     process.env.DRAW_INTERVAL_SECONDS
       ? BigInt(process.env.DRAW_INTERVAL_SECONDS)
       : 15n * 60n; // 15 minute demo default
+  const withdrawalBatchInterval =
+    process.env.WITHDRAWAL_BATCH_INTERVAL_SECONDS
+      ? BigInt(process.env.WITHDRAWAL_BATCH_INTERVAL_SECONDS)
+      : 5n * 60n; // 5 minute demo default
 
   const ConfidentialPrizePool = await ethers.getContractFactory("ConfidentialPrizePool");
-  const pool = await ConfidentialPrizePool.deploy(token, drawInterval);
+  const pool = await ConfidentialPrizePool.deploy(token, drawInterval, withdrawalBatchInterval);
   await pool.waitForDeployment();
 
   const poolAddress = await pool.getAddress();
@@ -25,6 +29,7 @@ async function main() {
   console.log(`Confidential USDC: ${token}`);
   console.log(`ConfidentialPrizePool: ${poolAddress}`);
   console.log(`Draw interval: ${drawInterval}s (~${Number(drawInterval) / 3600}h)`);
+  console.log(`Withdrawal batch interval: ${withdrawalBatchInterval}s`);
   console.log("\nFrontend env vars to set:");
   console.log(`  NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS=${token}`);
   console.log(`  NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=${poolAddress}`);

@@ -1,0 +1,42 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import {
+  balanceBucketLabels,
+  deriveWithdrawalStage,
+  finalizationOutcome,
+  withdrawalStageCopy,
+} from "../src/lib/withdrawal-state.ts";
+
+const forbiddenProductCopy = /encrypted|confidential|public|private|mock|mocked|testnet|sepolia|prototype|faucet|leakage|decrypted/i;
+
+test("keeps a withdrawal visible from request through unwrap finalization", () => {
+  const request = { batchId: 4n, txHash: "0xrequest" };
+
+  assert.equal(deriveWithdrawalStage(request, { batchStatus: "open", hasClaim: true }), "requested");
+  assert.equal(deriveWithdrawalStage(request, { batchStatus: "closed", hasClaim: true }), "preparing");
+  assert.equal(deriveWithdrawalStage(request, { batchStatus: "funded", hasClaim: true }), "claimable");
+  assert.equal(
+    deriveWithdrawalStage(request, { batchStatus: "funded", hasClaim: false, unwrapPending: true }),
+    "finalizing",
+  );
+  assert.equal(
+    deriveWithdrawalStage(request, { batchStatus: "funded", hasClaim: false, unwrapPending: false }),
+    "complete",
+  );
+});
+
+test("never treats a zero-value finalization as success", () => {
+  assert.equal(finalizationOutcome(0n), "invariant-error");
+  assert.equal(finalizationOutcome(2_000_000n), "complete");
+});
+
+test("uses the three user-facing balance buckets", () => {
+  assert.deepEqual(Object.values(balanceBucketLabels), ["Wallet USDC", "Prize tokens", "Savings balance"]);
+});
+
+test("withdrawal model copy avoids restricted product terms", () => {
+  for (const phrase of [...Object.values(withdrawalStageCopy), ...Object.values(balanceBucketLabels)]) {
+    assert.equal(forbiddenProductCopy.test(phrase), false, phrase);
+  }
+});

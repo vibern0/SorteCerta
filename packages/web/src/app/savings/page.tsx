@@ -21,12 +21,22 @@ import { AmountInput } from "@/components/AmountInput";
 import { LoadingAmount } from "@/components/LoadingAmount";
 import { useActionCenter } from "@/components/ActionCenter";
 import type { ActionPatch } from "@/lib/action-center-model";
+import {
+  balanceBucketLabels,
+  deriveWithdrawalStage,
+  finalizationOutcome,
+  withdrawalStageCopy,
+  type PendingWithdrawal,
+  type WithdrawalBatchStatus,
+  type WithdrawalStage,
+} from "@/lib/withdrawal-state";
 
 type Status = "idle" | "working" | "success" | "error";
 type WorkingAction = "deposit" | "withdraw" | "pending" | undefined;
 type SheetStep = "entry" | "confirm";
 
 const PENDING_UNWRAPS_STORAGE_PREFIX = "sortecerta:pending-unwraps";
+const PENDING_WITHDRAWALS_STORAGE_PREFIX = "sortecerta:pending-withdrawals";
 const UNWRAP_LOG_LOOKBACK_BLOCKS = 512n;
 const MAX_USER_PRINCIPAL = 1_000_000_000n;
 
@@ -55,12 +65,21 @@ type PendingUnwrap = {
   txHash: `0x${string}`;
 };
 
+type PendingWithdrawalView = PendingWithdrawal & {
+  stage: WithdrawalStage;
+  closesAt?: bigint;
+};
+
 function isHexString(value: unknown): value is `0x${string}` {
   return typeof value === "string" && value.startsWith("0x");
 }
 
 function pendingUnwrapStorageKey(token: `0x${string}`, user: `0x${string}`) {
   return `${PENDING_UNWRAPS_STORAGE_PREFIX}:${token}:${user}`;
+}
+
+function pendingWithdrawalStorageKey(pool: `0x${string}`, user: `0x${string}`) {
+  return `${PENDING_WITHDRAWALS_STORAGE_PREFIX}:${pool}:${user}`;
 }
 
 function readStoredPendingUnwraps(token: `0x${string}`, user: `0x${string}`) {
@@ -82,6 +101,51 @@ function writeStoredPendingUnwraps(token: `0x${string}`, user: `0x${string}`, re
   if (typeof window === "undefined") return;
 
   window.localStorage.setItem(pendingUnwrapStorageKey(token, user), JSON.stringify(requests));
+}
+
+function readStoredPendingWithdrawals(pool: `0x${string}`, user: `0x${string}`) {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(pendingWithdrawalStorageKey(pool, user)) ?? "[]");
+    if (!Array.isArray(stored)) return [];
+
+    return stored
+      .map((request): PendingWithdrawal | undefined => {
+        if (!isHexString(request?.txHash)) return undefined;
+        if (typeof request.batchId !== "string") return undefined;
+        return {
+          batchId: BigInt(request.batchId),
+          txHash: request.txHash,
+          amount: typeof request.amount === "string" ? BigInt(request.amount) : undefined,
+          unwrapRequestId: isHexString(request.unwrapRequestId) ? request.unwrapRequestId : undefined,
+        };
+      })
+      .filter((request): request is PendingWithdrawal => request !== undefined);
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredPendingWithdrawals(pool: `0x${string}`, user: `0x${string}`, requests: PendingWithdrawal[]) {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.setItem(
+    pendingWithdrawalStorageKey(pool, user),
+    JSON.stringify(
+      requests.map((request) => ({
+        ...request,
+        batchId: request.batchId.toString(),
+        amount: request.amount?.toString(),
+      })),
+    ),
+  );
+}
+
+function batchStatusFromContract(status: number): WithdrawalBatchStatus {
+  if (status === 0) return "open";
+  if (status === 1) return "closed";
+  return "funded";
 }
 
 function formatShortHash(hash: `0x${string}`) {
@@ -107,6 +171,7 @@ export default function SavingsPage() {
   const [usdcBalance, setUsdcBalance] = useState<bigint | undefined>();
   const [allowance, setAllowance] = useState<bigint | undefined>();
   const [pendingUnwraps, setPendingUnwraps] = useState<PendingUnwrap[]>([]);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState<PendingWithdrawalView[]>([]);
   const [depositSheetStep, setDepositSheetStep] = useState<SheetStep>();
   const [withdrawSheetStep, setWithdrawSheetStep] = useState<SheetStep>();
   const [confirmingAction, setConfirmingAction] = useState<"deposit" | "withdraw">();
@@ -128,12 +193,21 @@ export default function SavingsPage() {
   const wrapperReady = usdcReady && isAddress(addresses.confidentialUsdc);
   const poolReady = wrapperReady && isAddress(addresses.pool);
   const hasWithdrawablePrincipal = principal !== undefined && principal > 0n;
-  const showWithdraw = hasWithdrawablePrincipal || pendingUnwraps.length > 0;
+  const withdrawalUnwrapIds = new Set(
+    pendingWithdrawals
+      .map((request) => request.unwrapRequestId?.toLowerCase())
+      .filter((requestId): requestId is string => requestId !== undefined),
+  );
+  const standalonePendingUnwraps = pendingUnwraps.filter(
+    (request) => !withdrawalUnwrapIds.has(request.requestId.toLowerCase()),
+  );
+  const showWithdraw = hasWithdrawablePrincipal || pendingWithdrawals.length > 0 || standalonePendingUnwraps.length > 0;
 
   useEffect(() => {
     if (!session?.address) return;
     void refreshBalances(session.address);
     void refreshPendingUnwraps(session.address);
+    void refreshPendingWithdrawals(session.address);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.address, poolReady]);
 
@@ -317,6 +391,7 @@ export default function SavingsPage() {
     const decrypted = await zama.publicDecrypt([requestId]);
     const clearValue = decrypted.clearValues[requestId];
     if (typeof clearValue !== "bigint") throw new Error("Withdrawal is not ready yet.");
+    if (finalizationOutcome(clearValue) === "invariant-error") throw new Error("Withdrawal needs support. Please contact us.");
     const data = encodeFunctionData({
       abi: confidentialUsdcAbi,
       functionName: "finalizeUnwrap",
@@ -325,6 +400,7 @@ export default function SavingsPage() {
     await sendTx(currentSession, token, data);
     await refreshBalances(user);
     await refreshPendingUnwraps(user);
+    await refreshPendingWithdrawals(user);
   }
 
   async function depositConfidential(value: bigint, update: (patch: ActionPatch) => void) {
@@ -395,8 +471,8 @@ export default function SavingsPage() {
     const encrypted = await zama.createEncryptedInput(pool, user).add64(value).encrypt();
     const data = encodeFunctionData({
       abi: confidentialPrizePoolAbi,
-      functionName: "withdrawToUsdc",
-      args: [toHex(encrypted.handles[0]) as `0x${string}`, toHex(encrypted.inputProof), user],
+      functionName: "requestWithdrawal",
+      args: [toHex(encrypted.handles[0]) as `0x${string}`, toHex(encrypted.inputProof)],
     });
     update({ status: "waiting-wallet" });
     const tx = await sendSmartTransaction(currentSession, pool, data);
@@ -404,10 +480,136 @@ export default function SavingsPage() {
     update({ status: "confirming" });
     const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
     update({ status: "updating" });
-    const requestId = rememberUnwrapRequest(receipt, user);
-    if (requestId) update({ requestId });
+    rememberWithdrawalRequest(receipt, user, value);
     await refreshBalances(user);
     setWithdrawAmount("");
+    await refreshConfidentialBalances();
+    await refreshPendingWithdrawals(user);
+  }
+
+  function rememberWithdrawalRequest(
+    receipt: Awaited<ReturnType<typeof publicClient.waitForTransactionReceipt>>,
+    user: `0x${string}`,
+    amount: bigint,
+  ) {
+    const events = parseEventLogs({
+      abi: confidentialPrizePoolAbi,
+      eventName: "WithdrawalRequested",
+      logs: receipt.logs,
+    });
+    const batchId = events.at(-1)?.args.batchId;
+    if (batchId === undefined) return;
+
+    const pool = asAddress(addresses.pool, "Prize pool");
+    setPendingWithdrawals((current) => {
+      const next: PendingWithdrawalView[] = [
+        {
+          batchId,
+          txHash: receipt.transactionHash,
+          amount,
+          stage: "requested",
+        },
+        ...current.filter((request) => request.batchId !== batchId),
+      ];
+      writeStoredPendingWithdrawals(pool, user, next);
+      return next;
+    });
+  }
+
+  async function refreshPendingWithdrawals(user = session?.address) {
+    if (!user || !poolReady) return;
+
+    const pool = asAddress(addresses.pool, "Prize pool");
+    const stored = readStoredPendingWithdrawals(pool, user);
+    const token = wrapperReady ? asAddress(addresses.confidentialUsdc, "Savings token") : undefined;
+    const latestBlock = await publicClient.getBlockNumber();
+    const fromBlock = latestBlock > UNWRAP_LOG_LOOKBACK_BLOCKS ? latestBlock - UNWRAP_LOG_LOOKBACK_BLOCKS : 0n;
+    let finalizedIds = new Set<string>();
+
+    if (token) {
+      try {
+        const finalizedLogs = await getUnwrapLogs("UnwrapFinalized", user, fromBlock, latestBlock);
+        const finalized = parseEventLogs({
+          abi: confidentialUsdcAbi,
+          eventName: "UnwrapFinalized",
+          logs: finalizedLogs,
+        });
+        finalizedIds = new Set(finalized.map((event) => event.args.unwrapRequestId?.toLowerCase()));
+      } catch {
+        finalizedIds = new Set();
+      }
+    }
+
+    const next = (
+      await Promise.all(
+        stored.map(async (request): Promise<PendingWithdrawalView | undefined> => {
+          if (request.unwrapRequestId) {
+            if (finalizedIds.has(request.unwrapRequestId.toLowerCase())) return undefined;
+            return { ...request, stage: "finalizing" };
+          }
+
+          try {
+            const [statusCode, hasClaim, closesAt] = await Promise.all([
+              publicClient.readContract({
+                address: pool,
+                abi: confidentialPrizePoolAbi,
+                functionName: "withdrawalBatchStatus",
+                args: [request.batchId],
+              }),
+              publicClient.readContract({
+                address: pool,
+                abi: confidentialPrizePoolAbi,
+                functionName: "hasWithdrawalClaim",
+                args: [request.batchId, user],
+              }),
+              publicClient.readContract({
+                address: pool,
+                abi: confidentialPrizePoolAbi,
+                functionName: "withdrawalBatchClosesAt",
+                args: [request.batchId],
+              }),
+            ]);
+            const stage = deriveWithdrawalStage(request, {
+              batchStatus: batchStatusFromContract(Number(statusCode)),
+              hasClaim,
+            });
+            if (stage === "complete") return undefined;
+            return { ...request, stage, closesAt };
+          } catch {
+            return { ...request, stage: "requested" };
+          }
+        }),
+      )
+    ).filter((request): request is PendingWithdrawalView => request !== undefined);
+
+    setPendingWithdrawals(next);
+    writeStoredPendingWithdrawals(pool, user, next);
+  }
+
+  async function claimWithdrawal(batchId: bigint) {
+    const currentSession = activeSession();
+    const user = currentSession.address;
+    if (!poolReady) throw new Error("Withdrawals are unavailable right now.");
+
+    const pool = asAddress(addresses.pool, "Prize pool");
+    const data = encodeFunctionData({
+      abi: confidentialPrizePoolAbi,
+      functionName: "claimWithdrawalToUsdc",
+      args: [batchId, user],
+    });
+    const receipt = await sendTx(currentSession, pool, data);
+    const requestId = rememberUnwrapRequest(receipt, user);
+    if (requestId) {
+      setPendingWithdrawals((current) => {
+        const next = current.map((request) =>
+          request.batchId === batchId ? { ...request, unwrapRequestId: requestId, stage: "finalizing" as const } : request,
+        );
+        writeStoredPendingWithdrawals(pool, user, next);
+        return next;
+      });
+    }
+    await refreshPendingWithdrawals(user);
+    await refreshPendingUnwraps(user);
     await refreshConfidentialBalances();
   }
 
@@ -539,26 +741,26 @@ export default function SavingsPage() {
       <section className="space-y-2">
         <h1 className="font-display text-2xl font-bold">My savings</h1>
         <p className="text-sm leading-relaxed text-muted">
-          Wallet balance, deposited principal, and money moving in or out.
+          Wallet balance, prize tokens, and savings moving in or out.
         </p>
       </section>
 
       <div className="card space-y-3">
         <p className="label">Personal status</p>
         <div className="flex items-center justify-between">
-          <span className="text-muted text-sm">In wallet</span>
+          <span className="text-muted text-sm">{balanceBucketLabels.walletUsdc}</span>
           <span className="font-semibold tabular-nums">{formatUSDC(usdcBalance)} USDC</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted text-sm">Savings balance</span>
+          <span className="text-muted text-sm">{balanceBucketLabels.prizeTokens}</span>
           <span className="font-semibold tabular-nums">
-            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} cUSDC`}
+            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} tokens`}
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted text-sm">Deposited in pool</span>
+          <span className="text-muted text-sm">{balanceBucketLabels.savingsBalance}</span>
           <span className="font-semibold tabular-nums text-brand">
-            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(principal)} cUSDC`}
+            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(principal)} USDC`}
           </span>
         </div>
         {confidentialBalancesError && <p className="text-xs text-danger">{confidentialBalancesError}</p>}
@@ -631,7 +833,7 @@ export default function SavingsPage() {
               <div>
                 <p className="label">Deposit</p>
                 <h2 id="deposit-sheet-title" className="font-display text-xl font-bold">
-                  Move USDC into the pool
+                  Add to savings
                 </h2>
               </div>
               <button
@@ -694,7 +896,7 @@ export default function SavingsPage() {
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Pool after</span>
-                      <span className="font-semibold tabular-nums">{formatUSDC(depositPoolAfter)} cUSDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(depositPoolAfter)} USDC</span>
                     </div>
                   </div>
                 </div>
@@ -754,7 +956,7 @@ export default function SavingsPage() {
               <div>
                 <p className="label">Withdraw</p>
                 <h2 id="withdraw-sheet-title" className="font-display text-xl font-bold">
-                  Move pool funds to USDC
+                  Move savings to USDC
                 </h2>
               </div>
               <button
@@ -782,7 +984,7 @@ export default function SavingsPage() {
             {hasWithdrawablePrincipal && (
               <AmountInput
                 label="Amount"
-                maxLabel={`${formatUSDC(principal)} cUSDC`}
+                maxLabel={`${formatUSDC(principal)} USDC`}
                 value={withdrawAmount}
                 onChange={setWithdrawAmount}
                 onMax={() => setWithdrawAmount(principal !== undefined ? formatUSDC(principal, 6) : "0")}
@@ -807,15 +1009,15 @@ export default function SavingsPage() {
                   <div className="mt-3 space-y-2 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted">Withdraw</span>
-                      <span className="font-semibold tabular-nums">{formatUSDC(parsedWithdrawAmount)} cUSDC</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(parsedWithdrawAmount)} USDC</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted">Pool after</span>
-                      <span className="font-semibold tabular-nums">{formatUSDC(withdrawPoolAfter)} cUSDC</span>
+                      <span className="text-muted">Savings after</span>
+                      <span className="font-semibold tabular-nums">{formatUSDC(withdrawPoolAfter)} USDC</span>
                     </div>
                   </div>
                   <p className="mt-3 rounded-2xl bg-white/45 px-3 py-2 text-xs text-muted">
-                    Your draw chances update after this action finishes.
+                    Your draw chances update after this request.
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -832,7 +1034,7 @@ export default function SavingsPage() {
                     disabled={!session || !poolReady || confirmingAction === "withdraw"}
                     onClick={() =>
                       void runTrackedTransaction(
-                        `Withdraw ${formatUSDC(parsedWithdrawAmount)} cUSDC`,
+                        `Withdraw ${formatUSDC(parsedWithdrawAmount)} USDC`,
                         "withdraw",
                         (update) => withdrawConfidential(parsedWithdrawAmount, update),
                         "Withdrawal requested.",
@@ -852,21 +1054,73 @@ export default function SavingsPage() {
               </div>
             )}
 
-            {pendingUnwraps.length > 0 && (
+            {(pendingWithdrawals.length > 0 || standalonePendingUnwraps.length > 0) && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted text-sm">Pending withdrawal</span>
+                  <span className="text-muted text-sm">Pending withdrawals</span>
                   <button
                     className="btn-ghost !py-1 !px-3 !text-xs bg-surface2"
                     disabled={!session || !wrapperReady || status === "working"}
                     onClick={() =>
-                      void run(async () => void (await refreshPendingUnwraps()), "Pending withdraws refreshed.", "pending")
+                      void run(
+                        async () => {
+                          await refreshPendingWithdrawals();
+                          await refreshPendingUnwraps();
+                        },
+                        "Pending withdrawals refreshed.",
+                        "pending",
+                      )
                     }
                   >
                     {workingAction === "pending" ? "Refreshing..." : "Refresh"}
                   </button>
                 </div>
-                {pendingUnwraps.map((request) => (
+                {pendingWithdrawals.map((request) => (
+                  <div key={`${request.batchId.toString()}:${request.txHash}`} className="space-y-2 rounded-2xl bg-white/35 p-3">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="font-semibold">{withdrawalStageCopy[request.stage]}</span>
+                      {request.amount !== undefined && (
+                        <span className="font-semibold tabular-nums">{formatUSDC(request.amount)} USDC</span>
+                      )}
+                    </div>
+                    {request.stage === "requested" && request.closesAt !== undefined && (
+                      <p className="text-xs text-muted">
+                        Batch closes {new Intl.DateTimeFormat("en-US", { timeStyle: "short" }).format(new Date(Number(request.closesAt) * 1000))}.
+                      </p>
+                    )}
+                    {request.stage === "claimable" && (
+                      <button
+                        className="btn-secondary w-full"
+                        disabled={status === "working"}
+                        onClick={() =>
+                          void run(
+                            () => claimWithdrawal(request.batchId),
+                            "Withdrawal ready to finalize.",
+                            "pending",
+                          )
+                        }
+                      >
+                        {workingAction === "pending" ? "Receiving..." : "Receive USDC"}
+                      </button>
+                    )}
+                    {request.stage === "finalizing" && request.unwrapRequestId && (
+                      <button
+                        className="btn-secondary w-full"
+                        disabled={status === "working"}
+                        onClick={() =>
+                          void run(
+                            () => finalizeUnwrap(request.unwrapRequestId!),
+                            "Your USDC withdrawal is finalized.",
+                            "pending",
+                          )
+                        }
+                      >
+                        {workingAction === "pending" ? "Finalizing..." : "Finalize withdrawal"}
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {standalonePendingUnwraps.map((request) => (
                   <div key={request.requestId} className="space-y-2">
                     <button
                       type="button"

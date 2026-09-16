@@ -94,15 +94,15 @@ Frontend:
 
 - **Live app:** https://sortecerta.netlify.app
 - **Host:** Netlify
-- **Status:** login, deposit, draw, claim, withdraw, and unwrap flow verified
-  end to end on the deployed app
+- **Status:** fresh safe-withdrawals contracts deployed; run a new app
+  end-to-end exercise before judging from the live URL.
 
 Current confidential deployment:
 
 - **USDC underlying:** `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`
-- **ConfidentialUSDC:** `0xB4F98ca24DEe9AA9D7f931f77A202a0496642038`
-- **ConfidentialPrizePool:** `0x30Fa8BEEFe43a6174F22E548a3D96218831789D8`
-- **MorphoYieldAdapter:** `0xebb1C3515a7303dBD19C2bf0D0572F3eDa57f0d2`
+- **ConfidentialUSDC:** `0x3B4F71c77e288d92871Cda495891Cd42f543A3f5`
+- **ConfidentialPrizePool:** `0x92938dbFFa6A7De3dd2a009e10f5d2100fA594e6`
+- **MorphoYieldAdapter:** `0x1f33a29960eD69c2A40E406865b7F21062CA17B8`
 - **Chain:** Ethereum Sepolia (`11155111`)
 - **Draw interval:** `900` seconds for Morpho-yield demo testing
 
@@ -110,8 +110,8 @@ Frontend env values:
 
 ```bash
 NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
-NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS=0xB4F98ca24DEe9AA9D7f931f77A202a0496642038
-NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x30Fa8BEEFe43a6174F22E548a3D96218831789D8
+NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS=0x3B4F71c77e288d92871Cda495891Cd42f543A3f5
+NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x92938dbFFa6A7De3dd2a009e10f5d2100fA594e6
 NEXT_PUBLIC_CHAIN_ID=11155111
 ```
 

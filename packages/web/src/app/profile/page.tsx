@@ -5,6 +5,7 @@ import { useUSDCBalance } from "@/lib/usePoolData";
 import { formatUSDC, shortAddress } from "@/lib/format";
 import { ConnectButton } from "@/components/ConnectButton";
 import { LoadingAmount } from "@/components/LoadingAmount";
+import { balanceBucketLabels } from "@/lib/withdrawal-state";
 
 // Profile page for wallet status, account details, and balance summary.
 export default function ProfilePage() {
@@ -53,21 +54,21 @@ export default function ProfilePage() {
       <div className="card space-y-2">
         <p className="label">Summary</p>
         <div className="flex justify-between text-sm">
-          <span className="text-muted">Available USDC</span>
+          <span className="text-muted">{balanceBucketLabels.walletUsdc}</span>
           <span className="font-semibold tabular-nums">
             {formatUSDC(usdcBalance)} USDC
           </span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-muted">Savings balance</span>
+          <span className="text-muted">{balanceBucketLabels.prizeTokens}</span>
           <span className="font-semibold tabular-nums">
-            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} cUSDC`}
+            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} tokens`}
           </span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-muted">Principal in pool</span>
+          <span className="text-muted">{balanceBucketLabels.savingsBalance}</span>
           <span className="font-semibold tabular-nums text-brand">
-            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(principal)} cUSDC`}
+            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(principal)} USDC`}
           </span>
         </div>
         {confidentialBalancesError && <p className="text-xs text-danger">{confidentialBalancesError}</p>}

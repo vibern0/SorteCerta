@@ -1,4 +1,4 @@
-export async function runWithdrawalWorker({ snapshot, planner, sender, signer, poolAddress, batchId }) {
+export async function runWithdrawalWorker({ snapshot, planner, sender, signer, poolAddress, batchId, data }) {
   const action = planner(snapshot);
   if (!action) return undefined;
 
@@ -7,6 +7,6 @@ export async function runWithdrawalWorker({ snapshot, planner, sender, signer, p
     idempotencyKey: `withdrawal:${poolAddress}:${batchId}:${action}`,
     to: poolAddress,
     action,
-    data: action,
+    data,
   });
 }

@@ -4,6 +4,7 @@ import { FhevmType } from "@fhevm/hardhat-plugin";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
 const DRAW_INTERVAL = 15n * 60n;
+const WITHDRAWAL_BATCH_INTERVAL = 5n * 60n;
 const UINT64_MAX = (1n << 64n) - 1n;
 
 describe("ConfidentialPrizePool invariants", function () {
@@ -29,7 +30,11 @@ describe("ConfidentialPrizePool invariants", function () {
     await confidentialUsdc.waitForDeployment();
 
     const ConfidentialPrizePoolHarness = await ethers.getContractFactory("ConfidentialPrizePoolHarness");
-    const pool = await ConfidentialPrizePoolHarness.deploy(await confidentialUsdc.getAddress(), DRAW_INTERVAL);
+    const pool = await ConfidentialPrizePoolHarness.deploy(
+      await confidentialUsdc.getAddress(),
+      DRAW_INTERVAL,
+      WITHDRAWAL_BATCH_INTERVAL,
+    );
     await pool.waitForDeployment();
 
     return { pool, poolAddress: await pool.getAddress() };

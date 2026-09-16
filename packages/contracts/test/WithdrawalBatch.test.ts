@@ -5,6 +5,7 @@ import { FhevmType } from "@fhevm/hardhat-plugin";
 const USDC = (n: number) => BigInt(n) * 1_000_000n;
 const DRAW_INTERVAL = 15n * 60n;
 const MORPHO_UNWRAP_INTERVAL = 5n * 60n;
+const WITHDRAWAL_BATCH_INTERVAL = 5n * 60n;
 
 describe("Withdrawal batches", function () {
   beforeEach(async function () {
@@ -25,7 +26,11 @@ describe("Withdrawal batches", function () {
     await confidentialUsdc.waitForDeployment();
 
     const ConfidentialPrizePool = await ethers.getContractFactory("ConfidentialPrizePool");
-    const pool = await ConfidentialPrizePool.deploy(await confidentialUsdc.getAddress(), DRAW_INTERVAL);
+    const pool = await ConfidentialPrizePool.deploy(
+      await confidentialUsdc.getAddress(),
+      DRAW_INTERVAL,
+      WITHDRAWAL_BATCH_INTERVAL,
+    );
     await pool.waitForDeployment();
 
     for (const user of [alice, bob]) {
@@ -93,8 +98,70 @@ describe("Withdrawal batches", function () {
     await pool.connect(user).requestWithdrawal(encryptedAmount.handles[0], encryptedAmount.inputProof);
   }
 
+  async function decryptMorphoBatch(confidentialUsdc: any, pool: any, adapter: any) {
+    const tx = await pool.requestMorphoPrincipalUnwrap();
+    const receipt = await tx.wait();
+    const unwrapRequestId = receipt!.logs
+      .map((log: any) => {
+        try {
+          return confidentialUsdc.interface.parseLog(log);
+        } catch {
+          return undefined;
+        }
+      })
+      .find((log: any) => log?.name === "UnwrapRequested")!.args.unwrapRequestId;
+    const decrypted = await fhevm.publicDecrypt([unwrapRequestId]);
+    await confidentialUsdc.finalizeUnwrap(
+      unwrapRequestId,
+      decrypted.clearValues[unwrapRequestId],
+      decrypted.decryptionProof,
+    );
+    await pool.supplyAvailableMorphoPrincipal();
+    expect(await adapter.suppliedPrincipal()).to.be.greaterThan(0n);
+  }
+
+  async function closeAndSettleBatch(pool: any, batchId: bigint) {
+    await ethers.provider.send("evm_increaseTime", [Number(WITHDRAWAL_BATCH_INTERVAL)]);
+    await ethers.provider.send("evm_mine", []);
+    await pool.closeWithdrawalBatch(batchId);
+    const total = await pool.encryptedWithdrawalBatchTotal(batchId);
+    const restore = await pool.encryptedWithdrawalBatchMorphoRestore(batchId);
+    const decrypted = await fhevm.publicDecrypt([total, restore]);
+    await pool.settleWithdrawalBatch(
+      batchId,
+      decrypted.clearValues[total],
+      decrypted.clearValues[restore],
+      decrypted.decryptionProof,
+    );
+    return { total, restore, decrypted };
+  }
+
+  it("never consumes principal through a legacy immediate withdrawal", async function () {
+    const { alice, confidentialUsdc, pool, adapter } = await deployMorphoFixture();
+    const poolAddress = await pool.getAddress();
+
+    await encryptedDeposit(confidentialUsdc, poolAddress, alice, USDC(3));
+    await ethers.provider.send("evm_increaseTime", [Number(MORPHO_UNWRAP_INTERVAL)]);
+    await ethers.provider.send("evm_mine", []);
+    await decryptMorphoBatch(confidentialUsdc, pool, adapter);
+
+    const request = await fhevm.createEncryptedInput(poolAddress, alice.address).add64(USDC(3)).encrypt();
+    const principalBefore = await pool.encryptedPrincipalOf(alice.address);
+    const suppliedBefore = await adapter.suppliedPrincipal();
+
+    await expect(
+      pool.connect(alice).withdrawToUsdc(request.handles[0], request.inputProof, alice.address),
+    ).to.be.revertedWithCustomError(pool, "QueuedWithdrawalsOnly");
+
+    const principalAfter = await pool.encryptedPrincipalOf(alice.address);
+    expect(await fhevm.userDecryptEuint(FhevmType.euint64, principalAfter, poolAddress, alice)).to.equal(
+      await fhevm.userDecryptEuint(FhevmType.euint64, principalBefore, poolAddress, alice),
+    );
+    expect(await adapter.suppliedPrincipal()).to.equal(suppliedBefore);
+  });
+
   it("queues encrypted withdrawal claims and removes them from active principal", async function () {
-    const { alice, bob, confidentialUsdc, pool } = await deployFixture();
+    const { alice, bob, confidentialUsdc, pool } = await deployMorphoFixture();
     const poolAddress = await pool.getAddress();
 
     await encryptedDeposit(confidentialUsdc, poolAddress, alice, USDC(3));
@@ -119,47 +186,89 @@ describe("Withdrawal batches", function () {
   });
 
   it("blocks claims until a queued batch is funded, then pays each encrypted claim once", async function () {
-    const { alice, confidentialUsdc, pool } = await deployFixture();
+    const { alice, confidentialUsdc, pool } = await deployMorphoFixture();
     const poolAddress = await pool.getAddress();
 
     await encryptedDeposit(confidentialUsdc, poolAddress, alice, USDC(3));
     await requestWithdrawal(pool, poolAddress, alice, USDC(1));
 
     const batchId = await pool.currentWithdrawalBatchId();
-    await expect(pool.connect(alice).claimWithdrawal(batchId)).to.be.revertedWithCustomError(pool, "WithdrawalBatchNotFunded");
+    await expect(pool.connect(alice).claimWithdrawalToUsdc(batchId, alice.address)).to.be.revertedWithCustomError(
+      pool,
+      "WithdrawalBatchNotFunded",
+    );
 
-    await pool.markWithdrawalBatchFunded(batchId, USDC(1));
-    await pool.connect(alice).claimWithdrawal(batchId);
+    await closeAndSettleBatch(pool, batchId);
+    await pool.connect(alice).claimWithdrawalToUsdc(batchId, alice.address);
 
-    const aliceBalance = await confidentialUsdc.confidentialBalanceOf(alice.address);
     const aliceClaim = await pool.encryptedWithdrawalClaimOf(batchId, alice.address);
 
-    expect(await fhevm.userDecryptEuint(FhevmType.euint64, aliceBalance, await confidentialUsdc.getAddress(), alice)).to.equal(
-      USDC(8),
-    );
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, aliceClaim)).to.equal(0n);
-    await expect(pool.connect(alice).claimWithdrawal(batchId)).to.be.revertedWithCustomError(pool, "NoWithdrawalClaim");
+    await expect(pool.connect(alice).claimWithdrawalToUsdc(batchId, alice.address)).to.be.revertedWithCustomError(
+      pool,
+      "NoWithdrawalClaim",
+    );
   });
 
   it("restores queued withdrawal liquidity from Morpho before claims", async function () {
-    const { alice, confidentialUsdc, pool, adapter } = await deployMorphoFixture();
+    const { alice, usdc, confidentialUsdc, pool, adapter } = await deployMorphoFixture();
     const poolAddress = await pool.getAddress();
 
     await encryptedDeposit(confidentialUsdc, poolAddress, alice, USDC(3));
+    await ethers.provider.send("evm_increaseTime", [Number(MORPHO_UNWRAP_INTERVAL)]);
+    await ethers.provider.send("evm_mine", []);
+    await decryptMorphoBatch(confidentialUsdc, pool, adapter);
+
     await requestWithdrawal(pool, poolAddress, alice, USDC(2));
 
     const batchId = await pool.currentWithdrawalBatchId();
-    await pool.restoreWithdrawalBatch(batchId, USDC(2));
+    await closeAndSettleBatch(pool, batchId);
 
-    expect(await pool.withdrawalBatchFunded(batchId)).to.equal(true);
+    expect(await pool.withdrawalBatchStatus(batchId)).to.equal(2n);
     expect(await pool.withdrawalBatchRestoredAmount(batchId)).to.equal(USDC(2));
-    expect(await adapter.suppliedPrincipal()).to.equal(USDC(1));
+    expect(await adapter.suppliedPrincipal()).to.equal(USDC(4));
 
-    await pool.connect(alice).claimWithdrawal(batchId);
-
-    const aliceBalance = await confidentialUsdc.confidentialBalanceOf(alice.address);
-    expect(await fhevm.userDecryptEuint(FhevmType.euint64, aliceBalance, await confidentialUsdc.getAddress(), alice)).to.equal(
-      USDC(9),
+    const claimTx = await pool.connect(alice).claimWithdrawalToUsdc(batchId, alice.address);
+    const receipt = await claimTx.wait();
+    const unwrapRequestId = receipt!.logs
+      .map((log: any) => {
+        try {
+          return confidentialUsdc.interface.parseLog(log);
+        } catch {
+          return undefined;
+        }
+      })
+      .find((log: any) => log?.name === "UnwrapRequested")!.args.unwrapRequestId;
+    const unwrapped = await fhevm.publicDecrypt([unwrapRequestId]);
+    await confidentialUsdc.finalizeUnwrap(
+      unwrapRequestId,
+      unwrapped.clearValues[unwrapRequestId],
+      unwrapped.decryptionProof,
     );
+
+    expect(await usdc.balanceOf(alice.address)).to.equal(USDC(2));
+    expect(await pool.hasWithdrawalClaim(batchId, alice.address)).to.equal(false);
+  });
+
+  it("closes only expired batches and rejects mismatched settlement values", async function () {
+    const { alice, confidentialUsdc, pool } = await deployMorphoFixture();
+    const poolAddress = await pool.getAddress();
+    await encryptedDeposit(confidentialUsdc, poolAddress, alice, USDC(3));
+    await requestWithdrawal(pool, poolAddress, alice, USDC(2));
+
+    await expect(pool.closeWithdrawalBatch(1n)).to.be.revertedWithCustomError(pool, "WithdrawalBatchNotReady");
+    await ethers.provider.send("evm_increaseTime", [Number(WITHDRAWAL_BATCH_INTERVAL)]);
+    await ethers.provider.send("evm_mine", []);
+    await pool.closeWithdrawalBatch(1n);
+
+    const total = await pool.encryptedWithdrawalBatchTotal(1n);
+    const restore = await pool.encryptedWithdrawalBatchMorphoRestore(1n);
+    const decrypted = await fhevm.publicDecrypt([total, restore]);
+    expect(decrypted.clearValues[total]).to.equal(USDC(2));
+
+    await expect(
+      pool.settleWithdrawalBatch(1n, USDC(1), decrypted.clearValues[restore], decrypted.decryptionProof),
+    ).to.be.reverted;
+    expect(await pool.withdrawalBatchStatus(1n)).to.equal(1n);
   });
 });

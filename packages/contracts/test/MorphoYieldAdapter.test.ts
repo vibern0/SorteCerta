@@ -5,6 +5,7 @@ import { FhevmType } from "@fhevm/hardhat-plugin";
 const USDC = (n: number) => BigInt(n) * 1_000_000n;
 const DRAW_INTERVAL = 15n * 60n;
 const MORPHO_UNWRAP_INTERVAL = 5n * 60n;
+const WITHDRAWAL_BATCH_INTERVAL = 5n * 60n;
 
 describe("MorphoYieldAdapter", function () {
   beforeEach(async function () {
@@ -25,7 +26,11 @@ describe("MorphoYieldAdapter", function () {
     await confidentialUsdc.waitForDeployment();
 
     const ConfidentialPrizePool = await ethers.getContractFactory("ConfidentialPrizePool");
-    const pool = await ConfidentialPrizePool.deploy(await confidentialUsdc.getAddress(), DRAW_INTERVAL);
+    const pool = await ConfidentialPrizePool.deploy(
+      await confidentialUsdc.getAddress(),
+      DRAW_INTERVAL,
+      WITHDRAWAL_BATCH_INTERVAL,
+    );
     await pool.waitForDeployment();
 
     const MockMorphoBlue = await ethers.getContractFactory("MockMorphoBlue");
@@ -77,9 +82,9 @@ describe("MorphoYieldAdapter", function () {
       );
   }
 
-  async function encryptedWithdraw(pool: any, poolAddress: string, user: any, amount: bigint) {
+  async function requestWithdrawal(pool: any, poolAddress: string, user: any, amount: bigint) {
     const encryptedAmount = await fhevm.createEncryptedInput(poolAddress, user.address).add64(amount).encrypt();
-    await pool.connect(user).withdraw(encryptedAmount.handles[0], encryptedAmount.inputProof);
+    await pool.connect(user).requestWithdrawal(encryptedAmount.handles[0], encryptedAmount.inputProof);
   }
 
   it("lets a keeper request one timed principal unwrap", async function () {
@@ -136,7 +141,7 @@ describe("MorphoYieldAdapter", function () {
     await confidentialUsdc.connect(owner).wrap(owner.address, USDC(4));
 
     await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, owner, USDC(4));
-    await encryptedWithdraw(pool, poolAddress, owner, USDC(1));
+    await requestWithdrawal(pool, poolAddress, owner, USDC(1));
 
     const pending = await pool.encryptedPendingMorphoPrincipal();
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, pending)).to.equal(USDC(3));

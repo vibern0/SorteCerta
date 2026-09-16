@@ -6,7 +6,11 @@ import {IERC7984} from "@openzeppelin/confidential-contracts/interfaces/IERC7984
 import {ConfidentialPrizePool} from "../ConfidentialPrizePool.sol";
 
 contract ConfidentialPrizePoolHarness is ConfidentialPrizePool {
-    constructor(IERC7984 token, uint256 drawInterval) ConfidentialPrizePool(token, drawInterval) {}
+    constructor(
+        IERC7984 token,
+        uint256 drawInterval,
+        uint256 withdrawalBatchInterval
+    ) ConfidentialPrizePool(token, drawInterval, withdrawalBatchInterval) {}
 
     function scaledRandomTicket(
         externalEuint64 encryptedRandomWord,
