@@ -73,7 +73,7 @@ export default function HomePage() {
           <div className="flex items-baseline justify-between">
             <span className="text-muted">{balanceBucketLabels.prizeTokens}</span>
             <span className="font-semibold tabular-nums">
-              {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} tokens`}
+              {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} USDC`}
             </span>
           </div>
           <div className="flex items-baseline justify-between">

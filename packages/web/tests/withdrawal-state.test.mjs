@@ -5,6 +5,7 @@ import {
   balanceBucketLabels,
   deriveWithdrawalStage,
   finalizationOutcome,
+  pendingWithdrawalTotal,
   withdrawalStageCopy,
 } from "../src/lib/withdrawal-state.ts";
 
@@ -31,8 +32,24 @@ test("never treats a zero-value finalization as success", () => {
   assert.equal(finalizationOutcome(2_000_000n), "complete");
 });
 
-test("uses the three user-facing balance buckets", () => {
-  assert.deepEqual(Object.values(balanceBucketLabels), ["Wallet USDC", "Prize tokens", "Savings balance"]);
+test("uses user-facing balance and withdrawal labels", () => {
+  assert.deepEqual(Object.values(balanceBucketLabels), [
+    "Wallet USDC",
+    "Prize tokens",
+    "Savings balance",
+    "Withdrawal in progress",
+  ]);
+});
+
+test("totals only known pending withdrawal amounts", () => {
+  assert.equal(
+    pendingWithdrawalTotal([
+      { batchId: 1n, txHash: "0xaaa", amount: 1_000_000n },
+      { batchId: 2n, txHash: "0xbbb" },
+      { batchId: 3n, txHash: "0xccc", amount: 2_500_000n },
+    ]),
+    3_500_000n,
+  );
 });
 
 test("withdrawal model copy avoids restricted product terms", () => {

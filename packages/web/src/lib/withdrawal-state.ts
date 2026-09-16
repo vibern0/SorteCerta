@@ -26,7 +26,12 @@ export const balanceBucketLabels = {
   walletUsdc: "Wallet USDC",
   prizeTokens: "Prize tokens",
   savingsBalance: "Savings balance",
+  withdrawalInProgress: "Withdrawal in progress",
 } as const;
+
+export function pendingWithdrawalTotal(requests: readonly PendingWithdrawal[]) {
+  return requests.reduce((total, request) => total + (request.amount ?? 0n), 0n);
+}
 
 export function deriveWithdrawalStage(
   _request: PendingWithdrawal,

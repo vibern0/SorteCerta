@@ -25,6 +25,7 @@ import {
   balanceBucketLabels,
   deriveWithdrawalStage,
   finalizationOutcome,
+  pendingWithdrawalTotal,
   withdrawalStageCopy,
   type PendingWithdrawal,
   type WithdrawalBatchStatus,
@@ -202,6 +203,7 @@ export default function SavingsPage() {
     (request) => !withdrawalUnwrapIds.has(request.requestId.toLowerCase()),
   );
   const showWithdraw = hasWithdrawablePrincipal || pendingWithdrawals.length > 0 || standalonePendingUnwraps.length > 0;
+  const withdrawalInProgress = pendingWithdrawalTotal(pendingWithdrawals);
 
   useEffect(() => {
     if (!session?.address) return;
@@ -754,7 +756,7 @@ export default function SavingsPage() {
         <div className="flex items-center justify-between">
           <span className="text-muted text-sm">{balanceBucketLabels.prizeTokens}</span>
           <span className="font-semibold tabular-nums">
-            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} tokens`}
+            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} USDC`}
           </span>
         </div>
         <div className="flex items-center justify-between">
@@ -763,6 +765,12 @@ export default function SavingsPage() {
             {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(principal)} USDC`}
           </span>
         </div>
+        {withdrawalInProgress > 0n && (
+          <div className="flex items-center justify-between">
+            <span className="text-muted text-sm">{balanceBucketLabels.withdrawalInProgress}</span>
+            <span className="font-semibold tabular-nums">{formatUSDC(withdrawalInProgress)} USDC</span>
+          </div>
+        )}
         {confidentialBalancesError && <p className="text-xs text-danger">{confidentialBalancesError}</p>}
       </div>
 

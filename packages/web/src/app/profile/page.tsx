@@ -62,7 +62,7 @@ export default function ProfilePage() {
         <div className="flex justify-between text-sm">
           <span className="text-muted">{balanceBucketLabels.prizeTokens}</span>
           <span className="font-semibold tabular-nums">
-            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} tokens`}
+            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} USDC`}
           </span>
         </div>
         <div className="flex justify-between text-sm">
