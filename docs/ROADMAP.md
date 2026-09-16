@@ -68,18 +68,17 @@ own balances, and withdraw their exact principal.
 
 - Maintain a bounded participant set suitable for Sepolia FHE/gas limits.
 - Generate randomness onchain with Zama FHE. **Current:** `closeDraw` uses
-  `FHE.randEuint64(MAX_DRAW_TICKETS)`, where the cap is public and power-of-two
-  as required by Zama's bounded random API.
+  `FHE.randEuint64()` and scales the encrypted random word by encrypted total
+  principal with 128-bit FHE arithmetic.
 - Select a winner deposit-weighted over encrypted balances without plaintext
   balances, offchain RNG, or public winner disclosure. **Current:** selection
   scans a bounded participant set and credits encrypted winnings with
-  `FHE.select`; if total principal is below the public cap, the no-winner range
-  carries the encrypted prize forward.
+  `FHE.select`.
 - Credit encrypted winnings and grant only the relevant user decryption access.
   **Current:** `encryptedWinningsOf` is decryptable by the account, and
   `claimPrize` transfers encrypted cUSDC to the winner.
 - Add admin/keeper draw triggering, draw state transitions, and mock prize
-  funding. **Current:** owner-triggered `closeDraw`; mock prize funding via
+  funding. **Current:** permissionless `closeDraw`; mock prize funding via
   confidential transfer callback tagged with `PRIZE_FUNDING_DATA`, mirrored as
   a public global prize amount for the active draw.
 - Test empty pools, one participant, zero balances, withdrawals near draw time,

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {FHE, ebool, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
+import {FHE, ebool, euint64, euint128, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {IERC7984} from "@openzeppelin/confidential-contracts/interfaces/IERC7984.sol";
 import {IERC7984ERC20Wrapper} from "@openzeppelin/confidential-contracts/interfaces/IERC7984ERC20Wrapper.sol";
 import {IERC7984Receiver} from "@openzeppelin/confidential-contracts/interfaces/IERC7984Receiver.sol";
@@ -24,8 +24,8 @@ interface IMorphoPrizeYieldAdapter {
 /// @notice Confidential principal accounting, public mocked prize funding, and no-loss withdrawal.
 contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     uint256 public constant MAX_PARTICIPANTS = 32;
-    uint64 public constant MAX_DRAW_TICKETS = 1_048_576;
     uint64 public constant MAX_USER_PRINCIPAL = 1_000_000_000;
+    uint64 public constant MAX_TOTAL_PRINCIPAL = uint64(MAX_PARTICIPANTS) * MAX_USER_PRINCIPAL;
     bytes4 public constant PRIZE_FUNDING_DATA = bytes4(keccak256("SorteCerta.prize"));
 
     IERC7984 public immutable token;
@@ -51,7 +51,7 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     event ConfidentialDeposit(address indexed account, euint64 indexed amount);
     event PrizeFunded(address indexed account, euint64 indexed amount, uint64 publicAmount);
     event DrawStarted(uint256 indexed drawId, uint256 nextDrawAt);
-    event DrawClosed(uint256 indexed drawId, euint64 indexed randomTicket, euint64 indexed prizeAmount);
+    event DrawClosed(uint256 indexed drawId, euint128 indexed randomTicket, euint64 indexed prizeAmount);
     event PrizeClaimed(address indexed account, euint64 indexed amount);
     event ConfidentialWithdrawal(address indexed account, euint64 indexed amount);
     event ConfidentialWithdrawalToUsdc(address indexed account, address indexed to, euint64 indexed amount, bytes32 unwrapRequestId);
@@ -131,11 +131,11 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     }
 
     /// @notice Closes the ready draw, privately credits any winner, and starts the next draw.
-    function closeDraw() external returns (euint64) {
+    function closeDraw() external returns (euint128) {
         if (block.timestamp < nextDrawAt) revert DrawNotReady(nextDrawAt);
 
-        euint64 randomTicket = FHE.randEuint64(MAX_DRAW_TICKETS);
-        euint64 cumulative = FHE.asEuint64(0);
+        euint128 randomTicket = _scaledRandomTicket(FHE.randEuint64(), _totalPrincipal);
+        euint128 cumulative = FHE.asEuint128(0);
         ebool alreadyAwarded = FHE.asEbool(false);
         euint64 prize = _prizeReserve;
         _prizeReserve = FHE.asEuint64(0);
@@ -143,8 +143,8 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
 
         for (uint256 i = 0; i < _participants.length; i++) {
             address participant = _participants[i];
-            euint64 previous = cumulative;
-            cumulative = FHE.add(cumulative, _principal[participant]);
+            euint128 previous = cumulative;
+            cumulative = FHE.add(cumulative, FHE.asEuint128(_principal[participant]));
 
             ebool atOrAfterStart = FHE.ge(randomTicket, previous);
             ebool beforeEnd = FHE.lt(randomTicket, cumulative);
@@ -167,6 +167,12 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         emit DrawClosed(_drawId, randomTicket, prize);
         emit DrawStarted(_drawId + 1, nextDrawAt);
         return randomTicket;
+    }
+
+    /// @notice Maps a uniform 64-bit encrypted word into `[0, totalPrincipal)`.
+    function _scaledRandomTicket(euint64 randomWord, euint64 totalPrincipal) internal returns (euint128) {
+        euint128 product = FHE.mul(FHE.asEuint128(randomWord), FHE.asEuint128(totalPrincipal));
+        return FHE.shr(product, 64);
     }
 
     /// @notice Moves the caller's prize winnings from the pool to their cUSDC balance.

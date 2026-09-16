@@ -290,8 +290,8 @@ Current confidential architecture:
   in `publicPrizeReserve` so the app can show the active prize. Morpho-harvested
   yield uses this same callback after the adapter wraps harvested USDC.
 - Draw closing is permissionless once `nextDrawAt` has passed. The contract
-  draws `FHE.randEuint64(MAX_DRAW_TICKETS)` and scans the bounded participant
-  list using encrypted cumulative balances.
+  scales a 64-bit encrypted random word by encrypted total principal, then
+  scans the bounded participant list using encrypted cumulative balances.
 - Winner credit is private. Each participant's encrypted winnings are updated
   with `FHE.select`, and only that account or its decrypt delegate receives
   decrypt access.
@@ -312,11 +312,10 @@ Important current limitations:
 - Draw eligibility uses live balances at close time. The next hardening step is
   a draw-start snapshot so late deposits or withdrawals cannot affect the same
   round's odds.
-- The random ticket upper bound is the public power-of-two
-  `MAX_DRAW_TICKETS = 1_048_576`. If encrypted total principal is below that
-  cap, the unoccupied range creates a no-winner outcome and carries the
-  encrypted prize forward. That avoids disclosing total principal to compute a
-  tighter random bound.
+- Draw selection uses 128-bit encrypted scaling:
+  `floor(random64 * encryptedTotalPrincipal / 2^64)`. The maximum aggregate
+  principal is bounded by `MAX_PARTICIPANTS * MAX_USER_PRINCIPAL`, keeping the
+  scaled product inside 128 bits while avoiding a fixed public ticket range.
 - Participant addresses, participant count, transaction timing, draw timing,
   public prize funding amounts, and the configured draw interval are visible.
   Individual principal, total principal, random ticket, prize credit, and
@@ -329,13 +328,11 @@ Important current limitations:
   `ConfidentialPrizePool` supports encrypted deposits, encrypted-amount
   withdrawals, public mocked prize funding, encrypted winnings, claim, and
   Zama EIP-712 user decryption from the frontend.
-- **Draw MVP uses a public power-of-two ticket cap.** `closeDraw` uses
-  `FHE.randEuint64(MAX_DRAW_TICKETS)` and encrypted cumulative principal ranges.
-  When encrypted total principal equals the cap, selection is exactly
-  deposit-weighted. If total principal is below the cap, the unoccupied ticket
-  range has no winner and the encrypted prize carries forward. This avoids
-  plaintext total-balance disclosure because Zama's bounded random API requires
-  a public power-of-two upper bound.
+- **Draw MVP uses encrypted scaled tickets.** `closeDraw` uses
+  `FHE.randEuint64()`, scales it by encrypted total principal in 128-bit FHE
+  arithmetic, and compares the resulting encrypted ticket against encrypted
+  cumulative principal ranges. This removes the old fixed ticket range that
+  could bias ordinary USDC-sized deposits.
 - **Zama SDK address handling** must preserve checksum addresses. The Phase 1
   spike showed lowercase/non-checksum addresses can fail SDK validation with
   `User address is not a valid address`. Normalize user and contract addresses
