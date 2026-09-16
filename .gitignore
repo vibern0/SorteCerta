@@ -34,3 +34,7 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+
+# Local Codacy editor instructions
+.github/instructions/codacy.instructions.md
