@@ -95,11 +95,13 @@ Failure at Gate A keeps the product on Sepolia.
 - queued withdrawals exist, but batch restoration still needs Zama
   public-decryption proof verification and keeper reconciliation before it can
   protect real funds.
-- the keeper and frontend are hard-coded to Sepolia and the keeper stores a raw
-  private key in its runtime environment.
+- keeper planners are split for draw, Morpho, and withdrawal work with one
+  transaction-sender abstraction, but production signer custody, persistence,
+  retries, and deployment configuration are still incomplete.
 - the pool uses an immutable single owner rather than transferable multisig and
   timelock governance.
-- draw closing has no automated production worker.
+- draw closing has a worker wrapper, but it is not yet deployed as a monitored
+  production service.
 - log scanning, retries, alerts, reconciliation, reorg handling, and incident
   recovery are not production-grade.
 - the contracts have not completed an independent audit for real funds.

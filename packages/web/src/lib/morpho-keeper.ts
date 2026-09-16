@@ -74,3 +74,7 @@ export function chooseMorphoKeeperActions(
 
   return actions.slice(0, max);
 }
+
+export function chooseMorphoKeeperAction(snapshot: MorphoKeeperSnapshot): MorphoKeeperAction | undefined {
+  return chooseMorphoKeeperActions(snapshot, 1)[0];
+}
