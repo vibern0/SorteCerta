@@ -148,6 +148,27 @@ export const confidentialUsdcAbi = [
 export const confidentialPrizePoolAbi = [
   {
     type: "function",
+    name: "currentWithdrawalBatchId",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "withdrawalAccounts",
+    stateMutability: "view",
+    inputs: [{ name: "batchId", type: "uint256" }],
+    outputs: [{ name: "", type: "address[]" }],
+  },
+  {
+    type: "function",
+    name: "withdrawalUnwrapRequest",
+    stateMutability: "view",
+    inputs: [{ name: "batchId", type: "uint256" }, { name: "account", type: "address" }],
+    outputs: [{ name: "", type: "bytes32" }],
+  },
+  {
+    type: "function",
     name: "PRIZE_FUNDING_DATA",
     stateMutability: "view",
     inputs: [],

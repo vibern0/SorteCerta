@@ -40,8 +40,12 @@ test("uses user-facing balance and withdrawal labels", () => {
     "Wallet USDC",
     "Prize tokens",
     "Savings balance",
-    "Withdrawal in progress",
+    "Pending withdrawals",
   ]);
+});
+
+test("does not drop a paid-out claim before checking USDC delivery", () => {
+  assert.equal(deriveWithdrawalStage({ batchId: 1n, txHash: "0x1" }, { batchStatus: "funded", hasClaim: false }), "finalizing");
 });
 
 test("totals only known pending withdrawal amounts", () => {

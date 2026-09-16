@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
-import { createPublicClient, encodeAbiParameters, encodeEventTopics, encodeFunctionData, getAddress, http, isAddress, parseEventLogs, toHex } from "viem";
+import { createPublicClient, encodeAbiParameters, encodeEventTopics, encodeFunctionData, getAddress, http, isAddress, parseEventLogs, toHex, zeroAddress, zeroHash } from "viem";
 import { sepolia } from "viem/chains";
 import {
   CONTRACTS,
@@ -155,7 +155,6 @@ function formatShortHash(hash: `0x${string}`) {
 export default function SavingsPage() {
   const {
     session,
-    confidentialBalance,
     principal,
     confidentialBalancesLoading,
     confidentialBalancesError,
@@ -171,6 +170,8 @@ export default function SavingsPage() {
   const [allowance, setAllowance] = useState<bigint | undefined>();
   const [pendingUnwraps, setPendingUnwraps] = useState<PendingUnwrap[]>([]);
   const [pendingWithdrawals, setPendingWithdrawals] = useState<PendingWithdrawalView[]>([]);
+  const [automaticWithdrawals, setAutomaticWithdrawals] = useState(false);
+  const [withdrawalRefreshError, setWithdrawalRefreshError] = useState(false);
   const [depositSheetStep, setDepositSheetStep] = useState<SheetStep>();
   const [withdrawSheetStep, setWithdrawSheetStep] = useState<SheetStep>();
   const [confirmingAction, setConfirmingAction] = useState<"deposit" | "withdraw">();
@@ -208,6 +209,25 @@ export default function SavingsPage() {
     void refreshBalances(session.address);
     void refreshPendingUnwraps(session.address);
     void refreshPendingWithdrawals(session.address);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.address, poolReady]);
+
+  useEffect(() => {
+    if (!session?.address || !poolReady) return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    async function poll() {
+      try {
+        await refreshPendingWithdrawals(session!.address);
+        await refreshBalances(session!.address);
+        if (!stopped) setWithdrawalRefreshError(false);
+      } catch {
+        if (!stopped) setWithdrawalRefreshError(true);
+      }
+      if (!stopped) timer = setTimeout(() => void poll(), 15_000);
+    }
+    timer = setTimeout(() => void poll(), 15_000);
+    return () => { stopped = true; clearTimeout(timer); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.address, poolReady]);
 
@@ -540,7 +560,7 @@ export default function SavingsPage() {
         {
           batchId,
           txHash: receipt.transactionHash,
-          amount,
+          amount: amount + (current.find((request) => request.batchId === batchId)?.amount ?? 0n),
           stage: "requested",
         },
         ...current.filter((request) => request.batchId !== batchId),
@@ -554,6 +574,12 @@ export default function SavingsPage() {
     if (!user || !poolReady) return;
 
     const pool = asAddress(addresses.pool, "Prize pool");
+    let automatic = false;
+    try {
+      await publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "withdrawalAccounts", args: [0n] });
+      automatic = true;
+    } catch { /* Older pools require an account-authorized claim. */ }
+    setAutomaticWithdrawals(automatic);
     const stored = readStoredPendingWithdrawals(pool, user);
     const token = wrapperReady ? asAddress(addresses.confidentialUsdc, "Savings token") : undefined;
     const latestBlock = await publicClient.getBlockNumber();
@@ -577,7 +603,16 @@ export default function SavingsPage() {
       }
     }
 
-    try {
+    if (automatic) {
+      const currentBatch = await publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "currentWithdrawalBatchId" });
+      for (let batchId = 1n; batchId <= currentBatch; batchId++) {
+        const [hasClaim, requestId] = await Promise.all([
+          publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "hasWithdrawalClaim", args: [batchId, user] }),
+          publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "withdrawalUnwrapRequest", args: [batchId, user] }),
+        ]);
+        if (hasClaim || requestId !== zeroHash) discovered.push({ batchId, txHash: zeroHash, unwrapRequestId: requestId === zeroHash ? undefined : requestId });
+      }
+    } else try {
       const [requestedLogs, claimedLogs] = await Promise.all([
         getWithdrawalLogs("WithdrawalRequested", user, withdrawalFromBlock, latestBlock),
         getWithdrawalLogs("WithdrawalClaimedToUsdc", user, withdrawalFromBlock, latestBlock),
@@ -606,8 +641,14 @@ export default function SavingsPage() {
     const next = (
       await Promise.all(
         mergePendingWithdrawals(stored, discovered).map(async (request): Promise<PendingWithdrawalView | undefined> => {
+          if (automatic) {
+            const requestId = await publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "withdrawalUnwrapRequest", args: [request.batchId, user] });
+            if (requestId !== zeroHash) request = { ...request, unwrapRequestId: requestId };
+          }
           if (request.unwrapRequestId) {
             if (finalizedIds.has(request.unwrapRequestId.toLowerCase())) return undefined;
+            const receiver = await publicClient.readContract({ address: token!, abi: confidentialUsdcAbi, functionName: "unwrapRequester", args: [request.unwrapRequestId] });
+            if (receiver === zeroAddress) return undefined;
             return { ...request, stage: "finalizing" };
           }
 
@@ -804,7 +845,7 @@ export default function SavingsPage() {
       <section className="space-y-2">
         <h1 className="font-display text-2xl font-bold">My savings</h1>
         <p className="text-sm leading-relaxed text-muted">
-          Wallet balance, prize tokens, and savings moving in or out.
+          Your wallet, savings, and pending withdrawals.
         </p>
       </section>
 
@@ -815,9 +856,11 @@ export default function SavingsPage() {
           <span className="font-semibold tabular-nums">{formatUSDC(usdcBalance)} USDC</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted text-sm">{balanceBucketLabels.prizeTokens}</span>
+          <span className="text-muted text-sm">{balanceBucketLabels.withdrawalInProgress}</span>
           <span className="font-semibold tabular-nums">
-            {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} USDC`}
+            {pendingWithdrawals.some((request) => request.amount === undefined)
+              ? `${pendingWithdrawals.length} pending`
+              : `${formatUSDC(withdrawalInProgress)} USDC`}
           </span>
         </div>
         <div className="flex items-center justify-between">
@@ -826,14 +869,22 @@ export default function SavingsPage() {
             {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(principal)} USDC`}
           </span>
         </div>
-        {withdrawalInProgress > 0n && (
-          <div className="flex items-center justify-between">
-            <span className="text-muted text-sm">{balanceBucketLabels.withdrawalInProgress}</span>
-            <span className="font-semibold tabular-nums">{formatUSDC(withdrawalInProgress)} USDC</span>
-          </div>
-        )}
         {confidentialBalancesError && <p className="text-xs text-danger">{confidentialBalancesError}</p>}
       </div>
+
+      {pendingWithdrawals.length > 0 && (
+        <section className="space-y-3 border-t border-text/10 py-4" aria-label="Pending withdrawals" aria-live="polite">
+          <h2 className="text-sm font-semibold">Pending withdrawals</h2>
+          {automaticWithdrawals && <p className="text-sm text-muted">USDC will arrive in your wallet automatically.</p>}
+          {withdrawalRefreshError && <p className="text-sm text-muted">Updates are delayed. Your withdrawals are still pending.</p>}
+          {pendingWithdrawals.map((request) => (
+            <div key={request.batchId.toString()} className="flex items-center justify-between gap-3 text-sm">
+              <span>{withdrawalStageCopy[request.stage]}</span>
+              <span className="tabular-nums">{request.amount === undefined ? "Amount pending" : `${formatUSDC(request.amount)} USDC`}</span>
+            </div>
+          ))}
+        </section>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <button
@@ -1158,7 +1209,7 @@ export default function SavingsPage() {
                         Batch closes {new Intl.DateTimeFormat("en-US", { timeStyle: "short" }).format(new Date(Number(request.closesAt) * 1000))}.
                       </p>
                     )}
-                    {request.stage === "claimable" && (
+                    {!automaticWithdrawals && request.stage === "claimable" && (
                       <button
                         className="btn-secondary w-full"
                         disabled={status === "working"}
@@ -1173,7 +1224,7 @@ export default function SavingsPage() {
                         {workingAction === "pending" ? "Receiving..." : "Receive USDC"}
                       </button>
                     )}
-                    {request.stage === "finalizing" && request.unwrapRequestId && (
+                    {!automaticWithdrawals && request.stage === "finalizing" && request.unwrapRequestId && (
                       <button
                         className="btn-secondary w-full"
                         disabled={status === "working"}

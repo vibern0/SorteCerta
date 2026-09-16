@@ -14,6 +14,7 @@
     "web:build": "npm run build -w packages/web",
     "keeper:morpho": "node --no-warnings --experimental-strip-types --import ./packages/keeper/src/register-ts-loader.mjs packages/keeper/src/run-web-keeper.mjs morpho",
     "keeper:withdrawal": "node --no-warnings --experimental-strip-types --import ./packages/keeper/src/register-ts-loader.mjs packages/keeper/src/run-web-keeper.mjs withdrawal",
-    "keeper:all": "npm run keeper:morpho && npm run keeper:withdrawal"
+    "keeper:all": "npm run keeper:morpho && npm run keeper:withdrawal",
+    "keeper:watch": "node packages/keeper/src/watch-keepers.mjs"
   }
 }

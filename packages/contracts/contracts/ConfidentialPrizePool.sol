@@ -64,6 +64,12 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     mapping(uint256 batchId => uint256 count) private _withdrawalBatchClaimantCount;
     mapping(uint256 batchId => mapping(address account => euint64 claim)) private _withdrawalClaims;
     mapping(uint256 batchId => mapping(address account => bool hasClaim)) private _hasWithdrawalClaim;
+    mapping(uint256 batchId => address[] accounts) private _withdrawalAccounts;
+    mapping(uint256 batchId => mapping(address account => bytes32 requestId)) public withdrawalUnwrapRequest;
+
+    function withdrawalAccounts(uint256 batchId) external view returns (address[] memory) {
+        return _withdrawalAccounts[batchId];
+    }
 
     event ConfidentialDeposit(address indexed account, euint64 indexed amount);
     event PrizeFunded(address indexed account, euint64 indexed amount, uint64 publicAmount);
@@ -335,6 +341,7 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
 
         if (!_hasWithdrawalClaim[batchId][msg.sender]) {
             _withdrawalBatchClaimantCount[batchId]++;
+            _withdrawalAccounts[batchId].push(msg.sender);
         }
         _withdrawalClaims[batchId][msg.sender] = FHE.add(_withdrawalClaims[batchId][msg.sender], accepted);
         _hasWithdrawalClaim[batchId][msg.sender] = true;
@@ -390,21 +397,31 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
 
     /// @notice Claims a funded queued withdrawal into the wrapper's USDC finalization flow.
     function claimWithdrawalToUsdc(uint256 batchId, address to) external returns (bytes32 unwrapRequestId) {
+        return _claimWithdrawalToUsdc(batchId, msg.sender, to);
+    }
+
+    /// @notice Anyone may progress a withdrawal, but only its owner can receive the funds.
+    function processWithdrawal(uint256 batchId, address account) external returns (bytes32 unwrapRequestId) {
+        return _claimWithdrawalToUsdc(batchId, account, account);
+    }
+
+    function _claimWithdrawalToUsdc(uint256 batchId, address account, address to) internal returns (bytes32 unwrapRequestId) {
         if (_withdrawalBatchStatus[batchId] != WithdrawalBatchStatus.Funded) revert WithdrawalBatchNotFunded(batchId);
-        if (!_hasWithdrawalClaim[batchId][msg.sender]) revert NoWithdrawalClaim(batchId, msg.sender);
+        if (!_hasWithdrawalClaim[batchId][account]) revert NoWithdrawalClaim(batchId, account);
         if (to == address(0)) revert InvalidWithdrawalReceiver();
 
-        euint64 amount = _withdrawalClaims[batchId][msg.sender];
+        euint64 amount = _withdrawalClaims[batchId][account];
 
-        _withdrawalClaims[batchId][msg.sender] = FHE.asEuint64(0);
-        _hasWithdrawalClaim[batchId][msg.sender] = false;
+        _withdrawalClaims[batchId][account] = FHE.asEuint64(0);
+        _hasWithdrawalClaim[batchId][account] = false;
         _withdrawalBatchClaimantCount[batchId]--;
-        _allowAccount(_withdrawalClaims[batchId][msg.sender], msg.sender);
+        _allowAccount(_withdrawalClaims[batchId][account], account);
         FHE.allowTransient(amount, address(token));
 
         unwrapRequestId = IERC7984ERC20WrapperInternalAmount(address(token)).unwrap(address(this), to, amount);
+        withdrawalUnwrapRequest[batchId][account] = unwrapRequestId;
 
-        emit WithdrawalClaimedToUsdc(msg.sender, batchId, to, amount, unwrapRequestId);
+        emit WithdrawalClaimedToUsdc(account, batchId, to, amount, unwrapRequestId);
     }
 
     /// @notice Applies the no-loss withdrawal cap and updates encrypted principal.

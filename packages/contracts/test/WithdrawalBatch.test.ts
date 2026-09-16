@@ -228,7 +228,7 @@ describe("Withdrawal batches", function () {
     expect(await pool.withdrawalBatchRestoredAmount(batchId)).to.equal(USDC(2));
     expect(await adapter.suppliedPrincipal()).to.equal(USDC(4));
 
-    const claimTx = await pool.connect(alice).claimWithdrawalToUsdc(batchId, alice.address);
+    const claimTx = await pool.processWithdrawal(batchId, alice.address);
     const receipt = await claimTx.wait();
     const unwrapRequestId = receipt!.logs
       .map((log: any) => {
@@ -270,5 +270,30 @@ describe("Withdrawal batches", function () {
       pool.settleWithdrawalBatch(1n, USDC(1), decrypted.clearValues[restore], decrypted.decryptionProof),
     ).to.be.reverted;
     expect(await pool.withdrawalBatchStatus(1n)).to.equal(1n);
+  });
+
+  it("delivers USDC without another user transaction and cannot redirect or replay a payout", async function () {
+    const { alice, bob, usdc, confidentialUsdc, pool } = await deployMorphoFixture();
+    const poolAddress = await pool.getAddress();
+    await encryptedDeposit(confidentialUsdc, poolAddress, alice, USDC(3));
+    await requestWithdrawal(pool, poolAddress, alice, USDC(1));
+    await requestWithdrawal(pool, poolAddress, alice, USDC(1));
+    expect(await pool.withdrawalAccounts(1n)).to.deep.equal([alice.address]);
+    await expect(pool.connect(bob).processWithdrawal(1n, alice.address))
+      .to.be.revertedWithCustomError(pool, "WithdrawalBatchNotFunded");
+    await closeAndSettleBatch(pool, 1n);
+    await expect(pool.connect(bob).claimWithdrawalToUsdc(1n, bob.address))
+      .to.be.revertedWithCustomError(pool, "NoWithdrawalClaim");
+    await pool.connect(bob).processWithdrawal(1n, alice.address);
+    const requestId = await pool.withdrawalUnwrapRequest(1n, alice.address);
+    expect(await confidentialUsdc.unwrapRequester(requestId)).to.equal(alice.address);
+    await expect(pool.connect(bob).processWithdrawal(1n, alice.address))
+      .to.be.revertedWithCustomError(pool, "NoWithdrawalClaim");
+    const decrypted = await fhevm.publicDecrypt([requestId]);
+    await confidentialUsdc.connect(bob).finalizeUnwrap(requestId, decrypted.clearValues[requestId], decrypted.decryptionProof);
+    expect(await usdc.balanceOf(alice.address)).to.equal(USDC(2));
+    expect(await usdc.balanceOf(bob.address)).to.equal(0n);
+    await expect(confidentialUsdc.connect(bob).finalizeUnwrap(requestId, decrypted.clearValues[requestId], decrypted.decryptionProof))
+      .to.be.revertedWithCustomError(confidentialUsdc, "InvalidUnwrapRequest");
   });
 });

@@ -24,7 +24,7 @@ export type WithdrawalStageInputs = {
 export const withdrawalStageCopy: Record<WithdrawalStage, string> = {
   requested: "Withdrawal requested",
   preparing: "Preparing your funds",
-  claimable: "Ready to receive",
+  claimable: "Transfer pending",
   finalizing: "Finalizing withdrawal",
   complete: "Complete",
 };
@@ -33,7 +33,7 @@ export const balanceBucketLabels = {
   walletUsdc: "Wallet USDC",
   prizeTokens: "Prize tokens",
   savingsBalance: "Savings balance",
-  withdrawalInProgress: "Withdrawal in progress",
+  withdrawalInProgress: "Pending withdrawals",
 } as const;
 
 export function pendingWithdrawalTotal(requests: readonly PendingWithdrawal[]) {
@@ -88,8 +88,8 @@ export function deriveWithdrawalStage(
   if (state.hasClaim && state.batchStatus === "open") return "requested";
   if (state.hasClaim && state.batchStatus === "closed") return "preparing";
   if (state.hasClaim && state.batchStatus === "funded") return "claimable";
-  if (!state.hasClaim && state.unwrapPending) return "finalizing";
-  return "complete";
+  if (!state.hasClaim && state.unwrapPending === false) return "complete";
+  return "finalizing";
 }
 
 export function finalizationOutcome(cleartextAmount: bigint) {

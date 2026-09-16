@@ -99,6 +99,12 @@ Frontend:
 
 Current confidential deployment:
 
+The addresses below still use the account-claimed withdrawal flow. The new
+automatic-delivery contract code has not been deployed or selected here.
+Do not replace the pool address while existing balances and claims still need
+recovery: these contracts are not upgradeable, and a fresh pool does not inherit
+their balances. Keep the old address and recovery UI until those funds are returned.
+
 - **USDC underlying:** `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`
 - **ConfidentialUSDC:** `0x3B4F71c77e288d92871Cda495891Cd42f543A3f5`
 - **ConfidentialPrizePool:** `0x92938dbFFa6A7De3dd2a009e10f5d2100fA594e6`
@@ -233,8 +239,38 @@ SEPOLIA_RPC_URL=https://...
 KEEPER_PRIVATE_KEY=0x...
 MORPHO_KEEPER_START_BLOCK=11711000
 MORPHO_KEEPER_MAX_TXS=1
-WITHDRAWAL_KEEPER_LOOKBACK_BATCHES=8
 ```
+
+### Automatic withdrawal delivery
+
+The updated pool accepts one `requestWithdrawal` transaction from the user.
+After the batch closes, the withdrawal keeper settles its backing, calls
+`processWithdrawal(batchId, account)`, and finalizes the wrapper request. The
+permissionless payout always sends to that account; the keeper cannot choose a
+different recipient. Every transaction receipt is checked before advancing.
+The user does not need to keep the app open or approve another transaction.
+
+From the repository root, run `pnpm keeper:watch` for continuous local processing
+(Ctrl+C stops it). `pnpm keeper:all` performs one pass. The watcher runs the
+Morpho and withdrawal keepers sequentially, retries every 15 seconds after each
+pass, and continues with withdrawals even if the Morpho keeper fails.
+Node 24 and the local keeper environment are required. Check configuration
+without sending transactions with `npm run keeper:withdrawal -- --check`.
+
+Withdrawal runs report confirmed `transactions` and unresolved `pending` work.
+Failed batches do not block other payouts. Requests are scanned from the first
+batch, so old requests do not fall out of a lookback window. This full scan is
+appropriate for the bounded demo; a long-running production service needs a
+durable cursor and pending-work index before batch history grows large.
+The savings screen refreshes pending delivery and wallet USDC automatically.
+Unknown amounts display as pending, never as zero USDC.
+
+The Netlify function is scheduled every minute, but automatic delivery requires
+that scheduled service to be deployed and running, or the local watcher to remain
+running. Local one-shot commands do not establish a background service.
+The existing deployment retains its recovery buttons because its bytecode cannot
+perform the new permissionless payout. New automatic delivery requires a new pool
+and its own adapter; changing the UI alone cannot retrofit existing requests.
 
 Current confidential architecture:
 
