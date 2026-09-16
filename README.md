@@ -198,7 +198,10 @@ depositor's amount. On the next ready run, the keeper obtains Zama's public
 decryption proof, finalizes the unwrap, and calls
 `supplyAvailableMorphoPrincipal()` so the adapter supplies all available USDC
 to Morpho Blue. Idle runs accrue Morpho's lazy interest accounting before
-harvesting any observable surplus into the prize reserve.
+harvesting any observable surplus into the prize reserve. The keeper still
+checks routing work every five minutes, but it waits at least one hour between
+explicit Morpho accruals so sub-base-unit interest is not repeatedly rounded
+away in this small test market.
 
 The adapter tracks pool principal separately from market value. The prize is the
 surplus reported by `accruedYieldAssets()`: current Morpho supplied assets minus

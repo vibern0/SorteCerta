@@ -15,8 +15,10 @@ When the interval has elapsed and there has been deposit activity, it asks the
 pool to unwrap the pending principal to the Morpho adapter. On a later run, the
 keeper discovers that request from wrapper events, obtains Zama's public
 decryption proof, and finalizes the unwrap. Once the adapter has USDC, the keeper
-supplies it to Morpho. Idle runs update Morpho's lazy interest accounting; when
-yield becomes observable, the keeper harvests it into the prize reserve.
+supplies it to Morpho. Idle runs update Morpho's lazy interest accounting at
+most once per hour; when yield becomes observable, the keeper harvests it into
+the prize reserve. The longer accrual window avoids repeatedly rounding
+sub-base-unit interest down to zero in a small test market.
 
 ## Known privacy tradeoffs
 
@@ -44,7 +46,8 @@ next five-minute run:
 2. harvest available Morpho yield into the prize reserve;
 3. finalize the oldest ready Morpho-bound unwrap;
 4. request a timed unwrap for pending pool principal;
-5. accrue Morpho interest when no higher-priority work is pending.
+5. accrue Morpho interest when no higher-priority work is pending and at least
+   one hour has elapsed since the market's last update.
 
 The keeper scans from `MORPHO_KEEPER_START_BLOCK` (the wrapper deployment block)
 to the latest block in exact 10,000-block chunks for wrapper requests and matching

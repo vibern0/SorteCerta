@@ -30,6 +30,7 @@ const prizePoolAbi = parseAbi([
 const morphoAdapterAbi = parseAbi([
   "function suppliedPrincipal() view returns (uint256)",
   "function morpho() view returns (address)",
+  "function marketId() view returns (bytes32)",
   "function marketParams() view returns (address loanToken,address collateralToken,address oracle,address irm,uint256 lltv)",
 ]);
 
@@ -38,6 +39,7 @@ const confidentialUsdcAbi = parseAbi([
 ]);
 
 const morphoAbi = parseAbi([
+  "function market(bytes32 marketId) view returns (uint128 totalSupplyAssets,uint128 totalSupplyShares,uint128 totalBorrowAssets,uint128 totalBorrowShares,uint128 lastUpdate,uint128 fee)",
   "function accrueInterest((address loanToken,address collateralToken,address oracle,address irm,uint256 lltv) marketParams)",
 ]);
 
@@ -109,15 +111,24 @@ async function readSnapshot(publicClient: ReturnType<typeof createPublicClient>,
 
   const token = getAddress(tokenAddress);
   const adapter = getAddress(adapterAddress);
-  const [suppliedPrincipalAssets, pendingUnwrapRequestId] = await Promise.all([
+  const [suppliedPrincipalAssets, pendingUnwrapRequestId, morphoAddress, marketId] = await Promise.all([
     publicClient.readContract({ address: adapter, abi: morphoAdapterAbi, functionName: "suppliedPrincipal" }),
     findPendingUnwrap(publicClient, token, adapter, startBlock, block.number),
+    publicClient.readContract({ address: adapter, abi: morphoAdapterAbi, functionName: "morpho" }),
+    publicClient.readContract({ address: adapter, abi: morphoAdapterAbi, functionName: "marketId" }),
   ]);
+  const market = await publicClient.readContract({
+    address: getAddress(morphoAddress),
+    abi: morphoAbi,
+    functionName: "market",
+    args: [marketId],
+  });
 
   return {
     availablePrincipalAssets,
     accruedYieldAssets,
     morphoPendingDepositCount,
+    morphoLastAccrualAt: market[4],
     lastMorphoUnwrapAt,
     morphoUnwrapInterval,
     now: block.timestamp,

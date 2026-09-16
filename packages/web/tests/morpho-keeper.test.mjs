@@ -14,6 +14,7 @@ const baseSnapshot = {
   accruedYieldAssets: 0n,
   morphoPendingDepositCount: 0n,
   lastMorphoUnwrapAt: 1_000n,
+  morphoLastAccrualAt: 0n,
   morphoUnwrapInterval: 300n,
   now: 1_400n,
   pendingUnwrapRequestId: undefined,
@@ -83,6 +84,29 @@ test("accrues interest when supplied principal has no higher-priority work", () 
   assert.deepEqual(
     chooseMorphoKeeperActions({
       ...baseSnapshot,
+      now: 3_600n,
+      suppliedPrincipalAssets: 31_900_000n,
+    }),
+    ["accrue"],
+  );
+});
+
+test("does not accrue before an hour has elapsed since Morpho's last update", () => {
+  assert.deepEqual(
+    chooseMorphoKeeperActions({
+      ...baseSnapshot,
+      morphoLastAccrualAt: 1_000n,
+      now: 4_599n,
+      suppliedPrincipalAssets: 31_900_000n,
+    }),
+    [],
+  );
+
+  assert.deepEqual(
+    chooseMorphoKeeperActions({
+      ...baseSnapshot,
+      morphoLastAccrualAt: 1_000n,
+      now: 4_600n,
       suppliedPrincipalAssets: 31_900_000n,
     }),
     ["accrue"],

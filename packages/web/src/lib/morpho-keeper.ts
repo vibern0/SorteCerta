@@ -4,6 +4,7 @@ export type MorphoKeeperSnapshot = {
   availablePrincipalAssets: bigint;
   accruedYieldAssets: bigint;
   morphoPendingDepositCount: bigint;
+  morphoLastAccrualAt: bigint;
   lastMorphoUnwrapAt: bigint;
   morphoUnwrapInterval: bigint;
   now: bigint;
@@ -12,6 +13,7 @@ export type MorphoKeeperSnapshot = {
 };
 
 const HARD_MAX_TRANSACTIONS = 1;
+const MIN_MORPHO_ACCRUAL_INTERVAL = 3_600n;
 
 export function normalizeKeeperMaxTransactions(value: string | undefined): number {
   void value;
@@ -67,7 +69,8 @@ export function chooseMorphoKeeperActions(
     actions.push("unwrap");
   }
 
-  if (snapshot.suppliedPrincipalAssets > 0n) actions.push("accrue");
+  const accrualReadyAt = snapshot.morphoLastAccrualAt + MIN_MORPHO_ACCRUAL_INTERVAL;
+  if (snapshot.suppliedPrincipalAssets > 0n && snapshot.now >= accrualReadyAt) actions.push("accrue");
 
   return actions.slice(0, max);
 }

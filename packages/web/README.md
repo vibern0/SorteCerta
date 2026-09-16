@@ -44,8 +44,13 @@ private Netlify environment variables, not `NEXT_PUBLIC_*`:
 ```bash
 SEPOLIA_RPC_URL=https://...
 KEEPER_PRIVATE_KEY=0x...
-MORPHO_KEEPER_MAX_TXS=3
+MORPHO_KEEPER_START_BLOCK=11711000
+MORPHO_KEEPER_MAX_TXS=1
 ```
+
+The function checks deposit-routing work every five minutes and limits explicit
+Morpho interest accrual to once per hour to avoid base-unit rounding loss in a
+small market.
 
 ## Where things live
 
