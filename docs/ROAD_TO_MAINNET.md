@@ -92,10 +92,9 @@ Failure at Gate A keeps the product on Sepolia.
 
 ## Explicit launch blockers in the current implementation
 
-- `closeDraw()` samples a fixed range that is smaller than ordinary USDC
-  deposit balances, biasing winner selection.
-- all finalized principal is supplied to Morpho while restoration is an owner
-  action, so withdrawal liquidity is not autonomous.
+- queued withdrawals exist, but batch restoration still needs Zama
+  public-decryption proof verification and keeper reconciliation before it can
+  protect real funds.
 - the keeper and frontend are hard-coded to Sepolia and the keeper stores a raw
   private key in its runtime environment.
 - the pool uses an immutable single owner rather than transferable multisig and

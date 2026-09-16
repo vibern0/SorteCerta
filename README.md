@@ -297,13 +297,15 @@ Current confidential architecture:
   decrypt access.
 - Claims transfer encrypted cUSDC winnings to the caller and reset their
   encrypted winnings handle.
-- Withdrawals accept an encrypted requested amount, cap it with
-  `FHE.min(requested, principal)`, reduce encrypted principal, and either return
-  cUSDC or create an underlying USDC unwrap request.
-- The no-loss invariant is principal-backed by pool-held cUSDC. Prize funds sit
-  in the separate encrypted prize reserve and are not consumed by withdrawal.
-  Principal supplied to Morpho must be restored as cUSDC before it can satisfy
-  user withdrawals from the pool.
+- Immediate Sepolia withdrawals accept an encrypted requested amount, cap it
+  with `FHE.min(requested, principal)`, reduce encrypted principal, and either
+  return cUSDC or create an underlying USDC unwrap request. The mainnet path
+  also supports queued withdrawal batches: requests reduce active principal
+  immediately, aggregate encrypted batch liabilities, restore liquidity from
+  Morpho, and let users claim their encrypted amount after the batch is funded.
+- The no-loss invariant is principal-backed by pool-held cUSDC plus queued
+  withdrawal liquidity restored from Morpho. Prize funds sit in the separate
+  encrypted prize reserve and are not consumed by withdrawal.
 
 Important current limitations:
 
@@ -316,6 +318,9 @@ Important current limitations:
   `floor(random64 * encryptedTotalPrincipal / 2^64)`. The maximum aggregate
   principal is bounded by `MAX_PARTICIPANTS * MAX_USER_PRINCIPAL`, keeping the
   scaled product inside 128 bits while avoiding a fixed public ticket range.
+- Withdrawal batches currently use a trusted clear aggregate amount at restore
+  time. The remaining mainnet hardening step is to replace that input with the
+  Zama public-decryption proof flow and keeper reconciliation.
 - Participant addresses, participant count, transaction timing, draw timing,
   public prize funding amounts, and the configured draw interval are visible.
   Individual principal, total principal, random ticket, prize credit, and

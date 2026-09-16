@@ -36,6 +36,7 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     uint256 public morphoUnwrapInterval;
     uint256 public lastMorphoUnwrapAt;
     uint256 public morphoPendingDepositCount;
+    uint256 public currentWithdrawalBatchId = 1;
 
     mapping(address account => euint64 principal) private _principal;
     mapping(address account => bool known) private _isParticipant;
@@ -47,6 +48,12 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     euint64 private _pendingMorphoPrincipal;
     uint64 public publicPrizeReserve;
     uint256 private _drawId;
+    mapping(uint256 batchId => euint64 total) private _withdrawalBatchTotal;
+    mapping(uint256 batchId => bool funded) private _withdrawalBatchFunded;
+    mapping(uint256 batchId => uint64 restoredAmount) private _withdrawalBatchRestoredAmount;
+    mapping(uint256 batchId => uint256 count) private _withdrawalBatchRequestCount;
+    mapping(uint256 batchId => mapping(address account => euint64 claim)) private _withdrawalClaims;
+    mapping(uint256 batchId => mapping(address account => bool hasClaim)) private _hasWithdrawalClaim;
 
     event ConfidentialDeposit(address indexed account, euint64 indexed amount);
     event PrizeFunded(address indexed account, euint64 indexed amount, uint64 publicAmount);
@@ -61,6 +68,9 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     event MorphoPrincipalSupplied(uint256 assets, uint256 shares);
     event MorphoYieldHarvested(uint256 assets);
     event MorphoPrincipalRestored(uint256 assets);
+    event WithdrawalRequested(address indexed account, uint256 indexed batchId, euint64 indexed amount);
+    event WithdrawalBatchFunded(uint256 indexed batchId, uint64 restoredAmount);
+    event WithdrawalClaimed(address indexed account, uint256 indexed batchId, euint64 indexed amount);
 
     error OnlyConfidentialToken();
     error OnlyOwner();
@@ -70,6 +80,10 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     error MorphoYieldAdapterNotSet();
     error MorphoUnwrapNotReady(uint256 readyAt);
     error NoPendingMorphoPrincipal();
+    error AmountTooLargeForConfidentialToken(uint256 amount);
+    error WithdrawalBatchNotFunded(uint256 batchId);
+    error WithdrawalBatchAlreadyFunded(uint256 batchId);
+    error NoWithdrawalClaim(uint256 batchId, address account);
 
     /// @notice Creates a pool for one confidential token and starts the first draw.
     constructor(IERC7984 token_, uint256 drawInterval_) {
@@ -275,8 +289,83 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         return unwrapRequestId;
     }
 
+    /// @notice Queues up to the requested principal amount for asynchronous withdrawal settlement.
+    function requestWithdrawal(externalEuint64 encryptedAmount, bytes calldata inputProof) external returns (uint256 batchId) {
+        euint64 requested = FHE.fromExternal(encryptedAmount, inputProof);
+        euint64 accepted = _removePrincipal(msg.sender, requested);
+
+        batchId = currentWithdrawalBatchId;
+        _withdrawalClaims[batchId][msg.sender] = FHE.add(_withdrawalClaims[batchId][msg.sender], accepted);
+        _hasWithdrawalClaim[batchId][msg.sender] = true;
+        _withdrawalBatchTotal[batchId] = FHE.add(_withdrawalBatchTotal[batchId], accepted);
+        _withdrawalBatchRequestCount[batchId]++;
+
+        _allowAccount(_withdrawalClaims[batchId][msg.sender], msg.sender);
+        FHE.allowThis(_withdrawalBatchTotal[batchId]);
+
+        emit WithdrawalRequested(msg.sender, batchId, accepted);
+    }
+
+    /// @notice Marks a batch funded after liquidity has been restored to the pool.
+    function markWithdrawalBatchFunded(uint256 batchId, uint64 restoredAmount) external {
+        _onlyOwner();
+        if (_withdrawalBatchFunded[batchId]) revert WithdrawalBatchAlreadyFunded(batchId);
+
+        _withdrawalBatchFunded[batchId] = true;
+        _withdrawalBatchRestoredAmount[batchId] = restoredAmount;
+        if (batchId == currentWithdrawalBatchId) {
+            currentWithdrawalBatchId++;
+        }
+
+        emit WithdrawalBatchFunded(batchId, restoredAmount);
+    }
+
+    /// @notice Restores batch liquidity from Morpho and marks the batch claimable.
+    function restoreWithdrawalBatch(uint256 batchId, uint64 restoredAmount) external returns (uint256 restoredAssets) {
+        if (_withdrawalBatchFunded[batchId]) revert WithdrawalBatchAlreadyFunded(batchId);
+        IMorphoPrizeYieldAdapter adapter = _requireMorphoYieldAdapter();
+
+        restoredAssets = adapter.restorePrincipalToPool(restoredAmount);
+        if (restoredAssets > type(uint64).max) revert AmountTooLargeForConfidentialToken(restoredAssets);
+
+        _withdrawalBatchFunded[batchId] = true;
+        _withdrawalBatchRestoredAmount[batchId] = uint64(restoredAssets);
+        if (batchId == currentWithdrawalBatchId) {
+            currentWithdrawalBatchId++;
+        }
+
+        emit MorphoPrincipalRestored(restoredAssets);
+        emit WithdrawalBatchFunded(batchId, uint64(restoredAssets));
+    }
+
+    /// @notice Claims a funded queued withdrawal as confidential tokens.
+    function claimWithdrawal(uint256 batchId) external returns (euint64) {
+        if (!_withdrawalBatchFunded[batchId]) revert WithdrawalBatchNotFunded(batchId);
+        if (!_hasWithdrawalClaim[batchId][msg.sender]) revert NoWithdrawalClaim(batchId, msg.sender);
+
+        euint64 amount = _withdrawalClaims[batchId][msg.sender];
+
+        _withdrawalClaims[batchId][msg.sender] = FHE.asEuint64(0);
+        _hasWithdrawalClaim[batchId][msg.sender] = false;
+        _allowAccount(_withdrawalClaims[batchId][msg.sender], msg.sender);
+        FHE.allow(amount, address(token));
+
+        token.confidentialTransfer(msg.sender, amount);
+
+        emit WithdrawalClaimed(msg.sender, batchId, amount);
+        return amount;
+    }
+
     /// @notice Applies the no-loss withdrawal cap and updates encrypted principal.
     function _withdrawPrincipal(address account, euint64 requested) internal returns (euint64) {
+        euint64 withdrawn = _removePrincipal(account, requested);
+
+        FHE.allowThis(withdrawn);
+
+        return withdrawn;
+    }
+
+    function _removePrincipal(address account, euint64 requested) internal returns (euint64) {
         euint64 available = _principal[account];
         euint64 withdrawn = FHE.min(requested, available);
 
@@ -287,8 +376,6 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         _allowAccount(_principal[account], account);
         FHE.allowThis(_totalPrincipal);
         FHE.allowThis(_pendingMorphoPrincipal);
-        FHE.allowThis(withdrawn);
-
         return withdrawn;
     }
 
@@ -421,5 +508,25 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     /// @notice Number of draws already closed.
     function drawId() external view returns (uint256) {
         return _drawId;
+    }
+
+    function encryptedWithdrawalBatchTotal(uint256 batchId) external view returns (euint64) {
+        return _withdrawalBatchTotal[batchId];
+    }
+
+    function encryptedWithdrawalClaimOf(uint256 batchId, address account) external view returns (euint64) {
+        return _withdrawalClaims[batchId][account];
+    }
+
+    function withdrawalBatchFunded(uint256 batchId) external view returns (bool) {
+        return _withdrawalBatchFunded[batchId];
+    }
+
+    function withdrawalBatchRestoredAmount(uint256 batchId) external view returns (uint64) {
+        return _withdrawalBatchRestoredAmount[batchId];
+    }
+
+    function withdrawalBatchRequestCount(uint256 batchId) external view returns (uint256) {
+        return _withdrawalBatchRequestCount[batchId];
     }
 }
