@@ -175,6 +175,27 @@ describe("MorphoYieldAdapter", function () {
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(USDC(250));
   });
 
+  it("restores a full Morpho position by shares and routes surplus as prizes", async function () {
+    const { keeper, usdc, confidentialUsdc, pool, morpho, adapter, marketParams } = await deployFixture();
+
+    await usdc.transfer(await adapter.getAddress(), USDC(1_000));
+    await pool.supplyFinalizedMorphoPrincipal(USDC(1_000));
+
+    await usdc.connect(keeper).approve(await morpho.getAddress(), USDC(50));
+    await morpho.connect(keeper).accrueYield(marketParams, USDC(25));
+
+    await pool.restoreMorphoPrincipal(USDC(1_000));
+
+    expect(await adapter.suppliedPrincipal()).to.equal(0n);
+    expect(await adapter.suppliedAssets()).to.equal(0n);
+    expect(await pool.publicPrizeReserve()).to.equal(USDC(25));
+
+    const encryptedReserve = await pool.encryptedPrizeReserve();
+    const encryptedPoolBalance = await confidentialUsdc.confidentialBalanceOf(await pool.getAddress());
+    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedReserve)).to.equal(USDC(25));
+    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(USDC(1_025));
+  });
+
   it("harvests Morpho yield and funds the confidential prize reserve", async function () {
     const { keeper, usdc, confidentialUsdc, pool, morpho, adapter, marketParams } = await deployFixture();
 

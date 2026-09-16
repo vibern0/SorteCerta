@@ -102,7 +102,7 @@ Current confidential deployment:
 - **USDC underlying:** `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`
 - **ConfidentialUSDC:** `0x3B4F71c77e288d92871Cda495891Cd42f543A3f5`
 - **ConfidentialPrizePool:** `0x92938dbFFa6A7De3dd2a009e10f5d2100fA594e6`
-- **MorphoYieldAdapter:** `0x1f33a29960eD69c2A40E406865b7F21062CA17B8`
+- **MorphoYieldAdapter:** `0x8bFbd8Fce7Faa465F89b9Cf0a51909A04967368c`
 - **Chain:** Ethereum Sepolia (`11155111`)
 - **Draw interval:** `900` seconds for Morpho-yield demo testing
 
@@ -233,6 +233,7 @@ SEPOLIA_RPC_URL=https://...
 KEEPER_PRIVATE_KEY=0x...
 MORPHO_KEEPER_START_BLOCK=11711000
 MORPHO_KEEPER_MAX_TXS=1
+WITHDRAWAL_KEEPER_LOOKBACK_BATCHES=8
 ```
 
 Current confidential architecture:

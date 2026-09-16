@@ -53,14 +53,16 @@ contract MockMorphoBlue is IMorphoBlue {
         address onBehalf,
         address receiver
     ) external returns (uint256 withdrawnAssets, uint256 withdrawnShares) {
-        require(shares == 0, "shares unsupported");
+        require(assets == 0 || shares == 0, "inconsistent input");
 
         bytes32 marketId = id(params);
         Market storage m = _markets[marketId];
         Position storage p = _positions[marketId][onBehalf];
 
-        withdrawnAssets = assets;
-        withdrawnShares = _toSharesUp(assets, m.totalSupplyAssets, m.totalSupplyShares);
+        withdrawnShares = shares == 0 ? _toSharesUp(assets, m.totalSupplyAssets, m.totalSupplyShares) : shares;
+        withdrawnAssets = assets == 0
+            ? (withdrawnShares * uint256(m.totalSupplyAssets)) / uint256(m.totalSupplyShares)
+            : assets;
         require(withdrawnShares <= p.supplyShares, "insufficient shares");
 
         p.supplyShares -= withdrawnShares;

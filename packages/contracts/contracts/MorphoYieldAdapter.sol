@@ -146,19 +146,26 @@ contract MorphoYieldAdapter is Ownable, ReentrancyGuard {
     function restorePrincipalToPool(uint256 assets) external onlyPrizePool nonReentrant returns (uint256 restoredAssets) {
         if (assets > suppliedPrincipal) revert PrincipalWithdrawalExceedsSupply(assets, suppliedPrincipal);
 
-        (uint256 withdrawnAssets, uint256 withdrawnShares) = morpho.withdraw(
-            _marketParams,
-            assets,
-            0,
-            address(this),
-            address(this)
-        );
-        suppliedPrincipal -= withdrawnAssets;
+        uint256 supplied = suppliedPrincipal;
+        bool fullPrincipalRestore = assets == supplied;
+        uint256 sharesToWithdraw = fullPrincipalRestore ? morpho.position(marketId, address(this)).supplyShares : 0;
+        uint256 assetsToWithdraw = fullPrincipalRestore ? 0 : assets;
 
-        _wrapAndSendToPool(withdrawnAssets, false);
+        (uint256 withdrawnAssets, uint256 withdrawnShares) =
+            morpho.withdraw(_marketParams, assetsToWithdraw, sharesToWithdraw, address(this), address(this));
+
+        suppliedPrincipal = supplied - assets;
+        _wrapAndSendToPool(assets, false);
+
+        uint256 surplusAssets = withdrawnAssets > assets ? withdrawnAssets - assets : 0;
+        if (surplusAssets > 0) {
+            _wrapAndSendToPool(surplusAssets, true);
+            emit YieldHarvested(surplusAssets, withdrawnShares);
+            emit PrizeFundedFromYield(surplusAssets);
+        }
 
         emit PoolPrincipalRestored(withdrawnAssets, withdrawnShares);
-        return withdrawnAssets;
+        return assets;
     }
 
     function harvestYieldToPrizePool(uint256 maxAssets) external onlyPrizePool nonReentrant returns (uint256 harvestedAssets) {

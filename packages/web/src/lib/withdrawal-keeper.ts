@@ -14,3 +14,18 @@ export function chooseWithdrawalKeeperAction(snapshot: WithdrawalKeeperSnapshot)
   if (snapshot.status === "open" && snapshot.now >= snapshot.closesAt) return "close";
   return undefined;
 }
+
+export function normalizeWithdrawalKeeperLookback(value: string | undefined): number {
+  const parsed = Number.parseInt(value ?? "", 10);
+  if (!Number.isFinite(parsed)) return 8;
+  return Math.min(Math.max(parsed, 1), 32);
+}
+
+export function recentWithdrawalBatchIds(currentBatchId: bigint, lookback: number): bigint[] {
+  const count = Math.max(Math.floor(lookback), 1);
+  const ids: bigint[] = [];
+  for (let i = 0n; i < BigInt(count) && currentBatchId > i; i++) {
+    ids.push(currentBatchId - i);
+  }
+  return ids;
+}

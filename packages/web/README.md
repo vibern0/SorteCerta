@@ -46,11 +46,14 @@ SEPOLIA_RPC_URL=https://...
 KEEPER_PRIVATE_KEY=0x...
 MORPHO_KEEPER_START_BLOCK=11711000
 MORPHO_KEEPER_MAX_TXS=1
+WITHDRAWAL_KEEPER_LOOKBACK_BATCHES=8
 ```
 
-The function checks deposit-routing work every five minutes and limits explicit
-Morpho interest accrual to once per hour to avoid base-unit rounding loss in a
-small market.
+The Morpho function checks deposit-routing work every five minutes and limits
+explicit Morpho interest accrual to once per hour to avoid base-unit rounding
+loss in a small market. The withdrawal function runs every minute, scans recent
+batches, closes expired nonempty batches, and settles closed batches once their
+public-decryption proof is available.
 
 ## Where things live
 
@@ -75,6 +78,7 @@ src/
     wallet-context.tsx   # React context exposing session
     usePoolData.ts       # wagmi hooks for prize-pool reads
     morpho-keeper.ts     # scheduled keeper decision logic
+    withdrawal-keeper.ts # scheduled withdrawal settlement decisions
     format.ts            # USDC + countdown formatters
     cn.ts                # tailwind-merge className helper
 ```
