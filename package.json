@@ -11,6 +11,9 @@
     "contracts:test": "npm run test -w packages/contracts",
     "contracts:deploy:sepolia": "npm run deploy:sepolia -w packages/contracts",
     "web:dev": "npm run dev -w packages/web",
-    "web:build": "npm run build -w packages/web"
+    "web:build": "npm run build -w packages/web",
+    "keeper:morpho": "cd packages/web && set -a && . ./.env && set +a && pnpm dlx tsx -e \"const { default: run } = await import('./netlify/functions/morpho-keeper.ts'); await run();\"",
+    "keeper:withdrawal": "cd packages/web && set -a && . ./.env && set +a && pnpm dlx tsx -e \"const { default: run } = await import('./netlify/functions/withdrawal-keeper.ts'); await run();\"",
+    "keeper:all": "npm run keeper:morpho && npm run keeper:withdrawal"
   }
 }
