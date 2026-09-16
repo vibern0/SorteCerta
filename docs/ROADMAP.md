@@ -150,3 +150,10 @@ the complete flow; submission contains every required link.
 
 Start with **Phase 1**. Do not begin the full contract rewrite until the local
 Zama spike proves encrypted input, ACLs, FHE randomness, and user decryption.
+
+## Post-bounty mainnet program
+
+Mainnet remains outside this bounty roadmap. The gated real-funds program,
+including protocol corrections, withdrawal liquidity, draw automation,
+production infrastructure, audit, governance, legal review, and capped rollout,
+is maintained in [`ROAD_TO_MAINNET.md`](ROAD_TO_MAINNET.md).
