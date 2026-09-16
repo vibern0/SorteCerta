@@ -152,6 +152,11 @@ Zama spike proves encrypted input, ACLs, FHE randomness, and user decryption.
 
 ## Post-bounty mainnet program
 
+Future yield simplification is tracked in
+[`FUTURE_VAULT_INTEGRATION.md`](FUTURE_VAULT_INTEGRATION.md). Evaluate standard
+Morpho vaults and Zama/OpenZeppelin batching after current withdrawals are verified.
+This goal does not change the required Sepolia network or authorize mainnet deployment.
+
 Mainnet remains outside this bounty roadmap. The gated real-funds program,
 including protocol corrections, withdrawal liquidity, draw automation,
 production infrastructure, audit, governance, legal review, and capped rollout,

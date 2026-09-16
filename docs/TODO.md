@@ -1,5 +1,14 @@
 # TODO
 
+## Future goal: simplify yield through standard vaults
+
+Status: deferred until current automatic withdrawals work end to end.
+
+Evaluate a curated Morpho ERC-4626 vault, Morpho's SDK, and the OpenZeppelin
+batcher used by Zama. Preserve SorteCerta's prize logic and one-action USDC
+withdrawals. Research, tradeoffs, sources, and acceptance gates are documented in
+[`FUTURE_VAULT_INTEGRATION.md`](FUTURE_VAULT_INTEGRATION.md).
+
 ## Frontend: deposit and withdraw confirmation bottom sheets
 
 Status: queued for the judge-facing frontend work.
