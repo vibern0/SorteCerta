@@ -56,3 +56,7 @@ for the next scheduled run instead of submitting a transaction.
 scheduled runtime hard-caps every run to one transaction to stay inside Netlify's
 execution limit. Set `MORPHO_KEEPER_START_BLOCK` to the new wrapper deployment
 block whenever the contracts are redeployed.
+
+The function returns after broadcasting its transaction instead of waiting for a
+receipt. The next scheduled run reads the confirmed onchain state before choosing
+another action. This avoids platform retries while preserving idempotent progress.
