@@ -25,6 +25,7 @@ import {
   balanceBucketLabels,
   deriveWithdrawalStage,
   finalizationOutcome,
+  mergePendingWithdrawals,
   pendingWithdrawalTotal,
   withdrawalStageCopy,
   type PendingWithdrawal,
@@ -39,6 +40,7 @@ type SheetStep = "entry" | "confirm";
 const PENDING_UNWRAPS_STORAGE_PREFIX = "sortecerta:pending-unwraps";
 const PENDING_WITHDRAWALS_STORAGE_PREFIX = "sortecerta:pending-withdrawals";
 const UNWRAP_LOG_LOOKBACK_BLOCKS = 512n;
+const WITHDRAWAL_LOG_LOOKBACK_BLOCKS = 10_000n;
 const MAX_USER_PRINCIPAL = 1_000_000_000n;
 
 const publicClient = createPublicClient({
@@ -317,6 +319,40 @@ export default function SavingsPage() {
     return logs;
   }
 
+  async function getWithdrawalLogs(
+    eventName: "WithdrawalRequested" | "WithdrawalClaimedToUsdc",
+    account: `0x${string}`,
+    fromBlock: bigint,
+    toBlock: bigint,
+  ) {
+    const pool = asAddress(addresses.pool, "Prize pool");
+    const chunkSize = 1_000n;
+    const logs = [];
+
+    for (let start = fromBlock; start <= toBlock; start += chunkSize + 1n) {
+      const end = start + chunkSize > toBlock ? toBlock : start + chunkSize;
+      const topics = encodeEventTopics({
+        abi: confidentialPrizePoolAbi,
+        eventName,
+        args: { account },
+      });
+      const chunk = await publicClient.request({
+        method: "eth_getLogs",
+        params: [
+          {
+            address: pool,
+            topics,
+            fromBlock: toHex(start),
+            toBlock: toHex(end),
+          },
+        ],
+      });
+      logs.push(...chunk);
+    }
+
+    return logs;
+  }
+
   async function refreshPendingUnwraps(user = session?.address) {
     if (!user || !wrapperReady) return;
 
@@ -526,7 +562,10 @@ export default function SavingsPage() {
     const token = wrapperReady ? asAddress(addresses.confidentialUsdc, "Savings token") : undefined;
     const latestBlock = await publicClient.getBlockNumber();
     const fromBlock = latestBlock > UNWRAP_LOG_LOOKBACK_BLOCKS ? latestBlock - UNWRAP_LOG_LOOKBACK_BLOCKS : 0n;
+    const withdrawalFromBlock =
+      latestBlock > WITHDRAWAL_LOG_LOOKBACK_BLOCKS ? latestBlock - WITHDRAWAL_LOG_LOOKBACK_BLOCKS : 0n;
     let finalizedIds = new Set<string>();
+    let discovered: PendingWithdrawal[] = [];
 
     if (token) {
       try {
@@ -542,9 +581,35 @@ export default function SavingsPage() {
       }
     }
 
+    try {
+      const [requestedLogs, claimedLogs] = await Promise.all([
+        getWithdrawalLogs("WithdrawalRequested", user, withdrawalFromBlock, latestBlock),
+        getWithdrawalLogs("WithdrawalClaimedToUsdc", user, withdrawalFromBlock, latestBlock),
+      ]);
+      const requested = parseEventLogs({
+        abi: confidentialPrizePoolAbi,
+        eventName: "WithdrawalRequested",
+        logs: requestedLogs,
+      });
+      const claimed = parseEventLogs({
+        abi: confidentialPrizePoolAbi,
+        eventName: "WithdrawalClaimedToUsdc",
+        logs: claimedLogs,
+      });
+      const claimedByBatch = new Map(claimed.map((event) => [event.args.batchId, event.args.unwrapRequestId]));
+
+      discovered = requested.map((event) => ({
+        batchId: event.args.batchId,
+        txHash: event.transactionHash,
+        unwrapRequestId: claimedByBatch.get(event.args.batchId),
+      }));
+    } catch {
+      discovered = [];
+    }
+
     const next = (
       await Promise.all(
-        stored.map(async (request): Promise<PendingWithdrawalView | undefined> => {
+        mergePendingWithdrawals(stored, discovered).map(async (request): Promise<PendingWithdrawalView | undefined> => {
           if (request.unwrapRequestId) {
             if (finalizedIds.has(request.unwrapRequestId.toLowerCase())) return undefined;
             return { ...request, stage: "finalizing" };

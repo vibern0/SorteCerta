@@ -33,6 +33,31 @@ export function pendingWithdrawalTotal(requests: readonly PendingWithdrawal[]) {
   return requests.reduce((total, request) => total + (request.amount ?? 0n), 0n);
 }
 
+export function mergePendingWithdrawals(
+  localRequests: readonly PendingWithdrawal[],
+  discoveredRequests: readonly PendingWithdrawal[],
+) {
+  const byBatch = new Map<bigint, PendingWithdrawal>();
+
+  for (const request of discoveredRequests) {
+    byBatch.set(request.batchId, request);
+  }
+
+  for (const request of localRequests) {
+    const discovered = byBatch.get(request.batchId);
+    const unwrapRequestId = request.unwrapRequestId ?? discovered?.unwrapRequestId;
+    const next: PendingWithdrawal = {
+      ...discovered,
+      ...request,
+      amount: request.amount ?? discovered?.amount,
+    };
+    if (unwrapRequestId) next.unwrapRequestId = unwrapRequestId;
+    byBatch.set(request.batchId, next);
+  }
+
+  return Array.from(byBatch.values()).sort((a, b) => Number(b.batchId - a.batchId));
+}
+
 export function deriveWithdrawalStage(
   _request: PendingWithdrawal,
   state: WithdrawalStageInputs,

@@ -5,6 +5,7 @@ import {
   balanceBucketLabels,
   deriveWithdrawalStage,
   finalizationOutcome,
+  mergePendingWithdrawals,
   pendingWithdrawalTotal,
   withdrawalStageCopy,
 } from "../src/lib/withdrawal-state.ts";
@@ -49,6 +50,22 @@ test("totals only known pending withdrawal amounts", () => {
       { batchId: 3n, txHash: "0xccc", amount: 2_500_000n },
     ]),
     3_500_000n,
+  );
+});
+
+test("merges onchain-discovered withdrawals with locally known amounts", () => {
+  assert.deepEqual(
+    mergePendingWithdrawals(
+      [{ batchId: 4n, txHash: "0xlocal", amount: 1_000_000n }],
+      [
+        { batchId: 4n, txHash: "0xchain" },
+        { batchId: 2n, txHash: "0xolder" },
+      ],
+    ),
+    [
+      { batchId: 4n, txHash: "0xlocal", amount: 1_000_000n },
+      { batchId: 2n, txHash: "0xolder" },
+    ],
   );
 });
 
