@@ -65,6 +65,10 @@ interface IConfidentialTokenTransfer {
 contract MorphoYieldAdapter is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
+    uint256 private constant VIRTUAL_SHARES = 1e6;
+    uint256 private constant VIRTUAL_ASSETS = 1;
+    uint256 private constant PRINCIPAL_ROUNDING_RESERVE = 1;
+
     IERC20 public immutable usdc;
     IERC7984ERC20Wrapper public immutable confidentialUsdc;
     IConfidentialPrizePoolFunding public immutable prizePool;
@@ -73,6 +77,7 @@ contract MorphoYieldAdapter is Ownable, ReentrancyGuard {
     IMorphoBlue.MarketParams private _marketParams;
     bytes32 public immutable marketId;
     uint256 public suppliedPrincipal;
+    uint256 public idlePrincipal;
 
     event PoolPrincipalSupplied(uint256 assets, uint256 shares);
     event PoolPrincipalRestored(uint256 assets, uint256 shares);
@@ -84,6 +89,8 @@ contract MorphoYieldAdapter is Ownable, ReentrancyGuard {
     error NoAccruedYield();
     error AmountTooLargeForConfidentialToken(uint256 amount);
     error PrincipalWithdrawalExceedsSupply(uint256 requested, uint256 suppliedPrincipal);
+    error InsufficientAvailablePrincipal(uint256 requested, uint256 available);
+    error PrincipalLoss(uint256 expected, uint256 available);
     error UnknownMorphoMarket(bytes32 marketId);
     error OnlyPrizePool();
 
@@ -115,13 +122,9 @@ contract MorphoYieldAdapter is Ownable, ReentrancyGuard {
     }
 
     function supplyPoolPrincipal(uint256 assets) external onlyPrizePool nonReentrant returns (uint256 shares) {
-        usdc.forceApprove(address(morpho), assets);
-
-        (uint256 assetsSupplied, uint256 sharesSupplied) = morpho.supply(_marketParams, assets, 0, address(this), "");
-        suppliedPrincipal += assetsSupplied;
-
-        emit PoolPrincipalSupplied(assetsSupplied, sharesSupplied);
-        return sharesSupplied;
+        uint256 available = usdc.balanceOf(address(this)) - idlePrincipal;
+        if (assets > available) revert InsufficientAvailablePrincipal(assets, available);
+        (, shares) = _supplyPrincipal(assets);
     }
 
     function supplyAvailablePrincipal()
@@ -130,17 +133,12 @@ contract MorphoYieldAdapter is Ownable, ReentrancyGuard {
         nonReentrant
         returns (uint256 assetsSupplied, uint256 sharesSupplied)
     {
-        uint256 assets = usdc.balanceOf(address(this));
-        usdc.forceApprove(address(morpho), assets);
-
-        (assetsSupplied, sharesSupplied) = morpho.supply(_marketParams, assets, 0, address(this), "");
-        suppliedPrincipal += assetsSupplied;
-
-        emit PoolPrincipalSupplied(assetsSupplied, sharesSupplied);
+        uint256 assets = usdc.balanceOf(address(this)) - idlePrincipal;
+        return _supplyPrincipal(assets);
     }
 
     function availablePrincipalAssets() external view returns (uint256) {
-        return usdc.balanceOf(address(this));
+        return usdc.balanceOf(address(this)) - idlePrincipal;
     }
 
     function restorePrincipalToPool(uint256 assets) external onlyPrizePool nonReentrant returns (uint256 restoredAssets) {
@@ -151,13 +149,22 @@ contract MorphoYieldAdapter is Ownable, ReentrancyGuard {
         uint256 sharesToWithdraw = fullPrincipalRestore ? morpho.position(marketId, address(this)).supplyShares : 0;
         uint256 assetsToWithdraw = fullPrincipalRestore ? 0 : assets;
 
-        (uint256 withdrawnAssets, uint256 withdrawnShares) =
-            morpho.withdraw(_marketParams, assetsToWithdraw, sharesToWithdraw, address(this), address(this));
+        uint256 withdrawnAssets;
+        uint256 withdrawnShares;
+        if (sharesToWithdraw > 0 || assetsToWithdraw > 0) {
+            (withdrawnAssets, withdrawnShares) =
+                morpho.withdraw(_marketParams, assetsToWithdraw, sharesToWithdraw, address(this), address(this));
+        }
+
+        uint256 reserveUsed = fullPrincipalRestore ? idlePrincipal : 0;
+        uint256 available = withdrawnAssets + reserveUsed;
+        if (available < assets) revert PrincipalLoss(assets, available);
 
         suppliedPrincipal = supplied - assets;
+        if (fullPrincipalRestore) idlePrincipal = 0;
         _wrapAndSendToPool(assets, false);
 
-        uint256 surplusAssets = withdrawnAssets > assets ? withdrawnAssets - assets : 0;
+        uint256 surplusAssets = available - assets;
         if (surplusAssets > 0) {
             _wrapAndSendToPool(surplusAssets, true);
             emit YieldHarvested(surplusAssets, withdrawnShares);
@@ -198,8 +205,10 @@ contract MorphoYieldAdapter is Ownable, ReentrancyGuard {
     function suppliedAssets() public view returns (uint256) {
         IMorphoBlue.Market memory m = morpho.market(marketId);
         uint256 shares = morpho.position(marketId, address(this)).supplyShares;
-        if (shares == 0 || m.totalSupplyShares == 0) return 0;
-        return (shares * uint256(m.totalSupplyAssets)) / uint256(m.totalSupplyShares);
+        if (shares == 0) return idlePrincipal;
+        return idlePrincipal
+            + (shares * (uint256(m.totalSupplyAssets) + VIRTUAL_ASSETS))
+                / (uint256(m.totalSupplyShares) + VIRTUAL_SHARES);
     }
 
     function marketParams() external view returns (IMorphoBlue.MarketParams memory) {
@@ -208,6 +217,22 @@ contract MorphoYieldAdapter is Ownable, ReentrancyGuard {
 
     function id(IMorphoBlue.MarketParams memory marketParams_) public pure returns (bytes32) {
         return keccak256(abi.encode(marketParams_));
+    }
+
+    function _supplyPrincipal(uint256 assets) private returns (uint256 assetsSupplied, uint256 sharesSupplied) {
+        uint256 reserve = idlePrincipal == 0 && assets > 0 ? PRINCIPAL_ROUNDING_RESERVE : 0;
+        uint256 assetsToSupply = assets - reserve;
+
+        if (assetsToSupply > 0) {
+            usdc.forceApprove(address(morpho), assetsToSupply);
+            (assetsSupplied, sharesSupplied) =
+                morpho.supply(_marketParams, assetsToSupply, 0, address(this), "");
+        }
+
+        idlePrincipal += reserve;
+        suppliedPrincipal += assets;
+
+        emit PoolPrincipalSupplied(assets, sharesSupplied);
     }
 
     function _wrapAndSendToPool(uint256 assets, bool asPrizeFunding) private {

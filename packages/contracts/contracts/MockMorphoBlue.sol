@@ -8,6 +8,9 @@ import {IMorphoBlue} from "./MorphoYieldAdapter.sol";
 contract MockMorphoBlue is IMorphoBlue {
     using SafeERC20 for IERC20;
 
+    uint256 private constant VIRTUAL_SHARES = 1e6;
+    uint256 private constant VIRTUAL_ASSETS = 1;
+
     mapping(bytes32 id => MarketParams params) private _params;
     mapping(bytes32 id => Market marketState) private _markets;
     mapping(bytes32 id => mapping(address user => Position userPosition)) private _positions;
@@ -36,9 +39,8 @@ contract MockMorphoBlue is IMorphoBlue {
         bytes32 marketId = id(params);
         Market storage m = _markets[marketId];
         suppliedAssets = assets;
-        suppliedShares = m.totalSupplyShares == 0
-            ? assets
-            : (assets * uint256(m.totalSupplyShares)) / uint256(m.totalSupplyAssets);
+        suppliedShares = (assets * (uint256(m.totalSupplyShares) + VIRTUAL_SHARES))
+            / (uint256(m.totalSupplyAssets) + VIRTUAL_ASSETS);
 
         IERC20(params.loanToken).safeTransferFrom(msg.sender, address(this), assets);
         m.totalSupplyAssets += uint128(suppliedAssets);
@@ -61,7 +63,8 @@ contract MockMorphoBlue is IMorphoBlue {
 
         withdrawnShares = shares == 0 ? _toSharesUp(assets, m.totalSupplyAssets, m.totalSupplyShares) : shares;
         withdrawnAssets = assets == 0
-            ? (withdrawnShares * uint256(m.totalSupplyAssets)) / uint256(m.totalSupplyShares)
+            ? (withdrawnShares * (uint256(m.totalSupplyAssets) + VIRTUAL_ASSETS))
+                / (uint256(m.totalSupplyShares) + VIRTUAL_SHARES)
             : assets;
         require(withdrawnShares <= p.supplyShares, "insufficient shares");
 
@@ -89,6 +92,7 @@ contract MockMorphoBlue is IMorphoBlue {
 
     function _toSharesUp(uint256 assets, uint256 totalAssets, uint256 totalShares) private pure returns (uint256) {
         if (assets == 0 || totalShares == 0) return 0;
-        return (assets * totalShares + totalAssets - 1) / totalAssets;
+        return (assets * (totalShares + VIRTUAL_SHARES) + totalAssets + VIRTUAL_ASSETS - 1)
+            / (totalAssets + VIRTUAL_ASSETS);
     }
 }

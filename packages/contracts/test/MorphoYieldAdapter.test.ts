@@ -155,7 +155,8 @@ describe("MorphoYieldAdapter", function () {
 
     expect(await adapter.suppliedPrincipal()).to.equal(USDC(125));
     expect(await adapter.suppliedAssets()).to.equal(USDC(125));
-    expect(await usdc.balanceOf(await adapter.getAddress())).to.equal(0n);
+    expect(await usdc.balanceOf(await adapter.getAddress())).to.equal(1n);
+    expect(await adapter.availablePrincipalAssets()).to.equal(0n);
   });
 
   it("supplies finalized batch principal to Morpho and can restore it to the pool", async function () {
@@ -175,6 +176,25 @@ describe("MorphoYieldAdapter", function () {
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(USDC(250));
   });
 
+  it("keeps enough idle principal to cover Morpho virtual-share rounding", async function () {
+    const { keeper, usdc, confidentialUsdc, pool, morpho, adapter, marketParams } = await deployFixture();
+
+    await usdc.connect(keeper).approve(await morpho.getAddress(), USDC(50));
+    await morpho.connect(keeper).supply(marketParams, USDC(50), 0, keeper.address, "0x");
+
+    const principal = 900_000n;
+    await usdc.transfer(await adapter.getAddress(), principal);
+    await pool.supplyAvailableMorphoPrincipal();
+
+    expect(await adapter.suppliedPrincipal()).to.equal(principal);
+    expect(await usdc.balanceOf(await adapter.getAddress())).to.equal(1n);
+    expect(await adapter.availablePrincipalAssets()).to.equal(0n);
+    await pool.restoreMorphoPrincipal(principal);
+
+    const encryptedPoolBalance = await confidentialUsdc.confidentialBalanceOf(await pool.getAddress());
+    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(principal);
+  });
+
   it("restores a full Morpho position by shares and routes surplus as prizes", async function () {
     const { keeper, usdc, confidentialUsdc, pool, morpho, adapter, marketParams } = await deployFixture();
 
@@ -188,12 +208,12 @@ describe("MorphoYieldAdapter", function () {
 
     expect(await adapter.suppliedPrincipal()).to.equal(0n);
     expect(await adapter.suppliedAssets()).to.equal(0n);
-    expect(await pool.publicPrizeReserve()).to.equal(USDC(25));
+    expect(await pool.publicPrizeReserve()).to.equal(USDC(25) - 1n);
 
     const encryptedReserve = await pool.encryptedPrizeReserve();
     const encryptedPoolBalance = await confidentialUsdc.confidentialBalanceOf(await pool.getAddress());
-    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedReserve)).to.equal(USDC(25));
-    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(USDC(1_025));
+    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedReserve)).to.equal(USDC(25) - 1n);
+    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(USDC(1_025) - 1n);
   });
 
   it("harvests Morpho yield and funds the confidential prize reserve", async function () {
@@ -205,19 +225,19 @@ describe("MorphoYieldAdapter", function () {
     await usdc.connect(keeper).approve(await morpho.getAddress(), USDC(50));
     await morpho.connect(keeper).accrueYield(marketParams, USDC(25));
 
-    expect(await adapter.accruedYieldAssets()).to.equal(USDC(25));
-    expect(await pool.morphoAccruedYieldAssets()).to.equal(USDC(25));
+    expect(await adapter.accruedYieldAssets()).to.equal(USDC(25) - 1n);
+    expect(await pool.morphoAccruedYieldAssets()).to.equal(USDC(25) - 1n);
 
     await pool.harvestMorphoYield(0);
 
     const encryptedReserve = await pool.encryptedPrizeReserve();
     const encryptedPoolBalance = await confidentialUsdc.confidentialBalanceOf(await pool.getAddress());
 
-    expect(await pool.publicPrizeReserve()).to.equal(USDC(25));
+    expect(await pool.publicPrizeReserve()).to.equal(USDC(25) - 1n);
     expect(await adapter.suppliedPrincipal()).to.equal(USDC(1_000));
     expect(await adapter.accruedYieldAssets()).to.equal(0n);
-    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedReserve)).to.equal(USDC(25));
-    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(USDC(25));
+    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedReserve)).to.equal(USDC(25) - 1n);
+    expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(USDC(25) - 1n);
   });
 
   it("caps harvests and leaves remaining yield in Morpho", async function () {
@@ -233,7 +253,7 @@ describe("MorphoYieldAdapter", function () {
 
     expect(await pool.publicPrizeReserve()).to.equal(USDC(20));
     expect(await adapter.suppliedPrincipal()).to.equal(USDC(1_000));
-    expect(await adapter.accruedYieldAssets()).to.equal(USDC(30));
+    expect(await adapter.accruedYieldAssets()).to.equal(USDC(30) - 1n);
   });
 
   it("protects principal and owner controls", async function () {
