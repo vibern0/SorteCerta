@@ -99,25 +99,28 @@ Frontend:
 
 Current confidential deployment:
 
-The addresses below still use the account-claimed withdrawal flow. The new
-automatic-delivery contract code has not been deployed or selected here.
-Do not replace the pool address while existing balances and claims still need
-recovery: these contracts are not upgradeable, and a fresh pool does not inherit
-their balances. Keep the old address and recovery UI until those funds are returned.
+The addresses below use automatic withdrawal delivery, deployed September 16,
+2026. This is a fresh Sepolia test deployment, replacing the previous pool without
+migrating its disposable test balances or pending claims. Local frontend and
+keeper configuration must point to the same pool.
 
 - **USDC underlying:** `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`
 - **ConfidentialUSDC:** `0x3B4F71c77e288d92871Cda495891Cd42f543A3f5`
-- **ConfidentialPrizePool:** `0x92938dbFFa6A7De3dd2a009e10f5d2100fA594e6`
-- **MorphoYieldAdapter:** `0x8bFbd8Fce7Faa465F89b9Cf0a51909A04967368c`
+- **ConfidentialPrizePool:** `0x6F2744223144c10551E4CeF1e25Bf07aC2ce8252`
+- **MorphoYieldAdapter:** `0xde1E5A02b963A791662ab89c7F3a9F5F4c43c28f`
 - **Chain:** Ethereum Sepolia (`11155111`)
 - **Draw interval:** `900` seconds for Morpho-yield demo testing
+- **Withdrawal batch interval:** `300` seconds; delivery continues automatically
+  after settlement, subject to proof availability and market liquidity.
+- **Pool deployment transaction:** `0x2f4bd61e8879daf74a709c9bda2acea4c63b37d85a35aaf1c65c3b002153d904`
+- **Keeper scan start block:** `11719086`
 
 Frontend env values:
 
 ```bash
 NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS=0x3B4F71c77e288d92871Cda495891Cd42f543A3f5
-NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x92938dbFFa6A7De3dd2a009e10f5d2100fA594e6
+NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x6F2744223144c10551E4CeF1e25Bf07aC2ce8252
 NEXT_PUBLIC_CHAIN_ID=11155111
 ```
 
@@ -268,9 +271,28 @@ Unknown amounts display as pending, never as zero USDC.
 The Netlify function is scheduled every minute, but automatic delivery requires
 that scheduled service to be deployed and running, or the local watcher to remain
 running. Local one-shot commands do not establish a background service.
-The existing deployment retains its recovery buttons because its bytecode cannot
-perform the new permissionless payout. New automatic delivery requires a new pool
-and its own adapter; changing the UI alone cannot retrofit existing requests.
+The previous pool at `0x92938dbFFa6A7De3dd2a009e10f5d2100fA594e6` cannot perform
+the new permissionless payout. It is no longer selected by the local app. Old
+requests are not migrated into the replacement pool.
+
+To verify a live round trip with the configured deployer, fund that account with
+at least 1 Sepolia USDC. The smoke script defaults to read-only status; the two
+explicit write steps deposit 1 USDC and request its withdrawal. Run from
+`packages/contracts`:
+
+```bash
+WITHDRAWAL_SMOKE_STEP=deposit pnpm exec hardhat run scripts/smoke-withdrawal.ts --network sepolia
+# Wait for the running Morpho keeper to supply the deposit.
+WITHDRAWAL_SMOKE_STEP=request pnpm exec hardhat run scripts/smoke-withdrawal.ts --network sepolia
+# Wait for the withdrawal keeper to deliver USDC, then verify:
+pnpm exec hardhat run scripts/smoke-withdrawal.ts --network sepolia
+```
+
+The script stores its evidence in ignored `cache/withdrawal-smoke-*.json`, refuses
+to repeat recorded deposit/request steps, and reports `roundTripVerified: true`
+only after wrapper finalization and restoration of the original USDC balance.
+Avoid other transfers on that test account during the run. Coordinate write steps
+with the keeper if both use the same signer to avoid competing transaction nonces.
 
 Current confidential architecture:
 
