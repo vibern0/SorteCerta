@@ -106,8 +106,8 @@ keeper configuration must point to the same pool.
 
 - **USDC underlying:** `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`
 - **ConfidentialUSDC:** `0x3B4F71c77e288d92871Cda495891Cd42f543A3f5`
-- **ConfidentialPrizePool:** `0x6F2744223144c10551E4CeF1e25Bf07aC2ce8252`
-- **MorphoYieldAdapter:** `0xde1E5A02b963A791662ab89c7F3a9F5F4c43c28f`
+- **ConfidentialPrizePool:** `0x3d974cEF83CaC5BfD970CA95E121774eb8C9f233`
+- **MorphoYieldAdapter:** `0x84B120Db8b600DE01A49143cf515246B79afcfef`
 - **Chain:** Ethereum Sepolia (`11155111`)
 - **Draw interval:** `900` seconds for Morpho-yield demo testing
 - **Withdrawal batch interval:** `300` seconds; delivery continues automatically
@@ -120,7 +120,7 @@ Frontend env values:
 ```bash
 NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS=0x3B4F71c77e288d92871Cda495891Cd42f543A3f5
-NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x6F2744223144c10551E4CeF1e25Bf07aC2ce8252
+NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x3d974cEF83CaC5BfD970CA95E121774eb8C9f233
 NEXT_PUBLIC_CHAIN_ID=11155111
 ```
 
