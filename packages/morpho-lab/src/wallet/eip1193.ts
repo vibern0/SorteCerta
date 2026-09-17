@@ -4,6 +4,8 @@ export type Eip1193Request = {
 };
 
 export type Eip1193Provider = {
+  isMetaMask?: boolean;
+  providers?: Eip1193Provider[];
   request(request: Eip1193Request): Promise<unknown>;
   on(event: "accountsChanged" | "chainChanged", listener: (...args: unknown[]) => void): void;
   removeListener(
@@ -11,6 +13,14 @@ export type Eip1193Provider = {
     listener: (...args: unknown[]) => void
   ): void;
 };
+
+export function selectMetaMaskProvider(
+  provider: Eip1193Provider | undefined
+): Eip1193Provider | undefined {
+  const candidates = provider?.providers ?? [];
+  return candidates.find((candidate) => candidate.isMetaMask) ??
+    (provider?.isMetaMask ? provider : undefined);
+}
 
 declare global {
   interface Window {

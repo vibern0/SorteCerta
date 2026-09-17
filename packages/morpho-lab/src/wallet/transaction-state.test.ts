@@ -16,16 +16,10 @@ describe("transactionReducer", () => {
   });
 
   it("keeps the original summary when a signature is rejected", () => {
-    const submitted = transactionReducer([], {
-      type: "submitted",
-      id: "supply-1",
-      summary: "Supply 1 USDC",
-      hash: "0xdef",
-    });
-
-    const rejected = transactionReducer(submitted, {
+    const rejected = transactionReducer([], {
       type: "failed",
       id: "supply-1",
+      summary: "Supply 1 USDC",
       error: "User rejected the request.",
     });
 

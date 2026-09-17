@@ -23,7 +23,7 @@ import {
 import { sepolia } from "viem/chains";
 
 import type { LabConfig } from "../config";
-import type { Eip1193Provider } from "./eip1193";
+import { selectMetaMaskProvider } from "./eip1193";
 import {
   transactionReducer,
   type TransactionRecord,
@@ -58,7 +58,9 @@ export function MetaMaskProvider({
   children,
   config,
 }: PropsWithChildren<{ config: LabConfig }>) {
-  const provider = typeof window === "undefined" ? undefined : window.ethereum;
+  const provider = selectMetaMaskProvider(
+    typeof window === "undefined" ? undefined : window.ethereum
+  );
   const publicClient = useMemo(
     () => createPublicClient({ chain: sepolia, transport: http(config.rpcUrl) }),
     [config.rpcUrl]
