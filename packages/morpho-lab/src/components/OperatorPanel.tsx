@@ -4,6 +4,7 @@ import { getAddress } from "viem";
 import type { LabConfig } from "../config";
 import { formatTimestamp, formatToken } from "../format";
 import { buildCloseDraw } from "../protocol/operator-actions";
+import { getCloseDrawState } from "../protocol/operator-state";
 import { parseAmount } from "../protocol/actions";
 import {
   executePrizeFunding,
@@ -36,14 +37,15 @@ export function OperatorPanel({
   const [progress, setProgress] = useState<string>();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
-  const drawIsReady = snapshot.pool.nextDrawAt <= BigInt(now);
-  const disabled =
-    busy ||
-    stale ||
-    !drawIsReady ||
-    account === undefined ||
-    status !== "connected" ||
-    chainId !== 11155111;
+  const closeDrawState = getCloseDrawState({
+    account,
+    busy,
+    chainId,
+    nextDrawAt: snapshot.pool.nextDrawAt,
+    now,
+    stale,
+    status,
+  });
   const fundingDisabled =
     busy ||
     stale ||
@@ -138,7 +140,7 @@ export function OperatorPanel({
   }, []);
 
   async function closeDraw() {
-    if (disabled || running.current) return;
+    if (closeDrawState.disabled || running.current) return;
 
     running.current = true;
     setBusy(true);
@@ -175,7 +177,7 @@ export function OperatorPanel({
         </div>
       </dl>
       <button
-        disabled={disabled}
+        disabled={closeDrawState.disabled}
         onClick={() => void closeDraw()}
         type="button"
       >
@@ -230,7 +232,7 @@ export function OperatorPanel({
             {error}
           </p>
         ) : null}
-        {!drawIsReady ? <p>Draw closes at the scheduled time.</p> : null}
+        {closeDrawState.reason ? <p>{closeDrawState.reason}</p> : null}
       </div>
     </Panel>
   );
