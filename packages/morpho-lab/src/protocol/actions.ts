@@ -310,12 +310,24 @@ export function positionAmounts(config: ActionContext) {
   };
 }
 
+function marketLiquidity(config: ActionContext) {
+  return positionAmounts(config).liquidity;
+}
+
+function directSupply(config: ActionContext) {
+  return positionAmounts(config).supply;
+}
+
+function debtAssets(config: ActionContext) {
+  return positionAmounts(config).debt;
+}
+
 function borrowCapacity(config: ActionContext, extraCollateral = 0n) {
   const health = positionHealth({
     collateralAssets:
       config.snapshot.account!.position.collateralAssets + extraCollateral,
     collateralPrice: config.snapshot.market.oraclePrice,
-    borrowAssets: positionAmounts(config).debt,
+    borrowAssets: debtAssets(config),
     lltv: config.snapshot.adapter.marketParams.lltv,
   });
   return safeBorrowCapacity(
@@ -331,7 +343,7 @@ export function getIncreaseBorrowMax(
   owner(config);
   return min(
     borrowCapacity(config, collateral),
-    positionAmounts(config).liquidity
+    marketLiquidity(config)
   );
 }
 
@@ -341,7 +353,6 @@ export function getActionMax(
 ): bigint {
   owner(config);
   const { tokens, position } = config.snapshot.account!;
-  const { supply, debt, liquidity } = positionAmounts(config);
   switch (action) {
     case "wrapEth":
       return nonnegative(tokens.ethBalance - ETH_GAS_RESERVE);
@@ -351,9 +362,9 @@ export function getActionMax(
     case "supplyUsdc":
       return tokens.usdcBalance;
     case "withdrawUsdc":
-      return min(supply, liquidity);
+      return min(directSupply(config), marketLiquidity(config));
     case "borrowUsdc":
-      return min(borrowCapacity(config), liquidity);
+      return min(borrowCapacity(config), marketLiquidity(config));
     case "repayUsdc": {
       const state = accruedMarketState(
         config.snapshot.market.state,
@@ -369,6 +380,7 @@ export function getActionMax(
       return min(repayAssets, tokens.usdcBalance);
     }
     case "withdrawCollateral": {
+      const debt = debtAssets(config);
       if (debt === 0n) return position.collateralAssets;
       const { oraclePrice } = config.snapshot.market;
       const { lltv } = config.snapshot.adapter.marketParams;
@@ -389,9 +401,8 @@ export function actionAssets(
   amount: ActionAmount
 ): bigint {
   if (amount !== "all") return amount;
-  const { supply } = positionAmounts(config);
   if (action === "repayUsdc") return getRepayAllQuote(config).estimatedAssets;
-  if (action === "withdrawUsdc") return supply;
+  if (action === "withdrawUsdc") return directSupply(config);
   throw new Error(
     "All shares applies only to debt repayment or direct supply withdrawal."
   );
@@ -411,10 +422,9 @@ export function validateAction(
       ]
     );
   } else positive(assets);
-  const { liquidity } = positionAmounts(config);
   if (
     (action === "borrowUsdc" || action === "withdrawUsdc") &&
-    assets > liquidity
+    assets > marketLiquidity(config)
   ) {
     throw new Error("Amount exceeds market liquidity.");
   }

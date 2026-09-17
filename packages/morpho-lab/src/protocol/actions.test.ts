@@ -274,6 +274,33 @@ describe("local validation", () => {
       validateAction(context(state), "withdrawCollateral", 1n)
     ).toThrow(/rate/i);
   });
+
+  it("allows independent balance-improving actions when borrow rate is unavailable", () => {
+    const state = snapshot();
+    state.blockTimestamp = 100n;
+    state.market.borrowRatePerSecond = undefined;
+
+    expect(getActionMax(context(state), "wrapEth")).toBe(
+      state.account!.tokens.ethBalance - 10n ** 15n
+    );
+    expect(getActionMax(context(state), "unwrapWeth")).toBe(
+      state.account!.tokens.wethBalance
+    );
+    expect(getActionMax(context(state), "supplyUsdc")).toBe(
+      state.account!.tokens.usdcBalance
+    );
+    expect(getActionMax(context(state), "supplyCollateral")).toBe(
+      state.account!.tokens.wethBalance
+    );
+
+    expect(() => validateAction(context(state), "wrapEth", 1n)).not.toThrow();
+    expect(() => validateAction(context(state), "unwrapWeth", 1n)).not.toThrow();
+    expect(() => validateAction(context(state), "supplyUsdc", 1n)).not.toThrow();
+    expect(() =>
+      validateAction(context(state), "supplyCollateral", 1n)
+    ).not.toThrow();
+  });
+
   it.each<ActionKind>([
     "wrapEth",
     "unwrapWeth",
