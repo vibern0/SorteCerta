@@ -23,10 +23,10 @@ export function getCloseDrawState(input: CloseDrawStateInput): CloseDrawState {
   if (input.busy) return { disabled: true, ready, reason: "Close draw is already running." };
   if (!ready) return { disabled: true, ready, reason: "Draw closes at the scheduled time." };
   if (input.account === undefined || input.status !== "connected") {
-    return { disabled: true, ready, reason: "Connect MetaMask to close the draw." };
+    return { disabled: false, ready, reason: "Connect MetaMask to submit the draw close." };
   }
   if (input.chainId !== 11155111) {
-    return { disabled: true, ready, reason: "Switch MetaMask to Sepolia to close the draw." };
+    return { disabled: false, ready, reason: "Switch MetaMask to Sepolia before submitting." };
   }
 
   return { disabled: false, ready };

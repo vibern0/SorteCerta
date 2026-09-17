@@ -34,4 +34,34 @@ describe("getCloseDrawState", () => {
     expect(state.ready).toBe(false);
     expect(state.reason).toBe("Draw closes at the scheduled time.");
   });
+
+  it("keeps a ready draw button clickable before MetaMask is connected", () => {
+    const state = getCloseDrawState({
+      account: undefined,
+      busy: false,
+      chainId: undefined,
+      nextDrawAt: 1_000n,
+      now: 1_001,
+      stale: false,
+      status: "disconnected",
+    });
+
+    expect(state.disabled).toBe(false);
+    expect(state.ready).toBe(true);
+  });
+
+  it("keeps a ready draw button clickable on the wrong wallet chain", () => {
+    const state = getCloseDrawState({
+      account: "0x1111111111111111111111111111111111111111",
+      busy: false,
+      chainId: 1,
+      nextDrawAt: 1_000n,
+      now: 1_001,
+      stale: false,
+      status: "connected",
+    });
+
+    expect(state.disabled).toBe(false);
+    expect(state.ready).toBe(true);
+  });
 });
