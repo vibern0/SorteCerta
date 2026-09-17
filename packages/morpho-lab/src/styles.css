@@ -242,6 +242,29 @@ button:disabled {
   line-height: 1.45;
 }
 
+.operator-metrics {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.operator-metrics div {
+  display: grid;
+  gap: 2px;
+}
+
+.operator-feedback {
+  min-height: 1.5em;
+  margin-top: 10px;
+  color: #52616b;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.operator-feedback p {
+  margin-bottom: 0;
+}
+
 @media (max-width: 900px) {
   .lab-header,
   .dashboard-grid,

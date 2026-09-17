@@ -4,6 +4,7 @@ import { AccountPanel } from "./components/AccountPanel";
 import { AdapterPanel } from "./components/AdapterPanel";
 import { DeploymentPanel } from "./components/DeploymentPanel";
 import { MarketPanel } from "./components/MarketPanel";
+import { OperatorPanel } from "./components/OperatorPanel";
 import { PoolPanel } from "./components/PoolPanel";
 import { TransactionLog } from "./components/TransactionLog";
 import { WalletBar } from "./components/WalletBar";
@@ -141,6 +142,12 @@ function AppContent() {
           <section className="dashboard-grid" aria-label="Protocol dashboard">
             <DeploymentPanel deployment={snapshot.deployment} />
             <PoolPanel pool={snapshot.pool} />
+            <OperatorPanel
+              config={config}
+              refresh={refresh}
+              snapshot={snapshot}
+              stale={refreshError !== undefined}
+            />
             <AdapterPanel adapter={snapshot.adapter} />
             <MarketPanel market={snapshot.market} />
             <AccountPanel account={snapshot.account} />
