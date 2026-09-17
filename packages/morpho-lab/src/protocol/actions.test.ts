@@ -17,6 +17,7 @@ import {
   executeIncreaseUtilization,
   getActionMax,
   getIncreaseBorrowMax,
+  getRepayAllQuote,
   parseAmount,
   validateAction,
   type ActionContext,
@@ -36,6 +37,7 @@ const params = {
 function snapshot(): ProtocolSnapshot {
   return {
     blockNumber: 123n,
+    blockTimestamp: 1n,
     refreshedAt: 1,
     deployment,
     pool: {
@@ -76,6 +78,7 @@ function snapshot(): ProtocolSnapshot {
       params,
       oraclePrice: 2_000n * 10n ** 24n,
       utilizationWad: 0n,
+      borrowRatePerSecond: 0n,
       state: {
         totalSupplyAssets: 10_000_000_000n,
         totalSupplyShares: 10_000_000_000_000_000n,
@@ -385,6 +388,8 @@ describe("transaction sequences", () => {
         state.account!.position.collateralAssets += call.args![1] as bigint;
         state.account!.tokens.wethBalance -= call.args![1] as bigint;
       }
+      if (call.functionName === "repay")
+        state.account!.position.borrowShares = 0n;
     };
     return { state, events, refresh, submit };
   }
@@ -479,7 +484,18 @@ describe("transaction sequences", () => {
       ["repayUsdc", "all", "repay"],
     ] as const) {
       const h = harness();
-      await executeAction(context(h.state), action, amount, h);
+      await executeAction(
+        context(h.state),
+        action,
+        amount,
+        h,
+        amount === "all"
+          ? {
+              borrowShares: h.state.account!.position.borrowShares,
+              approvalAmount: 500_000_000n,
+            }
+          : undefined
+      );
       expect(h.events).toEqual([
         "refresh",
         "approve",
@@ -523,8 +539,146 @@ describe("transaction sequences", () => {
         h.state.market.state.totalBorrowAssets += 2n;
     };
     await expect(
-      executeAction(context(h.state), "repayUsdc", "all", { ...h, submit })
+      executeAction(
+        context(h.state),
+        "repayUsdc",
+        "all",
+        { ...h, submit },
+        {
+          borrowShares: h.state.account!.position.borrowShares,
+          approvalAmount: 500_000_000n,
+        }
+      )
     ).rejects.toThrow(/approval/i);
     expect(h.events).toEqual(["refresh", "approve", "refresh"]);
+  });
+});
+
+describe("reviewed repay-all with pending interest", () => {
+  it("quotes accrued debt even while stored totals stay unchanged", () => {
+    const state = snapshot();
+    state.blockTimestamp = 1_001n;
+    state.market.borrowRatePerSecond = 1_000_000_000_000n;
+    expect(getRepayAllQuote(context(state))).toMatchObject({
+      estimatedAssets: 500_500_250n,
+      suggestedApproval: 505_505_253n,
+      maxApproval: 550_550_275n,
+      borrowShares: 500_000_000_000_000n,
+    });
+    expect(state.market.state.totalBorrowAssets).toBe(1_000_000_000n);
+    state.blockTimestamp = 1_601n;
+    expect(getRepayAllQuote(context(state)).estimatedAssets).toBe(500_800_640n);
+  });
+
+  it("repays to zero borrow shares after time advances between review, approval and repayment", async () => {
+    const state = snapshot();
+    state.blockTimestamp = 1_001n;
+    state.market.borrowRatePerSecond = 1_000_000_000_000n;
+    const calls: string[] = [];
+    const review = {
+      borrowShares: 500_000_000_000_000n,
+      approvalAmount: 505_505_253n,
+    };
+    await executeAction(
+      context(state),
+      "repayUsdc",
+      "all",
+      {
+        refresh: async () => context(state),
+        submit: async (call) => {
+          calls.push(call.functionName);
+          if (call.functionName === "approve") {
+            expect(call.args).toEqual([deployment.morpho, 505_505_253n]);
+            state.account!.tokens.morphoUsdcAllowance = call.args![1] as bigint;
+            state.blockTimestamp = 1_601n;
+            // No market interaction: stored totals and lastUpdate still do not accrue.
+            expect(state.market.state.totalBorrowAssets).toBe(1_000_000_000n);
+          } else {
+            expect(call.functionName).toBe("repay");
+            expect(call.args).toEqual([
+              params,
+              0n,
+              500_000_000_000_000n,
+              account,
+              "0x",
+            ]);
+            // At t=1601, Morpho's pending interest increases the repayment to 500800640.
+            if (state.account!.tokens.morphoUsdcAllowance < 500_800_640n)
+              throw new Error("ERC20InsufficientAllowance");
+            state.account!.tokens.usdcBalance -= 500_800_640n;
+            state.account!.tokens.morphoUsdcAllowance -= 500_800_640n;
+            state.account!.position.borrowShares = 0n;
+          }
+        },
+      },
+      review
+    );
+    expect(calls).toEqual(["approve", "repay"]);
+    expect(state.account!.position.borrowShares).toBe(0n);
+    expect(state.account!.tokens.usdcBalance).toBe(1_499_199_360n);
+  });
+
+  it("requires a reviewed bound and rejects unlimited, over-balance or insufficient limits before writing", async () => {
+    for (const approvalAmount of [
+      undefined,
+      2n ** 256n - 1n,
+      600_000_000n,
+      499_999_999n,
+    ]) {
+      let writes = 0;
+      const state = snapshot();
+      await expect(
+        executeAction(
+          context(state),
+          "repayUsdc",
+          "all",
+          {
+            refresh: async () => context(state),
+            submit: async () => {
+              writes++;
+            },
+          },
+          approvalAmount === undefined
+            ? undefined
+            : {
+                borrowShares: state.account!.position.borrowShares,
+                approvalAmount,
+              }
+        )
+      ).rejects.toThrow(/review|limit|approval/i);
+      expect(writes).toBe(0);
+    }
+  });
+
+  it("fails closed if the interest rate is unavailable", () => {
+    const state = snapshot();
+    state.market.borrowRatePerSecond = undefined;
+    expect(() => getRepayAllQuote(context(state))).toThrow(/rate/i);
+  });
+
+  it("stops rather than silently increasing the reviewed limit after a long delay", async () => {
+    const state = snapshot();
+    state.market.borrowRatePerSecond = 1_000_000_000_000n;
+    const writes: string[] = [];
+    await expect(
+      executeAction(
+        context(state),
+        "repayUsdc",
+        "all",
+        {
+          refresh: async () => context(state),
+          submit: async (call) => {
+            writes.push(call.functionName);
+            state.account!.tokens.morphoUsdcAllowance = call.args![1] as bigint;
+            state.blockTimestamp = 100_001n;
+          },
+        },
+        {
+          borrowShares: state.account!.position.borrowShares,
+          approvalAmount: 505_000_000n,
+        }
+      )
+    ).rejects.toThrow(/limit|approval/i);
+    expect(writes).toEqual(["approve"]);
   });
 });

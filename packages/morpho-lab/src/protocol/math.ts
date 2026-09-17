@@ -4,6 +4,20 @@ export const WAD = 10n ** 18n;
 export const VIRTUAL_SHARES = 1_000_000n;
 export const VIRTUAL_ASSETS = 1n;
 
+// Morpho MathLib.wTaylorCompounded, including each integer rounding step.
+export function accruedBorrowAssets(
+  totalAssets: bigint,
+  ratePerSecond: bigint,
+  elapsed: bigint
+): bigint {
+  if (totalAssets < 0n || ratePerSecond < 0n || elapsed < 0n)
+    throw new Error("Invalid accrual inputs.");
+  const first = ratePerSecond * elapsed;
+  const second = (first * first) / (2n * WAD);
+  const third = (second * first) / (3n * WAD);
+  return totalAssets + (totalAssets * (first + second + third)) / WAD;
+}
+
 export function toSupplyAssetsDown(
   shares: bigint,
   totalAssets: bigint,

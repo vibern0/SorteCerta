@@ -108,6 +108,7 @@ export type AccountSnapshot = {
 
 export type ProtocolSnapshot = {
   blockNumber: bigint;
+  blockTimestamp: bigint;
   refreshedAt: number;
   deployment: DeploymentSnapshot;
   pool: PoolSnapshot;

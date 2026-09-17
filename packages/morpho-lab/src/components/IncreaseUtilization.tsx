@@ -20,23 +20,32 @@ export function IncreaseUtilization({
   const [collateralInput, setCollateralInput] = useState("");
   const [borrowInput, setBorrowInput] = useState<string>();
   const [reviewed, setReviewed] = useState(false);
-  let collateral = 0n;
-  let borrow = 0n;
-  let maxBorrow = 0n;
+  const [plan, setPlan] = useState<{
+    collateral: bigint;
+    borrow: bigint;
+    maxBorrow: bigint;
+    allowance: bigint;
+  }>();
+  let collateral = plan?.collateral ?? 0n;
+  let borrow = plan?.borrow ?? 0n;
+  let maxBorrow = plan?.maxBorrow ?? 0n;
   let error: string | undefined;
   try {
-    collateral = parseAmount(collateralInput, 18);
-    validateAction(context, "supplyCollateral", collateral);
-    maxBorrow = getIncreaseBorrowMax(context, collateral);
-    borrow = parseAmount(borrowInput ?? formatUnits(maxBorrow, 6), 6);
-    if (borrow > maxBorrow)
-      throw new Error(
-        "Borrow amount exceeds the safety margin or market liquidity."
-      );
+    if (!plan) {
+      collateral = parseAmount(collateralInput, 18);
+      validateAction(context, "supplyCollateral", collateral);
+      maxBorrow = getIncreaseBorrowMax(context, collateral);
+      borrow = parseAmount(borrowInput ?? formatUnits(maxBorrow, 6), 6);
+      if (borrow > maxBorrow)
+        throw new Error(
+          "Borrow amount exceeds the safety margin or market liquidity."
+        );
+    }
   } catch (reason) {
     error = reason instanceof Error ? reason.message : String(reason);
   }
-  const allowance = context.snapshot.account!.tokens.morphoWethAllowance;
+  const allowance =
+    plan?.allowance ?? context.snapshot.account!.tokens.morphoWethAllowance;
   const needsApproval = collateral > allowance;
 
   return (
@@ -61,9 +70,12 @@ export function IncreaseUtilization({
                 inputMode="decimal"
                 autoComplete="off"
                 placeholder="0.00"
-                disabled={disabled}
-                value={collateralInput}
+                disabled={disabled || reviewed}
+                value={
+                  plan ? formatUnits(plan.collateral, 18) : collateralInput
+                }
                 onChange={(event) => {
+                  setPlan(undefined);
                   setCollateralInput(event.target.value);
                   setBorrowInput(undefined);
                   setReviewed(false);
@@ -71,8 +83,9 @@ export function IncreaseUtilization({
               />
               <button
                 type="button"
-                disabled={disabled}
+                disabled={disabled || reviewed}
                 onClick={() => {
+                  setPlan(undefined);
                   setCollateralInput(
                     formatUnits(
                       context.snapshot.account!.tokens.wethBalance,
@@ -100,20 +113,24 @@ export function IncreaseUtilization({
                 inputMode="decimal"
                 autoComplete="off"
                 placeholder="0.00"
-                disabled={disabled}
+                disabled={disabled || reviewed}
                 value={
-                  borrowInput ??
-                  (collateral > 0n ? formatUnits(maxBorrow, 6) : "")
+                  plan
+                    ? formatUnits(plan.borrow, 6)
+                    : borrowInput ??
+                      (collateral > 0n ? formatUnits(maxBorrow, 6) : "")
                 }
                 onChange={(event) => {
+                  setPlan(undefined);
                   setBorrowInput(event.target.value);
                   setReviewed(false);
                 }}
               />
               <button
                 type="button"
-                disabled={disabled || maxBorrow === 0n}
+                disabled={disabled || reviewed || maxBorrow === 0n}
                 onClick={() => {
+                  setPlan(undefined);
                   setBorrowInput(formatUnits(maxBorrow, 6));
                   setReviewed(false);
                 }}
@@ -122,8 +139,8 @@ export function IncreaseUtilization({
               </button>
             </div>
             <p className="action-hint">
-              Max: {formatUnits(maxBorrow, 6)} USDC at{" "}
-              {Number(context.safetyBps) / 100}% of LLTV
+              {plan ? "Max at review" : "Max"}: {formatUnits(maxBorrow, 6)} USDC
+              at {Number(context.safetyBps) / 100}% of LLTV
             </p>
           </div>
         </div>
@@ -165,10 +182,27 @@ export function IncreaseUtilization({
             type="checkbox"
             checked={reviewed}
             disabled={disabled}
-            onChange={(event) => setReviewed(event.target.checked)}
+            onChange={(event) => {
+              if (event.target.checked && !error)
+                setPlan({ collateral, borrow, maxBorrow, allowance });
+              setReviewed(event.target.checked);
+            }}
           />
           I confirm this additional collateral deposit and borrowing amount.
         </label>
+        {plan ? (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => {
+              setPlan(undefined);
+              setBorrowInput(undefined);
+              setReviewed(false);
+            }}
+          >
+            New utilization review
+          </button>
+        ) : null}
         <p
           className="action-error"
           role={error && collateralInput ? "alert" : undefined}

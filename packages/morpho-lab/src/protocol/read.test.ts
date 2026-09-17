@@ -65,6 +65,7 @@ describe("readProtocolSnapshot", () => {
     const snapshot = await readProtocolSnapshot(client, config, account);
 
     expect(snapshot.blockNumber).toBe(123n);
+    expect(snapshot.blockTimestamp).toBe(1_000n);
     expect(snapshot.deployment.adapter).toBe(config.adapter);
     expect(snapshot.pool.drawId).toBe(7n);
     expect(snapshot.pool.withdrawalBatch.status).toBe(2);
@@ -159,6 +160,10 @@ function createClient(
   return {
     calls,
     getBlockNumber: async () => 123n,
+    getBlock: async (request: { blockNumber: bigint }) => {
+      expect(request.blockNumber).toBe(123n);
+      return { timestamp: 1_000n };
+    },
     getBalance: async (request: { address: Address; blockNumber?: bigint }) => {
       expect(request).toEqual({ address: account, blockNumber: 123n });
       return 3n * 10n ** 18n;

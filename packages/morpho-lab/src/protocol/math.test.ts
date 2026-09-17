@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  accruedBorrowAssets,
   positionHealth,
   safeBorrowCapacity,
   toBorrowAssetsUp,
@@ -9,6 +10,20 @@ import {
 } from "./math";
 
 describe("Morpho math", () => {
+  it("includes unrecorded interest using Morpho's three-term accrual and rounding", () => {
+    expect(
+      accruedBorrowAssets(1_000_000_000n, 1_000_000_000_000n, 1_000n)
+    ).toBe(1_001_000_500n);
+    expect(
+      accruedBorrowAssets(1_000_000_000n, 1_000_000_000_000n, 1_600n)
+    ).toBe(1_001_601_280n);
+    expect(accruedBorrowAssets(1_000_000_000n, 0n, 1_000n)).toBe(
+      1_000_000_000n
+    );
+    expect(accruedBorrowAssets(1_000_000_000n, 1_000_000_000_000n, 0n)).toBe(
+      1_000_000_000n
+    );
+  });
   it("converts supply shares to assets with virtual shares and downward rounding", () => {
     expect(
       toSupplyAssetsDown(

@@ -4,6 +4,7 @@ import type { LabConfig } from "../config";
 import type { MarketParams, ProtocolSnapshot } from "../types";
 import type { SimulatedWriteArgs } from "../wallet/MetaMaskProvider";
 import {
+  accruedBorrowAssets,
   positionHealth,
   safeBorrowCapacity,
   toBorrowAssetsUp,
@@ -21,6 +22,7 @@ export type ActionKind =
   | "repayUsdc"
   | "withdrawCollateral";
 export type ActionAmount = bigint | "all";
+export type RepayAllReview = { borrowShares: bigint; approvalAmount: bigint };
 export type ActionContext = LabConfig & {
   snapshot: ProtocolSnapshot;
   safetyBps: bigint;
@@ -379,8 +381,8 @@ export function actionAssets(
   amount: ActionAmount
 ): bigint {
   if (amount !== "all") return amount;
-  const { supply, debt } = positionAmounts(config);
-  if (action === "repayUsdc") return debt;
+  const { supply } = positionAmounts(config);
+  if (action === "repayUsdc") return getRepayAllQuote(config).estimatedAssets;
   if (action === "withdrawUsdc") return supply;
   throw new Error(
     "All shares applies only to debt repayment or direct supply withdrawal."
@@ -410,10 +412,7 @@ export function validateAction(
   }
   const max =
     amount === "all" && action === "repayUsdc"
-      ? min(
-          positionAmounts(config).debt,
-          config.snapshot.account!.tokens.usdcBalance
-        )
+      ? min(assets, config.snapshot.account!.tokens.usdcBalance)
       : getActionMax(config, action);
   if (assets > max) {
     if (action === "borrowUsdc")
@@ -484,6 +483,54 @@ export type ActionRunner = {
   onStep?(message: string): void;
 };
 
+export function getRepayAllQuote(config: ActionContext) {
+  owner(config);
+  const { state, borrowRatePerSecond } = config.snapshot.market;
+  const { position, tokens } = config.snapshot.account!;
+  if (borrowRatePerSecond === undefined)
+    throw new Error(
+      "Borrow rate unavailable. Refresh before reviewing repayment."
+    );
+  const totalAssets = accruedBorrowAssets(
+    state.totalBorrowAssets,
+    borrowRatePerSecond,
+    config.snapshot.blockTimestamp - state.lastUpdate
+  );
+  const estimatedAssets = toBorrowAssetsUp(
+    position.borrowShares,
+    totalAssets,
+    state.totalBorrowShares
+  );
+  return {
+    borrowShares: position.borrowShares,
+    estimatedAssets,
+    // The user reviews this finite allowance; the contract can collect only what is owed.
+    suggestedApproval: min(
+      ceilDiv(estimatedAssets * 101n, 100n),
+      tokens.usdcBalance
+    ),
+    maxApproval: min(ceilDiv(estimatedAssets * 110n, 100n), tokens.usdcBalance),
+  };
+}
+
+export function validateRepayAllReview(
+  config: ActionContext,
+  review: RepayAllReview
+) {
+  const quote = getRepayAllQuote(config);
+  if (review.borrowShares <= 0n || review.borrowShares !== quote.borrowShares) {
+    throw new Error("Borrow shares changed. Review repayment again.");
+  }
+  if (
+    review.approvalAmount < quote.estimatedAssets ||
+    review.approvalAmount > quote.maxApproval
+  ) {
+    throw new Error(
+      "Approval limit must cover accrued debt and stay within your balance and 110% of estimated debt. Review a new limit."
+    );
+  }
+}
+
 function sequence(initial: ActionContext, runner: ActionRunner) {
   const account = owner(initial);
   return {
@@ -516,8 +563,42 @@ export async function executeAction(
   initial: ActionContext,
   action: ActionKind,
   amount: ActionAmount,
-  runner: ActionRunner
+  runner: ActionRunner,
+  repayReview?: RepayAllReview
 ) {
+  if (action === "repayUsdc" && amount === "all") {
+    if (!repayReview)
+      throw new Error(
+        "Review a bounded approval limit before repaying all debt."
+      );
+    // Copy the review before awaiting so refreshes cannot change the approved bound.
+    const review = { ...repayReview };
+    validateRepayAllReview(initial, review);
+    const flow = sequence(initial, runner);
+    let current = await flow.refresh();
+    validateRepayAllReview(current, review);
+    if (
+      current.snapshot.account!.tokens.morphoUsdcAllowance !==
+      review.approvalAmount
+    ) {
+      await flow.submit(buildApproval(current, "usdc", review.approvalAmount));
+      current = await flow.refresh();
+    }
+    validateRepayAllReview(current, review);
+    if (
+      current.snapshot.account!.tokens.morphoUsdcAllowance !==
+      review.approvalAmount
+    ) {
+      throw new Error("Approval limit changed. Review repayment again.");
+    }
+    await flow.submit(buildRepay(current, owner(current), "all"));
+    const result = await flow.refresh();
+    if (result.snapshot.account!.position.borrowShares !== 0n)
+      throw new Error(
+        "Borrow shares remain after repayment. Refresh and review your position."
+      );
+    return;
+  }
   const flow = sequence(initial, runner);
   let current = await flow.refresh();
   validateAction(current, action, amount);

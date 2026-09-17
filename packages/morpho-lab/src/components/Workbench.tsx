@@ -11,6 +11,7 @@ import type { ProtocolSnapshot } from "../types";
 import { useMetaMask } from "../wallet/MetaMaskProvider";
 import { AmountAction } from "./AmountAction";
 import { IncreaseUtilization } from "./IncreaseUtilization";
+import { RepayAllAction } from "./RepayAllAction";
 
 export function Workbench({
   config,
@@ -168,14 +169,14 @@ export function Workbench({
           <section className="workbench-section" aria-label="Position unwind">
             <h2>Position unwind</h2>
             <div className="action-grid">
-              <AmountAction
+              <RepayAllAction
                 key={`${account}-repay-all`}
                 context={context}
-                action="repayUsdc"
-                all
                 disabled={disabled}
-                onRun={(kind, amount) =>
-                  run((runner) => executeAction(context!, kind, amount, runner))
+                onRun={(review) =>
+                  run((runner) =>
+                    executeAction(context!, "repayUsdc", "all", runner, review)
+                  )
                 }
               />
               <AmountAction

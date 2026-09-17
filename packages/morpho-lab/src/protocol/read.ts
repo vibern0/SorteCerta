@@ -20,6 +20,7 @@ import type {
 
 export type ProtocolReadClient = {
   getBlockNumber(): Promise<bigint>;
+  getBlock(request: { blockNumber: bigint }): Promise<{ timestamp: bigint }>;
   getBalance(request: {
     address: Address;
     blockNumber?: bigint;
@@ -44,6 +45,7 @@ export async function readProtocolSnapshot(
   const normalizedAccount =
     account === undefined ? undefined : getAddress(account);
   const blockNumber = await client.getBlockNumber();
+  const { timestamp: blockTimestamp } = await client.getBlock({ blockNumber });
   const snapshotClient = atBlock(client, blockNumber);
   const activeAdapter = getAddress(
     (await read(
@@ -207,6 +209,7 @@ export async function readProtocolSnapshot(
 
   return {
     blockNumber,
+    blockTimestamp,
     refreshedAt: Date.now(),
     deployment,
     pool: {
@@ -520,6 +523,7 @@ function atBlock(
 ): SnapshotReadClient {
   return {
     getBlockNumber: client.getBlockNumber.bind(client),
+    getBlock: client.getBlock.bind(client),
     getBalance: client.getBalance.bind(client),
     readContract: client.readContract.bind(client),
     blockNumber,
