@@ -1,3 +1,5 @@
+import { parseAbi } from "viem";
+
 export const erc20ReadAbi = [
   {
     type: "function",
@@ -326,3 +328,22 @@ export const irmReadAbi = [
     outputs: [{ type: "uint256" }],
   },
 ] as const;
+
+export const erc20WriteAbi = parseAbi([
+  "function approve(address spender, uint256 amount) returns (bool)",
+]);
+
+export const wethWriteAbi = parseAbi([
+  "function deposit() payable",
+  "function withdraw(uint256 amount)",
+]);
+
+export const morphoWriteAbi = parseAbi([
+  "struct MarketParams { address loanToken; address collateralToken; address oracle; address irm; uint256 lltv; }",
+  "function supply(MarketParams marketParams, uint256 assets, uint256 shares, address onBehalf, bytes data) returns (uint256, uint256)",
+  "function withdraw(MarketParams marketParams, uint256 assets, uint256 shares, address onBehalf, address receiver) returns (uint256, uint256)",
+  "function supplyCollateral(MarketParams marketParams, uint256 assets, address onBehalf, bytes data)",
+  "function borrow(MarketParams marketParams, uint256 assets, uint256 shares, address onBehalf, address receiver) returns (uint256, uint256)",
+  "function repay(MarketParams marketParams, uint256 assets, uint256 shares, address onBehalf, bytes data) returns (uint256, uint256)",
+  "function withdrawCollateral(MarketParams marketParams, uint256 assets, address onBehalf, address receiver)",
+]);

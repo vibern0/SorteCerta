@@ -20,6 +20,10 @@ import type {
 
 export type ProtocolReadClient = {
   getBlockNumber(): Promise<bigint>;
+  getBalance(request: {
+    address: Address;
+    blockNumber?: bigint;
+  }): Promise<bigint>;
   readContract(request: {
     address: Address;
     abi: readonly unknown[];
@@ -315,6 +319,10 @@ async function readAccount(
 ) {
   const [
     positionRaw,
+    ethBalance,
+    wethBalance,
+    morphoUsdcAllowance,
+    morphoWethAllowance,
     usdcBalance,
     usdcAllowance,
     confidentialUsdcHandle,
@@ -325,6 +333,16 @@ async function readAccount(
     read(client, deployment.morpho, morphoReadAbi, "position", [
       deployment.marketId,
       account,
+    ]),
+    client.getBalance({ address: account, blockNumber: client.blockNumber }),
+    read(client, deployment.weth, erc20ReadAbi, "balanceOf", [account]),
+    read(client, deployment.usdc, erc20ReadAbi, "allowance", [
+      account,
+      deployment.morpho,
+    ]),
+    read(client, deployment.weth, erc20ReadAbi, "allowance", [
+      account,
+      deployment.morpho,
     ]),
     read(client, deployment.usdc, erc20ReadAbi, "balanceOf", [account]),
     read(client, deployment.usdc, erc20ReadAbi, "allowance", [
@@ -362,6 +380,10 @@ async function readAccount(
       lltv: marketParams.lltv,
     }),
     tokens: {
+      ethBalance,
+      wethBalance: asBigInt(wethBalance),
+      morphoUsdcAllowance: asBigInt(morphoUsdcAllowance),
+      morphoWethAllowance: asBigInt(morphoWethAllowance),
       usdcBalance: asBigInt(usdcBalance),
       usdcAllowance: asBigInt(usdcAllowance),
       confidentialUsdcHandle: confidentialUsdcHandle as Hex,
@@ -417,18 +439,18 @@ function sameMarketParams(left: MarketParams, right: MarketParams): boolean {
   );
 }
 function parseMarketParams(value: unknown): MarketParams {
-  const [loanToken, collateralToken, oracle, irm, lltv] = value as readonly [
-    Address,
-    Address,
-    Address,
-    Address,
-    bigint
-  ];
+  const [loanToken, collateralToken, oracle, irm, lltv] = tupleValues(value, [
+    "loanToken",
+    "collateralToken",
+    "oracle",
+    "irm",
+    "lltv",
+  ]);
   return {
-    loanToken: getAddress(loanToken),
-    collateralToken: getAddress(collateralToken),
-    oracle: getAddress(oracle),
-    irm: getAddress(irm),
+    loanToken: getAddress(loanToken as Address),
+    collateralToken: getAddress(collateralToken as Address),
+    oracle: getAddress(oracle as Address),
+    irm: getAddress(irm as Address),
     lltv: asBigInt(lltv),
   };
 }
@@ -440,7 +462,14 @@ function parseMarketState(value: unknown): MarketState {
     totalBorrowShares,
     lastUpdate,
     fee,
-  ] = value as readonly bigint[];
+  ] = tupleValues(value, [
+    "totalSupplyAssets",
+    "totalSupplyShares",
+    "totalBorrowAssets",
+    "totalBorrowShares",
+    "lastUpdate",
+    "fee",
+  ]).map(asBigInt);
   return {
     totalSupplyAssets,
     totalSupplyShares,
@@ -451,9 +480,18 @@ function parseMarketState(value: unknown): MarketState {
   };
 }
 function parsePosition(value: unknown): Position {
-  const [supplyShares, borrowShares, collateralAssets] =
-    value as readonly bigint[];
+  const [supplyShares, borrowShares, collateralAssets] = tupleValues(value, [
+    "supplyShares",
+    "borrowShares",
+    "collateral",
+  ]).map(asBigInt);
   return { supplyShares, borrowShares, collateralAssets };
+}
+function tupleValues(value: unknown, names: string[]): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "object" || value === null)
+    throw new Error("Expected a contract tuple.");
+  return names.map((name) => (value as Record<string, unknown>)[name]);
 }
 function asBigInt(value: unknown): bigint {
   if (typeof value !== "bigint")
@@ -482,6 +520,7 @@ function atBlock(
 ): SnapshotReadClient {
   return {
     getBlockNumber: client.getBlockNumber.bind(client),
+    getBalance: client.getBalance.bind(client),
     readContract: client.readContract.bind(client),
     blockNumber,
   };

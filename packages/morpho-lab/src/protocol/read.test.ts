@@ -1,4 +1,11 @@
-import { getAddress, type Address, type Hex } from "viem";
+import {
+  decodeFunctionResult,
+  encodeFunctionResult,
+  getAddress,
+  type Abi,
+  type Address,
+  type Hex,
+} from "viem";
 import { describe, expect, it } from "vitest";
 
 import { loadLabConfig } from "../config";
@@ -11,6 +18,40 @@ const handle =
   "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Hex;
 
 describe("readProtocolSnapshot", () => {
+  it("accepts named tuple objects returned by viem ABI decoding", async () => {
+    const config = loadLabConfig({});
+    const client = createClient(config, [
+      config.usdc,
+      config.weth,
+      oracle,
+      irm,
+      945_000_000_000_000_000n,
+    ]);
+    const snapshot = await readProtocolSnapshot(
+      {
+        ...client,
+        async readContract(request) {
+          const result = await client.readContract(request);
+          const abi = request.abi as Abi;
+          return decodeFunctionResult({
+            abi,
+            functionName: request.functionName,
+            data: encodeFunctionResult({
+              abi,
+              functionName: request.functionName,
+              result,
+            }),
+          });
+        },
+      },
+      config,
+      account
+    );
+    expect(snapshot.adapter.marketParams.lltv).toBe(945_000_000_000_000_000n);
+    expect(snapshot.market.state.totalSupplyAssets).toBe(185_634_262n);
+    expect(snapshot.account?.position.collateralAssets).toBe(10n ** 18n);
+  });
+
   it("reads deployment bindings, protocol metrics, market state, and an account position", async () => {
     const config = loadLabConfig({});
     const client = createClient(config, [
@@ -39,7 +80,14 @@ describe("readProtocolSnapshot", () => {
         borrowShares: 25n,
         collateralAssets: 1_000_000_000_000_000_000n,
       },
-      tokens: { usdcBalance: 2_000_000n, usdcAllowance: 1_000_000n },
+      tokens: {
+        ethBalance: 3n * 10n ** 18n,
+        wethBalance: 10n ** 18n,
+        usdcBalance: 2_000_000n,
+        usdcAllowance: 1_000_000n,
+        morphoUsdcAllowance: 7n,
+        morphoWethAllowance: 8n,
+      },
     });
     expect(snapshot.account?.encryptedPrincipalHandle).toBe(handle);
     expect(client.calls.map((call) => call.functionName)).toContain(
@@ -111,9 +159,18 @@ function createClient(
   return {
     calls,
     getBlockNumber: async () => 123n,
+    getBalance: async (request: { address: Address; blockNumber?: bigint }) => {
+      expect(request).toEqual({ address: account, blockNumber: 123n });
+      return 3n * 10n ** 18n;
+    },
     readContract: async (request: ReadRequest) => {
       calls.push(request);
       const { functionName } = request;
+      if (functionName === "balanceOf" && request.address === config.weth)
+        return 10n ** 18n;
+      if (functionName === "allowance" && request.args?.[1] === config.morpho) {
+        return request.address === config.usdc ? 7n : 8n;
+      }
 
       const values: Record<string, unknown> = {
         usdc: config.usdc,

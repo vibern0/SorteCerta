@@ -88,6 +88,10 @@ export type MorphoMarketSnapshot = {
 };
 
 export type TokenSnapshot = {
+  ethBalance: bigint;
+  wethBalance: bigint;
+  morphoUsdcAllowance: bigint;
+  morphoWethAllowance: bigint;
   usdcBalance: bigint;
   usdcAllowance: bigint;
   confidentialUsdcHandle: Hex;

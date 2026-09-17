@@ -7,6 +7,7 @@ import { MarketPanel } from "./components/MarketPanel";
 import { PoolPanel } from "./components/PoolPanel";
 import { TransactionLog } from "./components/TransactionLog";
 import { WalletBar } from "./components/WalletBar";
+import { Workbench } from "./components/Workbench";
 import { blockscoutBlockUrl, formatTimestamp } from "./format";
 import { readProtocolSnapshot } from "./protocol/read";
 import type { ProtocolSnapshot } from "./types";
@@ -29,50 +30,65 @@ function AppContent() {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string>();
   const accountRef = useRef(account);
-  const inFlight = useRef(false);
-  const queued = useRef(false);
+  const refreshQueue = useRef<Promise<unknown>>(Promise.resolve());
+  const pendingRefreshes = useRef(0);
   accountRef.current = account;
 
-  const refresh = useCallback(async () => {
-    if (inFlight.current) {
-      queued.current = true;
-      return;
-    }
-
-    inFlight.current = true;
+  const refresh = useCallback((): Promise<ProtocolSnapshot> => {
+    pendingRefreshes.current += 1;
     setRefreshing(true);
-    try {
-      const nextSnapshot = await readProtocolSnapshot(
-        publicClient,
-        config,
-        accountRef.current
-      );
-      setSnapshot(nextSnapshot);
-      setRefreshError(undefined);
-    } catch (reason) {
-      setRefreshError(reason instanceof Error ? reason.message : String(reason));
-    } finally {
-      inFlight.current = false;
-      setRefreshing(false);
-      if (queued.current) {
-        queued.current = false;
-        void refresh();
-      }
-    }
+    const next = refreshQueue.current
+      .catch(() => undefined)
+      .then(async () => {
+        const requestedAccount = accountRef.current;
+        try {
+          const nextSnapshot = await readProtocolSnapshot(
+            publicClient,
+            config,
+            requestedAccount
+          );
+          if (accountRef.current !== requestedAccount)
+            throw new Error("Account changed during refresh.");
+          setSnapshot(nextSnapshot);
+          setRefreshError(undefined);
+          return nextSnapshot;
+        } catch (reason) {
+          setRefreshError(
+            reason instanceof Error ? reason.message : String(reason)
+          );
+          throw reason;
+        } finally {
+          pendingRefreshes.current -= 1;
+          setRefreshing(pendingRefreshes.current > 0);
+        }
+      });
+    refreshQueue.current = next;
+    return next;
   }, [publicClient]);
 
   const confirmedTransactions = useMemo(
-    () => transactions.filter((transaction) => transaction.status === "confirmed").map((transaction) => transaction.id).join(","),
+    () =>
+      transactions
+        .filter((transaction) => transaction.status === "confirmed")
+        .map((transaction) => transaction.id)
+        .join(","),
     [transactions]
   );
 
   useEffect(() => {
-    void refresh();
+    void refresh().catch(() => undefined);
   }, [account, chainId, confirmedTransactions, refresh]);
 
-  const stateLabel = refreshError === undefined
-    ? refreshing ? "Refreshing" : snapshot === undefined ? "Loading" : "Current"
-    : snapshot === undefined ? "Read failed" : "Stale";
+  const stateLabel =
+    refreshError === undefined
+      ? refreshing
+        ? "Refreshing"
+        : snapshot === undefined
+        ? "Loading"
+        : "Current"
+      : snapshot === undefined
+      ? "Read failed"
+      : "Stale";
 
   return (
     <main className="lab-shell">
@@ -81,29 +97,56 @@ function AppContent() {
           <p className="eyebrow">Local technical playground</p>
           <h1>SorteCerta Morpho Lab</h1>
         </div>
-        <div className={`status ${refreshError === undefined ? "" : "status--warning"}`} role="status">
+        <div
+          className={`status ${
+            refreshError === undefined ? "" : "status--warning"
+          }`}
+          role="status"
+        >
           <span>{stateLabel}</span>
-          <button disabled={refreshing} onClick={() => void refresh()} type="button">
+          <button
+            disabled={refreshing}
+            onClick={() => void refresh().catch(() => undefined)}
+            type="button"
+          >
             {refreshing ? "Refreshing" : "Refresh"}
           </button>
         </div>
       </header>
 
-      {refreshError === undefined ? null : <p className="refresh-error" role="alert">{refreshError}</p>}
-      {snapshot === undefined ? <section className="loading-panel"><p>Reading configured protocol state...</p></section> : <>
-        <section className="dashboard-meta" aria-label="Snapshot details">
-          <span>Chain ID {config.chainId}</span>
-          <a href={blockscoutBlockUrl(snapshot.blockNumber)} rel="noreferrer" target="_blank">Block {snapshot.blockNumber.toString()}</a>
-          <span>Read {formatTimestamp(Math.floor(snapshot.refreshedAt / 1_000))}</span>
+      {refreshError === undefined ? null : (
+        <p className="refresh-error" role="alert">
+          {refreshError}
+        </p>
+      )}
+      {snapshot === undefined ? (
+        <section className="loading-panel">
+          <p>Reading configured protocol state...</p>
         </section>
-        <section className="dashboard-grid" aria-label="Protocol dashboard">
-          <DeploymentPanel deployment={snapshot.deployment} />
-          <PoolPanel pool={snapshot.pool} />
-          <AdapterPanel adapter={snapshot.adapter} />
-          <MarketPanel market={snapshot.market} />
-          <AccountPanel account={snapshot.account} />
-        </section>
-      </>}
+      ) : (
+        <>
+          <section className="dashboard-meta" aria-label="Snapshot details">
+            <span>Chain ID {config.chainId}</span>
+            <a
+              href={blockscoutBlockUrl(snapshot.blockNumber)}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Block {snapshot.blockNumber.toString()}
+            </a>
+            <span>
+              Read {formatTimestamp(Math.floor(snapshot.refreshedAt / 1_000))}
+            </span>
+          </section>
+          <section className="dashboard-grid" aria-label="Protocol dashboard">
+            <DeploymentPanel deployment={snapshot.deployment} />
+            <PoolPanel pool={snapshot.pool} />
+            <AdapterPanel adapter={snapshot.adapter} />
+            <MarketPanel market={snapshot.market} />
+            <AccountPanel account={snapshot.account} />
+          </section>
+        </>
+      )}
       <section className="support-grid" aria-label="Wallet and activity">
         <article className="panel">
           <WalletBar />
@@ -112,6 +155,14 @@ function AppContent() {
           <TransactionLog />
         </article>
       </section>
+      {snapshot ? (
+        <Workbench
+          config={config}
+          snapshot={snapshot}
+          refresh={refresh}
+          stale={refreshError !== undefined}
+        />
+      ) : null}
     </main>
   );
 }
