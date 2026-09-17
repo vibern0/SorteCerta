@@ -144,15 +144,9 @@ shares to avoid residual dust.
 
 ## Operator Controls
 
-The lab retains the two operations currently found in SorteCerta `/admin`:
-
-- fund the active prize through the existing confidential wrap and callback
-  flow; and
-- close a ready draw.
-
-Prize funding must build its Zama encrypted input from the connected MetaMask
-account and use direct EOA transactions. Round closing remains permissionless
-and is disabled until the onchain close timestamp has passed.
+The lab retains the round-closing operation currently found in SorteCerta
+`/admin`. Round closing remains permissionless and is disabled until the
+onchain close timestamp has passed.
 
 ## Consumer App Removal
 
