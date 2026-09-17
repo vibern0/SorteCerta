@@ -42,9 +42,28 @@ describe("readProtocolSnapshot", () => {
       tokens: { usdcBalance: 2_000_000n, usdcAllowance: 1_000_000n },
     });
     expect(snapshot.account?.encryptedPrincipalHandle).toBe(handle);
-    expect(client.calls).toContain("borrowRateView");
-    expect(client.calls).toContain("allowance");
-    expect(client.calls).toContain("position");
+    expect(client.calls.map((call) => call.functionName)).toContain(
+      "borrowRateView"
+    );
+    expect(client.calls.map((call) => call.functionName)).toContain(
+      "allowance"
+    );
+    expect(client.calls.map((call) => call.functionName)).toContain("position");
+    expect(client.calls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          address: config.pool,
+          functionName: "morphoYieldAdapter",
+          blockNumber: 123n,
+        }),
+        expect.objectContaining({
+          address: config.adapter,
+          functionName: "suppliedPrincipal",
+          blockNumber: 123n,
+        }),
+      ])
+    );
+    expect(client.calls.every((call) => call.blockNumber === 123n)).toBe(true);
   });
 
   it("fails visibly when the adapter market parameters differ from the configured deployment", async () => {
@@ -61,19 +80,40 @@ describe("readProtocolSnapshot", () => {
       "Adapter market parameters"
     );
   });
+
+  it("rejects a retired adapter before reading any of its state", async () => {
+    const config = loadLabConfig({});
+    const retiredAdapter = getAddress(
+      "0x4444444444444444444444444444444444444444"
+    );
+    const client = createClient(
+      config,
+      [config.usdc, config.weth, oracle, irm, 945_000_000_000_000_000n],
+      retiredAdapter
+    );
+
+    await expect(readProtocolSnapshot(client, config)).rejects.toThrow(
+      "Configured adapter is not the pool's active Morpho adapter"
+    );
+    expect(
+      client.calls.filter((call) => call.address === config.adapter)
+    ).toHaveLength(0);
+  });
 });
 
 function createClient(
   config: ReturnType<typeof loadLabConfig>,
-  adapterMarketParams: readonly [Address, Address, Address, Address, bigint]
+  adapterMarketParams: readonly [Address, Address, Address, Address, bigint],
+  activeAdapter = config.adapter
 ) {
-  const calls: string[] = [];
+  const calls: ReadRequest[] = [];
 
   return {
     calls,
     getBlockNumber: async () => 123n,
-    readContract: async ({ functionName }: { functionName: string }) => {
-      calls.push(functionName);
+    readContract: async (request: ReadRequest) => {
+      calls.push(request);
+      const { functionName } = request;
 
       const values: Record<string, unknown> = {
         usdc: config.usdc,
@@ -127,9 +167,18 @@ function createClient(
         confidentialBalanceOf: handle,
         encryptedPrincipalOf: handle,
         encryptedWinningsOf: handle,
+        morphoYieldAdapter: activeAdapter,
       };
 
       return values[functionName];
     },
   };
 }
+
+type ReadRequest = {
+  address: Address;
+  abi: readonly unknown[];
+  functionName: string;
+  args?: readonly unknown[];
+  blockNumber?: bigint;
+};

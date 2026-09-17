@@ -31,6 +31,13 @@ export const confidentialTokenReadAbi = [
 export const prizePoolReadAbi = [
   {
     type: "function",
+    name: "morphoYieldAdapter",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "address" }],
+  },
+  {
+    type: "function",
     name: "drawId",
     stateMutability: "view",
     inputs: [],

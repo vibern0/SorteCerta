@@ -25,8 +25,11 @@ export type ProtocolReadClient = {
     abi: readonly unknown[];
     functionName: string;
     args?: readonly unknown[];
+    blockNumber?: bigint;
   }): Promise<unknown>;
 };
+
+type SnapshotReadClient = ProtocolReadClient & { blockNumber: bigint };
 
 export async function readProtocolSnapshot(
   client: ProtocolReadClient,
@@ -36,8 +39,18 @@ export async function readProtocolSnapshot(
   const deployment = normalizeDeployment(config);
   const normalizedAccount =
     account === undefined ? undefined : getAddress(account);
+  const blockNumber = await client.getBlockNumber();
+  const snapshotClient = atBlock(client, blockNumber);
+  const activeAdapter = getAddress(
+    (await read(
+      snapshotClient,
+      deployment.pool,
+      prizePoolReadAbi,
+      "morphoYieldAdapter"
+    )) as Address
+  );
+  assertActiveAdapter(deployment.adapter, activeAdapter);
   const [
-    blockNumber,
     drawId,
     nextDrawAt,
     participantCount,
@@ -63,48 +76,92 @@ export async function readProtocolSnapshot(
     marketParamsRaw,
     marketStateRaw,
   ] = await Promise.all([
-    client.getBlockNumber(),
-    read(client, deployment.pool, prizePoolReadAbi, "drawId"),
-    read(client, deployment.pool, prizePoolReadAbi, "nextDrawAt"),
-    read(client, deployment.pool, prizePoolReadAbi, "participantCount"),
-    read(client, deployment.pool, prizePoolReadAbi, "publicPrizeReserve"),
+    read(snapshotClient, deployment.pool, prizePoolReadAbi, "drawId"),
+    read(snapshotClient, deployment.pool, prizePoolReadAbi, "nextDrawAt"),
+    read(snapshotClient, deployment.pool, prizePoolReadAbi, "participantCount"),
     read(
-      client,
+      snapshotClient,
+      deployment.pool,
+      prizePoolReadAbi,
+      "publicPrizeReserve"
+    ),
+    read(
+      snapshotClient,
       deployment.pool,
       prizePoolReadAbi,
       "morphoPendingDepositCount"
     ),
-    read(client, deployment.pool, prizePoolReadAbi, "lastMorphoUnwrapAt"),
-    read(client, deployment.pool, prizePoolReadAbi, "morphoUnwrapInterval"),
-    read(client, deployment.pool, prizePoolReadAbi, "encryptedTotalPrincipal"),
-    read(client, deployment.pool, prizePoolReadAbi, "encryptedPrizeReserve"),
     read(
-      client,
+      snapshotClient,
+      deployment.pool,
+      prizePoolReadAbi,
+      "lastMorphoUnwrapAt"
+    ),
+    read(
+      snapshotClient,
+      deployment.pool,
+      prizePoolReadAbi,
+      "morphoUnwrapInterval"
+    ),
+    read(
+      snapshotClient,
+      deployment.pool,
+      prizePoolReadAbi,
+      "encryptedTotalPrincipal"
+    ),
+    read(
+      snapshotClient,
+      deployment.pool,
+      prizePoolReadAbi,
+      "encryptedPrizeReserve"
+    ),
+    read(
+      snapshotClient,
       deployment.pool,
       prizePoolReadAbi,
       "encryptedPendingMorphoPrincipal"
     ),
-    read(client, deployment.pool, prizePoolReadAbi, "currentWithdrawalBatchId"),
-    read(client, deployment.adapter, adapterReadAbi, "usdc"),
-    read(client, deployment.adapter, adapterReadAbi, "confidentialUsdc"),
-    read(client, deployment.adapter, adapterReadAbi, "prizePool"),
-    read(client, deployment.adapter, adapterReadAbi, "morpho"),
-    read(client, deployment.adapter, adapterReadAbi, "marketId"),
-    read(client, deployment.adapter, adapterReadAbi, "suppliedPrincipal"),
-    read(client, deployment.adapter, adapterReadAbi, "idlePrincipal"),
     read(
-      client,
+      snapshotClient,
+      deployment.pool,
+      prizePoolReadAbi,
+      "currentWithdrawalBatchId"
+    ),
+    read(snapshotClient, deployment.adapter, adapterReadAbi, "usdc"),
+    read(
+      snapshotClient,
+      deployment.adapter,
+      adapterReadAbi,
+      "confidentialUsdc"
+    ),
+    read(snapshotClient, deployment.adapter, adapterReadAbi, "prizePool"),
+    read(snapshotClient, deployment.adapter, adapterReadAbi, "morpho"),
+    read(snapshotClient, deployment.adapter, adapterReadAbi, "marketId"),
+    read(
+      snapshotClient,
+      deployment.adapter,
+      adapterReadAbi,
+      "suppliedPrincipal"
+    ),
+    read(snapshotClient, deployment.adapter, adapterReadAbi, "idlePrincipal"),
+    read(
+      snapshotClient,
       deployment.adapter,
       adapterReadAbi,
       "availablePrincipalAssets"
     ),
-    read(client, deployment.adapter, adapterReadAbi, "accruedYieldAssets"),
-    read(client, deployment.adapter, adapterReadAbi, "suppliedAssets"),
-    read(client, deployment.adapter, adapterReadAbi, "marketParams"),
-    read(client, deployment.morpho, morphoReadAbi, "idToMarketParams", [
+    read(
+      snapshotClient,
+      deployment.adapter,
+      adapterReadAbi,
+      "accruedYieldAssets"
+    ),
+    read(snapshotClient, deployment.adapter, adapterReadAbi, "suppliedAssets"),
+    read(snapshotClient, deployment.adapter, adapterReadAbi, "marketParams"),
+    read(snapshotClient, deployment.morpho, morphoReadAbi, "idToMarketParams", [
       deployment.marketId,
     ]),
-    read(client, deployment.morpho, morphoReadAbi, "market", [
+    read(snapshotClient, deployment.morpho, morphoReadAbi, "market", [
       deployment.marketId,
     ]),
   ]);
@@ -124,13 +181,19 @@ export async function readProtocolSnapshot(
   const marketState = parseMarketState(marketStateRaw);
   const [withdrawalBatch, oraclePrice, borrowRatePerSecond, accountSnapshot] =
     await Promise.all([
-      readWithdrawalBatch(client, deployment.pool, asBigInt(withdrawalBatchId)),
-      read(client, marketParams.oracle, oracleReadAbi, "price").then(asBigInt),
-      readBorrowRate(client, marketParams, marketState),
+      readWithdrawalBatch(
+        snapshotClient,
+        deployment.pool,
+        asBigInt(withdrawalBatchId)
+      ),
+      read(snapshotClient, marketParams.oracle, oracleReadAbi, "price").then(
+        asBigInt
+      ),
+      readBorrowRate(snapshotClient, marketParams, marketState),
       normalizedAccount === undefined
         ? undefined
         : readAccount(
-            client,
+            snapshotClient,
             deployment,
             normalizedAccount,
             marketState,
@@ -139,7 +202,7 @@ export async function readProtocolSnapshot(
     ]);
 
   return {
-    blockNumber: asBigInt(blockNumber),
+    blockNumber,
     refreshedAt: Date.now(),
     deployment,
     pool: {
@@ -196,7 +259,7 @@ function normalizeDeployment(config: LabConfig) {
 }
 
 async function readWithdrawalBatch(
-  client: ProtocolReadClient,
+  client: SnapshotReadClient,
   pool: Address,
   id: bigint
 ) {
@@ -227,7 +290,7 @@ async function readWithdrawalBatch(
 }
 
 async function readBorrowRate(
-  client: ProtocolReadClient,
+  client: SnapshotReadClient,
   marketParams: MarketParams,
   marketState: MarketState
 ): Promise<bigint | undefined> {
@@ -244,7 +307,7 @@ async function readBorrowRate(
 }
 
 async function readAccount(
-  client: ProtocolReadClient,
+  client: SnapshotReadClient,
   deployment: ProtocolSnapshot["deployment"],
   account: Address,
   marketState: MarketState,
@@ -333,6 +396,17 @@ function assertBindings(
     );
 }
 
+function assertActiveAdapter(
+  configuredAdapter: Address,
+  activeAdapter: Address
+): void {
+  if (configuredAdapter !== activeAdapter) {
+    throw new Error(
+      "Configured adapter is not the pool's active Morpho adapter"
+    );
+  }
+}
+
 function sameMarketParams(left: MarketParams, right: MarketParams): boolean {
   return (
     left.loanToken === right.loanToken &&
@@ -387,11 +461,28 @@ function asBigInt(value: unknown): bigint {
   return value;
 }
 function read(
-  client: ProtocolReadClient,
+  client: SnapshotReadClient,
   address: Address,
   abi: readonly unknown[],
   functionName: string,
   args?: readonly unknown[]
 ) {
-  return client.readContract({ address, abi, functionName, args });
+  return client.readContract({
+    address,
+    abi,
+    functionName,
+    args,
+    blockNumber: client.blockNumber,
+  });
+}
+
+function atBlock(
+  client: ProtocolReadClient,
+  blockNumber: bigint
+): SnapshotReadClient {
+  return {
+    getBlockNumber: client.getBlockNumber.bind(client),
+    readContract: client.readContract.bind(client),
+    blockNumber,
+  };
 }
