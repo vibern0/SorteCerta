@@ -2,13 +2,12 @@ import { formatEther } from "viem";
 
 import { useMetaMask } from "../wallet/MetaMaskProvider";
 
-export function WalletBar() {
+export function WalletBar({ ethBalance }: { ethBalance?: bigint }) {
   const {
     account,
     chainId,
     connect,
     error,
-    ethBalance,
     status,
     switchToConfiguredChain,
   } = useMetaMask();

@@ -13,19 +13,38 @@ import { blockscoutBlockUrl, formatTimestamp } from "./format";
 import { readProtocolSnapshot } from "./protocol/read";
 import type { ProtocolSnapshot } from "./types";
 import { MetaMaskProvider, useMetaMask } from "./wallet/MetaMaskProvider";
-import { loadLabConfig } from "./config";
+import { loadLabConfig, type LabConfig } from "./config";
 
-const config = loadLabConfig(import.meta.env);
-
-export function App() {
+export function App({
+  env = import.meta.env,
+}: {
+  env?: Record<string, string | undefined>;
+}) {
+  let config: LabConfig;
+  try {
+    config = loadLabConfig(env);
+  } catch (reason) {
+    return (
+      <main className="lab-shell">
+        <h1>Configuration error</h1>
+        <p role="alert">
+          {reason instanceof Error ? reason.message : String(reason)}
+        </p>
+        <p>
+          Check the VITE_ overrides in packages/morpho-lab/.env.local, then
+          restart the lab.
+        </p>
+      </main>
+    );
+  }
   return (
     <MetaMaskProvider config={config}>
-      <AppContent />
+      <AppContent config={config} />
     </MetaMaskProvider>
   );
 }
 
-function AppContent() {
+function AppContent({ config }: { config: LabConfig }) {
   const { account, chainId, publicClient, transactions } = useMetaMask();
   const [snapshot, setSnapshot] = useState<ProtocolSnapshot>();
   const [refreshing, setRefreshing] = useState(false);
@@ -65,7 +84,7 @@ function AppContent() {
       });
     refreshQueue.current = next;
     return next;
-  }, [publicClient]);
+  }, [publicClient, config]);
 
   const confirmedTransactions = useMemo(
     () =>
@@ -156,7 +175,13 @@ function AppContent() {
       )}
       <section className="support-grid" aria-label="Wallet and activity">
         <article className="panel">
-          <WalletBar />
+          <WalletBar
+            ethBalance={
+              snapshot?.account?.address === account
+                ? snapshot?.account?.tokens.ethBalance
+                : undefined
+            }
+          />
         </article>
         <article className="panel">
           <TransactionLog />

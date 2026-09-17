@@ -70,6 +70,11 @@ export function validateLabConfig(config: LabConfig): void {
   if (config.rpcUrl.trim().length === 0) {
     throw new Error("RPC URL is required");
   }
+  try {
+    if (!["http:", "https:"].includes(new URL(config.rpcUrl).protocol)) throw new Error();
+  } catch {
+    throw new Error("RPC URL must be a valid HTTP or HTTPS URL");
+  }
 
   for (const key of Object.keys(ADDRESS_LABEL) as AddressKey[]) {
     try {

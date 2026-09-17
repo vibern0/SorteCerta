@@ -143,8 +143,15 @@ const loader = await createServer({
   server: { middlewareMode: true },
   appType: "custom",
 });
-const { createActionContext, getRepayAllQuote, executeAction, buildRepay } =
-  await loader.ssrLoadModule("/packages/morpho-lab/src/protocol/actions.ts");
+const {
+  createActionContext,
+  getRepayAllQuote,
+  executeAction,
+  buildRepay,
+  buildBorrow,
+  getActionMax,
+  validateAction,
+} = await loader.ssrLoadModule("/packages/morpho-lab/src/protocol/actions.ts");
 const { loadLabConfig } = await loader.ssrLoadModule(
   "/packages/morpho-lab/src/config.ts"
 );
@@ -188,7 +195,12 @@ async function refresh() {
       marketId,
       marketParams: params,
     },
-    market: { state, params, borrowRatePerSecond: 1000000000000n },
+    market: {
+      state,
+      params,
+      borrowRatePerSecond: 1000000000000n,
+      oraclePrice: 2000n * 10n ** 24n,
+    },
     account: {
       address: account,
       position: { ...position, collateralAssets: position.collateral },
@@ -205,6 +217,27 @@ async function refresh() {
 const initial = await refresh();
 const quote = getRepayAllQuote(initial);
 assert.ok(quote.estimatedAssets > 500_000000n);
+assert.equal(initial.snapshot.market.state.totalBorrowAssets, 500_000000n);
+assert.equal(
+  getActionMax(initial, "borrowUsdc"),
+  1440_000000n - quote.estimatedAssets
+);
+assert.throws(
+  () => validateAction(initial, "borrowUsdc", 940_000000n),
+  /safety/i
+);
+// Morpho itself accepts this amount: it enforces LLTV, not the lab's 80% ceiling.
+await client.simulateContract({
+  ...buildBorrow(initial, account, 940_000000n),
+  account,
+});
+const oldCollateralMax =
+  10n ** 18n - (500_000000n * 10n ** 18n + 1800_000000n - 1n) / 1800_000000n;
+assert.ok(getActionMax(initial, "withdrawCollateral") < oldCollateralMax);
+assert.throws(
+  () => validateAction(initial, "withdrawCollateral", oldCollateralMax),
+  /healthy/i
+);
 const checkpoint = await network.provider.request({ method: "evm_snapshot" });
 await write(loan, "approve", [morpho.address, 500_000000n]);
 await assert.rejects(
@@ -249,6 +282,6 @@ assert.equal(
   review.approvalAmount - spent
 );
 console.log(
-  `PASS: real Morpho local EVM repayment after 3600s idle + 300s before approval + 600s after approval; stored-amount approval reverts; reviewed limit ${review.approvalAmount}; paid ${spent}; borrowShares=0; no unlimited approval.`
+  `PASS: idle interest reduces the lab borrow/collateral limits while Morpho simulation accepts the old borrow limit; real Morpho repayment after 3600s idle + 300s before approval + 600s after approval; stored-amount approval reverts; reviewed limit ${review.approvalAmount}; paid ${spent}; borrowShares=0; no unlimited approval.`
 );
 await network.provider.request({ method: "hardhat_reset" });

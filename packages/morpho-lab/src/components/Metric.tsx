@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type MetricProps = {
   label: string;
@@ -8,15 +8,35 @@ type MetricProps = {
   copyValue?: string;
 };
 
-export function Metric({ label, value, rawValue, href, copyValue }: MetricProps) {
-  const [copied, setCopied] = useState(false);
-  const display = href === undefined ? value : <a href={href} rel="noreferrer" target="_blank">{value}</a>;
+export function Metric({
+  label,
+  value,
+  rawValue,
+  href,
+  copyValue,
+}: MetricProps) {
+  const [copyStatus, setCopyStatus] = useState("Copy");
+  const resetTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(resetTimer.current), []);
+  const display =
+    href === undefined ? (
+      value
+    ) : (
+      <a href={href} rel="noreferrer" target="_blank">
+        {value}
+      </a>
+    );
 
   const copy = async () => {
-    if (copyValue === undefined || !navigator.clipboard) return;
-    await navigator.clipboard.writeText(copyValue);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1_500);
+    if (copyValue === undefined) return;
+    clearTimeout(resetTimer.current);
+    try {
+      await navigator.clipboard.writeText(copyValue);
+      setCopyStatus("Copied");
+    } catch {
+      setCopyStatus("Copy failed");
+    }
+    resetTimer.current = setTimeout(() => setCopyStatus("Copy"), 1_500);
   };
 
   return (
@@ -24,8 +44,14 @@ export function Metric({ label, value, rawValue, href, copyValue }: MetricProps)
       <dt>{label}</dt>
       <dd title={rawValue}>{display}</dd>
       {copyValue === undefined ? null : (
-        <button aria-label={`Copy ${label}`} className="copy-button" onClick={() => void copy()} type="button">
-          {copied ? "Copied" : "Copy"}
+        <button
+          aria-label={`Copy ${label}`}
+          aria-live="polite"
+          className="copy-button"
+          onClick={() => void copy()}
+          type="button"
+        >
+          {copyStatus}
         </button>
       )}
     </div>

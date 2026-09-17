@@ -24,6 +24,7 @@ import { sepolia } from "viem/chains";
 
 import type { LabConfig } from "../config";
 import { selectMetaMaskProvider } from "./eip1193";
+import { waitForActionReceipt } from "./receipt";
 import {
   transactionReducer,
   type TransactionRecord,
@@ -204,17 +205,16 @@ export function MetaMaskProvider({
         const hash = await walletClient.writeContract(simulation.request);
         dispatchTransaction({ type: "submitted", id, summary: args.summary, hash });
 
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
-        if (receipt.status === "reverted") {
-          throw new Error("Transaction reverted onchain.");
-        }
+        const receipt = await waitForActionReceipt(publicClient, hash, (hash) => {
+          dispatchTransaction({ type: "repriced", id, hash });
+        });
 
         dispatchTransaction({
           type: "confirmed",
           id,
           blockNumber: receipt.blockNumber,
         });
-        return hash;
+        return receipt.transactionHash;
       } catch (reason) {
         const message = errorMessage(reason);
         dispatchTransaction({ type: "failed", id, summary: args.summary, error: message });

@@ -1,8 +1,40 @@
-import type { PositionHealth } from "../types";
+import type { MarketState, PositionHealth } from "../types";
 
 export const WAD = 10n ** 18n;
 export const VIRTUAL_SHARES = 1_000_000n;
 export const VIRTUAL_ASSETS = 1n;
+
+export function accruedMarketState(
+  state: MarketState,
+  rate: bigint | undefined,
+  timestamp: bigint
+): MarketState {
+  if (timestamp < state.lastUpdate)
+    throw new Error("Invalid accrual timestamp.");
+  if (timestamp === state.lastUpdate || state.totalBorrowAssets === 0n)
+    return state;
+  if (rate === undefined)
+    throw new Error("Borrow rate unavailable. Refresh before continuing.");
+  const totalBorrowAssets = accruedBorrowAssets(
+    state.totalBorrowAssets,
+    rate,
+    timestamp - state.lastUpdate
+  );
+  const interest = totalBorrowAssets - state.totalBorrowAssets;
+  const totalSupplyAssets = state.totalSupplyAssets + interest;
+  const feeAssets = (interest * state.fee) / WAD;
+  // Morpho mints fee shares against supply after interest, excluding the fee itself.
+  const feeShares =
+    (feeAssets * (state.totalSupplyShares + VIRTUAL_SHARES)) /
+    (totalSupplyAssets - feeAssets + VIRTUAL_ASSETS);
+  return {
+    ...state,
+    totalBorrowAssets,
+    totalSupplyAssets,
+    totalSupplyShares: state.totalSupplyShares + feeShares,
+    lastUpdate: timestamp,
+  };
+}
 
 // Morpho MathLib.wTaylorCompounded, including each integer rounding step.
 export function accruedBorrowAssets(

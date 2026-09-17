@@ -10,7 +10,15 @@ import {
   prizePoolReadAbi,
 } from "../abis";
 import type { LabConfig } from "../config";
-import { positionHealth, toBorrowAssetsUp, utilizationWad } from "./math";
+import {
+  accruedMarketState,
+  positionHealth,
+  safeBorrowCapacity,
+  toBorrowAssetsUp,
+  toSupplyAssetsDown,
+  utilizationWad,
+  WAD,
+} from "./math";
 import type {
   MarketParams,
   MarketState,
@@ -185,27 +193,54 @@ export async function readProtocolSnapshot(
     marketParams
   );
   const marketState = parseMarketState(marketStateRaw);
-  const [withdrawalBatch, oraclePrice, borrowRatePerSecond, accountSnapshot] =
-    await Promise.all([
-      readWithdrawalBatch(
-        snapshotClient,
-        deployment.pool,
-        asBigInt(withdrawalBatchId)
-      ),
-      read(snapshotClient, marketParams.oracle, oracleReadAbi, "price").then(
-        asBigInt
-      ),
-      readBorrowRate(snapshotClient, marketParams, marketState),
-      normalizedAccount === undefined
-        ? undefined
-        : readAccount(
-            snapshotClient,
-            deployment,
-            normalizedAccount,
-            marketState,
-            marketParams
-          ),
-    ]);
+  const [
+    withdrawalBatch,
+    oraclePrice,
+    borrowRatePerSecond,
+    adapterUsdcBalance,
+    adapterPositionRaw,
+  ] = await Promise.all([
+    readWithdrawalBatch(
+      snapshotClient,
+      deployment.pool,
+      asBigInt(withdrawalBatchId)
+    ),
+    read(snapshotClient, marketParams.oracle, oracleReadAbi, "price").then(
+      asBigInt
+    ),
+    readBorrowRate(snapshotClient, marketParams, marketState),
+    read(snapshotClient, deployment.usdc, erc20ReadAbi, "balanceOf", [
+      deployment.adapter,
+    ]),
+    read(snapshotClient, deployment.morpho, morphoReadAbi, "position", [
+      deployment.marketId,
+      deployment.adapter,
+    ]),
+  ]);
+  const accruedState =
+    borrowRatePerSecond === undefined &&
+    marketState.totalBorrowAssets > 0n &&
+    blockTimestamp > marketState.lastUpdate
+      ? undefined
+      : accruedMarketState(marketState, borrowRatePerSecond, blockTimestamp);
+  const utilization =
+    accruedState === undefined
+      ? undefined
+      : utilizationWad(
+          accruedState.totalBorrowAssets,
+          accruedState.totalSupplyAssets
+        );
+  const accountSnapshot =
+    normalizedAccount === undefined
+      ? undefined
+      : await readAccount(
+          snapshotClient,
+          deployment,
+          normalizedAccount,
+          accruedState,
+          marketParams,
+          oraclePrice
+        );
 
   return {
     blockNumber,
@@ -227,6 +262,10 @@ export async function readProtocolSnapshot(
       withdrawalBatch,
     },
     adapter: {
+      usdcBalance: asBigInt(adapterUsdcBalance),
+      supplyShares: parsePosition(adapterPositionRaw).supplyShares,
+      // suppliedAssets includes the rounding reserve; awaiting-supply USDC is separate.
+      backingDifference: asBigInt(suppliedAssets) - asBigInt(suppliedPrincipal),
       usdc: getAddress(adapterUsdc as Address),
       confidentialUsdc: getAddress(adapterConfidentialUsdc as Address),
       prizePool: getAddress(adapterPrizePool as Address),
@@ -240,14 +279,21 @@ export async function readProtocolSnapshot(
       marketParams: adapterMarketParams,
     },
     market: {
+      liquidity:
+        marketState.totalSupplyAssets > marketState.totalBorrowAssets
+          ? marketState.totalSupplyAssets - marketState.totalBorrowAssets
+          : 0n,
+      supplierRatePerSecond:
+        borrowRatePerSecond === undefined || utilization === undefined
+          ? undefined
+          : (((borrowRatePerSecond * utilization) / WAD) *
+              (WAD - marketState.fee)) /
+            WAD,
       state: marketState,
       params: marketParams,
       oraclePrice,
       borrowRatePerSecond,
-      utilizationWad: utilizationWad(
-        marketState.totalBorrowAssets,
-        marketState.totalSupplyAssets
-      ),
+      utilizationWad: utilization,
     },
     account: accountSnapshot,
   };
@@ -317,8 +363,9 @@ async function readAccount(
   client: SnapshotReadClient,
   deployment: ProtocolSnapshot["deployment"],
   account: Address,
-  marketState: MarketState,
-  marketParams: MarketParams
+  marketState: MarketState | undefined,
+  marketParams: MarketParams,
+  oraclePrice: bigint
 ) {
   const [
     positionRaw,
@@ -331,7 +378,6 @@ async function readAccount(
     confidentialUsdcHandle,
     encryptedPrincipalHandle,
     encryptedWinningsHandle,
-    oraclePrice,
   ] = await Promise.all([
     read(client, deployment.morpho, morphoReadAbi, "position", [
       deployment.marketId,
@@ -365,23 +411,41 @@ async function readAccount(
     read(client, deployment.pool, prizePoolReadAbi, "encryptedWinningsOf", [
       account,
     ]),
-    read(client, marketParams.oracle, oracleReadAbi, "price"),
   ]);
   const position = parsePosition(positionRaw);
-  const borrowAssets = toBorrowAssetsUp(
-    position.borrowShares,
-    marketState.totalBorrowAssets,
-    marketState.totalBorrowShares
-  );
+  const borrowAssets =
+    marketState === undefined
+      ? undefined
+      : toBorrowAssetsUp(
+          position.borrowShares,
+          marketState.totalBorrowAssets,
+          marketState.totalBorrowShares
+        );
+  const health =
+    borrowAssets === undefined
+      ? undefined
+      : positionHealth({
+          collateralAssets: position.collateralAssets,
+          collateralPrice: oraclePrice,
+          borrowAssets,
+          lltv: marketParams.lltv,
+        });
   return {
     address: account,
     position,
-    health: positionHealth({
-      collateralAssets: position.collateralAssets,
-      collateralPrice: asBigInt(oraclePrice),
-      borrowAssets,
-      lltv: marketParams.lltv,
-    }),
+    health,
+    suppliedAssets:
+      marketState === undefined
+        ? undefined
+        : toSupplyAssetsDown(
+            position.supplyShares,
+            marketState.totalSupplyAssets,
+            marketState.totalSupplyShares
+          ),
+    remainingBorrowCapacity:
+      health === undefined
+        ? undefined
+        : safeBorrowCapacity(health, marketParams.lltv),
     tokens: {
       ethBalance,
       wethBalance: asBigInt(wethBalance),

@@ -84,12 +84,42 @@ The workbench can prepare these actions:
 - Borrow USDC, repay a chosen amount, or prepare a repay-all review.
 - Prepare a paired collateral-and-borrow utilization increase.
 - Close a draw only when the configured pool reports it is due.
+- Sponsor the prize with USDC through the round controls.
+
+Prize funding reviews an exact USDC amount, approves only that amount to the
+wrapper when its allowance is insufficient, then wraps and transfers it to the
+pool in one atomic wrapper multicall. The transfer uses the pool's
+`PRIZE_FUNDING_DATA` selector followed by the ABI-encoded `uint64` amount,
+and a Zama input proof bound to the checksummed wrapper and MetaMask account.
+Both approval and funding are simulated before MetaMask submission. A stopped
+sequence may leave its confirmed approval in place, but wrapping and funding
+cannot complete separately. Funding requires the Zama relayer to be available.
+
+Debt, account supplied assets, utilization, borrowing capacity, and collateral
+withdrawal limits include interest accrued through the snapshot's block time.
+Supplier APR is a simple annualized estimate after the market fee, not an APY.
+Remaining LLTV capacity is the protocol limit; the workbench additionally caps
+borrowing at 80% of that limit and available liquidity. If the borrow rate
+cannot be read, interest-dependent values are unavailable and actions that
+need those estimates stop. Snapshot estimates cannot include time after the
+snapshot or later oracle changes.
+
+Market totals and adapter `suppliedAssets` remain the contract's stored/view
+values. The adapter backing difference is `suppliedAssets - suppliedPrincipal`,
+including its idle rounding reserve once; USDC awaiting supply is shown
+separately. It is a signed accounting difference, not an assertion that all
+backing can be withdrawn immediately. Allowances identify their spender:
+wrapper for prize funding, Morpho for lending and collateral. ETH balances are
+from the same block-pinned snapshot and refresh with the dashboard.
 
 Each workbench write is simulated first, then requires an explicit MetaMask
 confirmation. The lab rejects values outside its calculated balance,
 liquidity, and health limits before it asks MetaMask to submit them. A failed
 or rejected confirmation is shown as a recoverable error; confirmed earlier
 steps in a multi-step sequence remain confirmed.
+Wallet cancellation or replacement with different calldata, value, or recipient
+stops the sequence. A gas-only speed-up retains the action and updates its
+transaction link to the replacement hash.
 
 Borrowing and collateral withdrawal can make an account liquidatable. Market
 price, accrued interest, liquidity, and the liquidation threshold can change

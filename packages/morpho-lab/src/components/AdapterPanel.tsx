@@ -22,6 +22,9 @@ export function AdapterPanel({ adapter }: { adapter: AdapterSnapshot }) {
     {addresses.map(([label, address]) => <Metric copyValue={address} href={blockscoutAddressUrl(address)} key={label} label={label} rawValue={address} value={formatAddress(address)} />)}
     <Metric copyValue={adapter.marketId} label="Market ID" rawValue={adapter.marketId} value={formatAddress(adapter.marketId)} />
     <Metric label="Supplied principal" rawValue={adapter.suppliedPrincipal.toString()} value={`${formatToken(adapter.suppliedPrincipal)} USDC`} />
+    <Metric label="USDC balance" rawValue={adapter.usdcBalance.toString()} value={`${formatToken(adapter.usdcBalance)} USDC`} />
+    <Metric label="Supply shares" rawValue={adapter.supplyShares.toString()} value={adapter.supplyShares.toString()} />
+    <Metric label="Backing minus tracked principal" rawValue={adapter.backingDifference.toString()} value={`${formatToken(adapter.backingDifference, 6, 6)} USDC`} />
     <Metric label="Idle principal" rawValue={adapter.idlePrincipal.toString()} value={`${formatToken(adapter.idlePrincipal)} USDC`} />
     <Metric label="Available principal" rawValue={adapter.availablePrincipalAssets.toString()} value={`${formatToken(adapter.availablePrincipalAssets)} USDC`} />
     <Metric label="Accrued yield" rawValue={adapter.accruedYieldAssets.toString()} value={`${formatToken(adapter.accruedYieldAssets)} USDC`} />

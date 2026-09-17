@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   accruedBorrowAssets,
+  accruedMarketState,
   positionHealth,
   safeBorrowCapacity,
   toBorrowAssetsUp,
@@ -10,6 +11,28 @@ import {
 } from "./math";
 
 describe("Morpho math", () => {
+  it("accrues supply and debt together and dilutes supply shares for protocol fees", () => {
+    const stored = {
+      totalSupplyAssets: 10_000_000_000n,
+      totalSupplyShares: 10_000_000_000_000_000n,
+      totalBorrowAssets: 1_000_000_000n,
+      totalBorrowShares: 1_000_000_000_000_000n,
+      lastUpdate: 1n,
+      fee: 100_000_000_000_000_000n,
+    };
+    const accrued = accruedMarketState(stored, 1_000_000_000_000n, 1_001n);
+    expect(accrued).toEqual({
+      ...stored,
+      totalBorrowAssets: 1_001_000_500n,
+      totalSupplyAssets: 10_001_000_500n,
+      totalSupplyShares: 10_000_100_040_991_808n,
+      lastUpdate: 1_001n,
+    });
+    expect(accrued.totalSupplyAssets - accrued.totalBorrowAssets).toBe(
+      9_000_000_000n
+    );
+    expect(stored.totalBorrowAssets).toBe(1_000_000_000n);
+  });
   it("includes unrecorded interest using Morpho's three-term accrual and rounding", () => {
     expect(
       accruedBorrowAssets(1_000_000_000n, 1_000_000_000_000n, 1_000n)

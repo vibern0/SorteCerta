@@ -194,6 +194,7 @@ button:disabled {
 }
 
 .copy-button {
+  min-width: 80px;
   align-self: end;
   padding: 3px 6px;
   font-size: 0.7rem;
@@ -263,6 +264,25 @@ button:disabled {
 
 .operator-feedback p {
   margin-bottom: 0;
+}
+
+.funding-controls {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #c5ced5;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+.funding-controls h3,
+.funding-controls ol {
+  margin: 0;
+}
+.funding-controls > input {
+  min-width: 0;
+  width: 100%;
+  padding: 8px;
 }
 
 @media (max-width: 900px) {

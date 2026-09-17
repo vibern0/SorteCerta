@@ -11,6 +11,7 @@ export type TransactionRecord = {
 
 export type TransactionEvent =
   | { type: "submitted"; id: string; summary: string; hash: Hash }
+  | { type: "repriced"; id: string; hash: Hash }
   | { type: "confirmed"; id: string; blockNumber: bigint }
   | { type: "failed"; id: string; error: string; summary?: string };
 
@@ -45,6 +46,8 @@ export function transactionReducer(
 
   return state.map((record) => {
     if (record.id !== event.id) return record;
+
+    if (event.type === "repriced") return { ...record, hash: event.hash };
 
     if (event.type === "confirmed") {
       return { ...record, status: "confirmed", blockNumber: event.blockNumber };

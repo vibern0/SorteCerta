@@ -7,6 +7,13 @@ import {
   type Hex,
 } from "viem";
 import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { AccountPanel } from "../components/AccountPanel";
+import { AdapterPanel } from "../components/AdapterPanel";
+import { MarketPanel } from "../components/MarketPanel";
+import { AmountAction } from "../components/AmountAction";
+import { createActionContext } from "./actions";
 
 import { loadLabConfig } from "../config";
 import { readProtocolSnapshot } from "./read";
@@ -18,6 +25,117 @@ const handle =
   "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Hex;
 
 describe("readProtocolSnapshot", () => {
+  it("maps complete telemetry with spender-specific allowances to dashboard metrics", async () => {
+    const config = loadLabConfig({});
+    const client = createClient(config, [
+      config.usdc,
+      config.weth,
+      oracle,
+      irm,
+      945_000_000_000_000_000n,
+    ]);
+    const snapshot = await readProtocolSnapshot(client, config, account);
+    expect(snapshot.adapter).toMatchObject({
+      usdcBalance: 500_001n,
+      supplyShares: 70n,
+      backingDifference: 10_000n,
+    });
+    expect(snapshot.market).toMatchObject({
+      liquidity: 150_629_734n,
+      supplierRatePerSecond: 23n,
+    });
+    expect(snapshot.account).toMatchObject({
+      suppliedAssets: 0n,
+      remainingBorrowCapacity: 1_889_999_999n,
+    });
+    for (const [element, labels] of [
+      [
+        createElement(AdapterPanel, { adapter: snapshot.adapter }),
+        ["USDC balance", "Supply shares", "Backing minus tracked principal"],
+      ],
+      [
+        createElement(MarketPanel, { market: snapshot.market }),
+        ["Available liquidity", "Estimated supplier APR"],
+      ],
+      [
+        createElement(AccountPanel, { account: snapshot.account }),
+        [
+          "ETH balance",
+          "WETH balance",
+          "Supplied assets",
+          "Remaining LLTV capacity",
+          "USDC allowance to wrapper",
+          "USDC allowance to Morpho",
+          "WETH allowance to Morpho",
+        ],
+      ],
+    ] as const) {
+      const html = renderToStaticMarkup(element);
+      for (const label of labels) expect(html).toContain(label);
+    }
+  });
+
+  it("includes idle-market interest in displayed debt, health, and remaining capacity", async () => {
+    const config = loadLabConfig({});
+    const base = createClient(config, [
+      config.usdc,
+      config.weth,
+      oracle,
+      irm,
+      945_000_000_000_000_000n,
+    ]);
+    const client = {
+      ...base,
+      readContract: async (request: ReadRequest) => {
+        const value = await base.readContract(request);
+        if (request.functionName === "market")
+          return [
+            10_000_000_000n,
+            10_000_000_000_000_000n,
+            1_000_000_000n,
+            1_000_000_000_000_000n,
+            0n,
+            0n,
+          ];
+        if (request.functionName === "borrowRateView")
+          return 1_000_000_000_000n;
+        if (
+          request.functionName === "position" &&
+          request.args?.[1] === account
+        )
+          return [0n, 500_000_000_000_000n, 10n ** 18n];
+        return value;
+      },
+    };
+    const snapshot = await readProtocolSnapshot(client, config, account);
+    expect(snapshot.account?.health?.borrowAssets).toBe(500_500_250n);
+    expect(snapshot.account?.remainingBorrowCapacity).toBe(1_389_499_750n);
+    expect(snapshot.market.state.totalBorrowAssets).toBe(1_000_000_000n);
+    const unavailable = await readProtocolSnapshot(
+      {
+        ...client,
+        readContract: async (request) => {
+          if (request.functionName === "borrowRateView")
+            throw new Error("IRM unavailable");
+          return client.readContract(request);
+        },
+      },
+      config,
+      account
+    );
+    expect(unavailable.account?.health).toBeUndefined();
+    expect(unavailable.market.supplierRatePerSecond).toBeUndefined();
+    const html = renderToStaticMarkup(
+      createElement(AmountAction, {
+        context: createActionContext(config, unavailable),
+        action: "withdrawUsdc",
+        all: true,
+        disabled: false,
+        onRun: async () => {},
+      })
+    );
+    expect(html).toContain("Borrow rate unavailable");
+  });
   it("accepts named tuple objects returned by viem ABI decoding", async () => {
     const config = loadLabConfig({});
     const client = createClient(config, [
@@ -171,10 +289,32 @@ function createClient(
     readContract: async (request: ReadRequest) => {
       calls.push(request);
       const { functionName } = request;
-      if (functionName === "balanceOf" && request.address === config.weth)
-        return 10n ** 18n;
-      if (functionName === "allowance" && request.args?.[1] === config.morpho) {
-        return request.address === config.usdc ? 7n : 8n;
+      if (functionName === "balanceOf") {
+        if (request.address === config.weth) {
+          expect(request.args).toEqual([account]);
+          return 10n ** 18n;
+        }
+        expect(request.address).toBe(config.usdc);
+        expect([account, config.adapter]).toContain(request.args?.[0]);
+        return request.args?.[0] === config.adapter ? 500_001n : 2_000_000n;
+      }
+      if (functionName === "allowance") {
+        expect(request.args?.[0]).toBe(account);
+        if (request.address === config.weth) {
+          expect(request.args?.[1]).toBe(config.morpho);
+          return 8n;
+        }
+        expect(request.address).toBe(config.usdc);
+        expect([config.morpho, config.wrapper]).toContain(request.args?.[1]);
+        return request.args?.[1] === config.morpho ? 7n : 1_000_000n;
+      }
+      if (functionName === "position") {
+        expect(request.address).toBe(config.morpho);
+        expect(request.args?.[0]).toBe(config.marketId);
+        expect([account, config.adapter]).toContain(request.args?.[1]);
+        return request.args?.[1] === config.adapter
+          ? [70n, 0n, 0n]
+          : [50n, 25n, 10n ** 18n];
       }
 
       const values: Record<string, unknown> = {
@@ -232,6 +372,54 @@ function createClient(
         morphoYieldAdapter: activeAdapter,
       };
 
+      const adapterFunctions = [
+        "usdc",
+        "confidentialUsdc",
+        "prizePool",
+        "morpho",
+        "marketId",
+        "suppliedPrincipal",
+        "idlePrincipal",
+        "availablePrincipalAssets",
+        "accruedYieldAssets",
+        "suppliedAssets",
+        "marketParams",
+      ];
+      const expectedAddress = adapterFunctions.includes(functionName)
+        ? config.adapter
+        : ["market", "idToMarketParams"].includes(functionName)
+        ? config.morpho
+        : functionName === "price"
+        ? oracle
+        : functionName === "borrowRateView"
+        ? irm
+        : functionName === "confidentialBalanceOf"
+        ? config.wrapper
+        : config.pool;
+      expect(request.address).toBe(expectedAddress);
+      if (["market", "idToMarketParams"].includes(functionName))
+        expect(request.args).toEqual([config.marketId]);
+      else if (functionName.startsWith("withdrawalBatch"))
+        expect(request.args).toEqual([4n]);
+      else if (
+        [
+          "encryptedPrincipalOf",
+          "encryptedWinningsOf",
+          "confidentialBalanceOf",
+        ].includes(functionName)
+      )
+        expect(request.args).toEqual([account]);
+      else if (functionName === "borrowRateView") {
+        expect(request.args?.[0]).toMatchObject({
+          loanToken: config.usdc,
+          collateralToken: config.weth,
+          oracle,
+          irm,
+        });
+        expect(request.args?.[1]).toHaveProperty("totalBorrowAssets");
+      } else expect(request.args).toBeUndefined();
+      if (!(functionName in values))
+        throw new Error(`Unexpected read: ${functionName}`);
       return values[functionName];
     },
   };

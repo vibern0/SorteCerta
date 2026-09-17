@@ -4,7 +4,7 @@ import type { LabConfig } from "../config";
 import type { MarketParams, ProtocolSnapshot } from "../types";
 import type { SimulatedWriteArgs } from "../wallet/MetaMaskProvider";
 import {
-  accruedBorrowAssets,
+  accruedMarketState,
   positionHealth,
   safeBorrowCapacity,
   toBorrowAssetsUp,
@@ -290,7 +290,11 @@ function ceilDiv(a: bigint, b: bigint) {
 export function positionAmounts(config: ActionContext) {
   owner(config);
   const { position } = config.snapshot.account!;
-  const state = config.snapshot.market.state;
+  const state = accruedMarketState(
+    config.snapshot.market.state,
+    config.snapshot.market.borrowRatePerSecond,
+    config.snapshot.blockTimestamp
+  );
   return {
     supply: toSupplyAssetsDown(
       position.supplyShares,
@@ -351,7 +355,11 @@ export function getActionMax(
     case "borrowUsdc":
       return min(borrowCapacity(config), liquidity);
     case "repayUsdc": {
-      const state = config.snapshot.market.state;
+      const state = accruedMarketState(
+        config.snapshot.market.state,
+        config.snapshot.market.borrowRatePerSecond,
+        config.snapshot.blockTimestamp
+      );
       // Asset-based repayment must not burn more borrow shares than owned.
       const repayAssets = toSupplyAssetsDown(
         position.borrowShares,
@@ -491,11 +499,11 @@ export function getRepayAllQuote(config: ActionContext) {
     throw new Error(
       "Borrow rate unavailable. Refresh before reviewing repayment."
     );
-  const totalAssets = accruedBorrowAssets(
-    state.totalBorrowAssets,
+  const totalAssets = accruedMarketState(
+    state,
     borrowRatePerSecond,
-    config.snapshot.blockTimestamp - state.lastUpdate
-  );
+    config.snapshot.blockTimestamp
+  ).totalBorrowAssets;
   const estimatedAssets = toBorrowAssetsUp(
     position.borrowShares,
     totalAssets,

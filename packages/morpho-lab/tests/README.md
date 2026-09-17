@@ -17,6 +17,20 @@ and calls the real action runners with controlled transaction boundaries. It
 checks the collateral-to-borrow refresh transition on success and failure, plus
 the accrued repayment estimate and explicit approval-limit review.
 
+The final-review browser regression also checks desktop/mobile funding layout,
+the disconnected funding guard, configuration-error mounting, clipboard-denial
+feedback, and initialization of the Zama SDK's WASM assets under the lab's Vite
+configuration:
+
+```sh
+node packages/morpho-lab/tests/final-fix.browser.mjs
+```
+
+It writes desktop/mobile screenshots into the local final-review report
+directory under `.superpowers/sdd/2026-09-17-morpho-lab/`. It does not generate a
+live Zama proof or submit funding; unit tests decode the funding multicall and
+cover sequence guards.
+
 ## Local Morpho EVM Check
 
 Requires solc **0.8.19** and the official Morpho Blue source checkout at commit
@@ -32,7 +46,9 @@ MORPHO_SOURCE=/tmp/morpho-blue-reference node packages/morpho-lab/tests/repay-al
 The script compiles the unmodified official Morpho contract with small token,
 rate, and oracle fixtures. It runs an in-memory Hardhat chain with ID `11155111`,
 creates a market, supplies collateral, and borrows. It advances time while stored
-totals remain unchanged, proves a stored-debt-only approval fails, then executes
+totals remain unchanged, checks the accrued borrow and collateral withdrawal
+limits, and proves protocol simulation alone accepts borrowing above the lab's
+80% margin. It proves a stored-debt-only approval fails, then executes
 the production repayment runner with a fixed reviewed allowance. More time
 advances between review, approval, and repayment. The final assertions require
 zero borrow shares, an actual payment above stored debt but below the reviewed

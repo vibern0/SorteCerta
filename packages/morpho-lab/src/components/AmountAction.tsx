@@ -32,28 +32,19 @@ export function AmountAction({
   const usdc = action.endsWith("Usdc");
   const decimals = usdc ? 6 : 18;
   const symbol = usdc ? "USDC" : action === "wrapEth" ? "ETH" : "WETH";
-  const allRepayAssets =
-    all && action === "repayUsdc"
-      ? actionAssets(context, action, "all")
-      : undefined;
-  const balance = context.snapshot.account!.tokens.usdcBalance;
-  const max =
-    allRepayAssets === undefined
-      ? getActionMax(context, action)
-      : allRepayAssets < balance
-      ? allRepayAssets
-      : balance;
   const title = all
     ? action === "repayUsdc"
       ? "Repay all debt"
       : "Withdraw all direct supply"
     : ACTION_LABELS[action];
   let error: string | undefined;
+  let max = 0n;
   let amount: ActionAmount = 0n;
   let assets = 0n;
   let call: ReturnType<typeof buildAction> | undefined;
   let approval: ReturnType<typeof requiredApproval>;
   try {
+    max = getActionMax(context, action);
     amount = all ? "all" : parseAmount(input, decimals);
     assets = actionAssets(context, action, amount);
     call = buildAction(context, action, amount);
@@ -84,7 +75,7 @@ export function AmountAction({
           placeholder="0.00"
           value={
             all
-              ? formatUnits(actionAssets(context, action, "all"), decimals)
+              ? formatUnits(assets, decimals)
               : input
           }
           readOnly={all}

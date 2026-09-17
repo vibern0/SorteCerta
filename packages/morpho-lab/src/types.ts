@@ -66,6 +66,9 @@ export type WithdrawalBatchSnapshot = {
 };
 
 export type AdapterSnapshot = {
+  usdcBalance: bigint;
+  supplyShares: bigint;
+  backingDifference: bigint;
   usdc: Address;
   confidentialUsdc: Address;
   prizePool: Address;
@@ -80,11 +83,13 @@ export type AdapterSnapshot = {
 };
 
 export type MorphoMarketSnapshot = {
+  liquidity: bigint;
+  supplierRatePerSecond?: bigint;
   state: MarketState;
   params: MarketParams;
   oraclePrice: bigint;
   borrowRatePerSecond?: bigint;
-  utilizationWad: bigint;
+  utilizationWad?: bigint;
 };
 
 export type TokenSnapshot = {
@@ -100,7 +105,9 @@ export type TokenSnapshot = {
 export type AccountSnapshot = {
   address: Address;
   position: Position;
-  health: PositionHealth;
+  health?: PositionHealth;
+  suppliedAssets?: bigint;
+  remainingBorrowCapacity?: bigint;
   tokens: TokenSnapshot;
   encryptedPrincipalHandle: Hex;
   encryptedWinningsHandle: Hex;

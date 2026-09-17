@@ -62,6 +62,9 @@ function snapshot(): ProtocolSnapshot {
       },
     },
     adapter: {
+      usdcBalance: 0n,
+      supplyShares: 0n,
+      backingDifference: 0n,
       usdc: deployment.usdc,
       confidentialUsdc: deployment.wrapper,
       prizePool: deployment.pool,
@@ -75,6 +78,7 @@ function snapshot(): ProtocolSnapshot {
       marketParams: params,
     },
     market: {
+      liquidity: 9_000_000_000n,
       params,
       oraclePrice: 2_000n * 10n ** 24n,
       utilizationWad: 0n,
@@ -241,6 +245,35 @@ describe("action builders", () => {
 });
 
 describe("local validation", () => {
+  it("reduces borrowing and collateral withdrawal maxima for idle-market interest", () => {
+    const state = snapshot();
+    const oldCollateralMax = getActionMax(context(state), "withdrawCollateral");
+    state.blockTimestamp = 1_001n;
+    state.market.borrowRatePerSecond = 1_000_000_000_000n;
+    expect(getActionMax(context(state), "borrowUsdc")).toBe(939_499_750n);
+    expect(getIncreaseBorrowMax(context(state), 10n ** 18n)).toBe(
+      2_379_499_750n
+    );
+    expect(() =>
+      validateAction(context(state), "borrowUsdc", 940_000_000n)
+    ).toThrow(/safety/i);
+    expect(() =>
+      validateAction(context(state), "withdrawCollateral", oldCollateralMax)
+    ).toThrow(/healthy/i);
+    expect(state.market.state.totalBorrowAssets).toBe(1_000_000_000n);
+  });
+
+  it("blocks risk-increasing actions when pending interest cannot be estimated", () => {
+    const state = snapshot();
+    state.blockTimestamp = 100n;
+    state.market.borrowRatePerSecond = undefined;
+    expect(() => validateAction(context(state), "borrowUsdc", 1n)).toThrow(
+      /rate/i
+    );
+    expect(() =>
+      validateAction(context(state), "withdrawCollateral", 1n)
+    ).toThrow(/rate/i);
+  });
   it.each<ActionKind>([
     "wrapEth",
     "unwrapWeth",
