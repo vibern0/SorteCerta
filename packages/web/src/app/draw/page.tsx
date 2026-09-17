@@ -86,6 +86,7 @@ export default function DrawPage() {
   const [nextDrawAt, setNextDrawAt] = useState<bigint | undefined>();
   const [participantCount, setParticipantCount] = useState<bigint | undefined>();
   const [publicPrizeReserve, setPublicPrizeReserve] = useState<bigint | undefined>();
+  const [accruedYieldAssets, setAccruedYieldAssets] = useState<bigint | undefined>();
   const [winnings, setWinnings] = useState<bigint | undefined>();
   const addresses = useMemo(
     () => ({
@@ -100,6 +101,10 @@ export default function DrawPage() {
   const activeDrawId = drawId === undefined ? undefined : drawId + 1n;
   const roundsClosed = drawId ?? 0n;
   const hasPrizeToClaim = winnings !== undefined && winnings > 0n;
+  const prizeAssets =
+    publicPrizeReserve === undefined || accruedYieldAssets === undefined
+      ? undefined
+      : publicPrizeReserve + accruedYieldAssets;
 
   useEffect(() => {
     void refresh();
@@ -126,12 +131,13 @@ export default function DrawPage() {
     if (!ready) return;
 
     const pool = asAddress(addresses.pool, "Prize pool");
-    const [currentDrawId, interval, nextAt, participants, prizeReserve] = await Promise.all([
+    const [currentDrawId, interval, nextAt, participants, prizeReserve, accruedYield] = await Promise.all([
       publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "drawId" }),
       publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "drawInterval" }),
       publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "nextDrawAt" }),
       publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "participantCount" }),
       publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "publicPrizeReserve" }),
+      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoAccruedYieldAssets" }),
     ]);
 
     setDrawId(currentDrawId);
@@ -139,6 +145,7 @@ export default function DrawPage() {
     setNextDrawAt(nextAt);
     setParticipantCount(participants);
     setPublicPrizeReserve(prizeReserve);
+    setAccruedYieldAssets(accruedYield);
   }
 
   async function decryptWinnings() {
@@ -290,7 +297,7 @@ export default function DrawPage() {
           <div className="rounded-2xl bg-white/35 border border-white/50 p-3 min-h-24">
             <p className="text-xs text-muted">Prize</p>
             <p className="font-display text-xl font-bold tabular-nums">
-              {formatUSDC(publicPrizeReserve, 6)} USDC
+              {formatUSDC(prizeAssets, 6)} USDC
             </p>
           </div>
         </div>

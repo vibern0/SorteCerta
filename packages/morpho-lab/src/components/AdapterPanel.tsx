@@ -27,7 +27,7 @@ export function AdapterPanel({ adapter }: { adapter: AdapterSnapshot }) {
     <Metric label="Backing minus tracked principal" rawValue={adapter.backingDifference.toString()} value={`${formatToken(adapter.backingDifference, 6, 6)} USDC`} />
     <Metric label="Idle principal" rawValue={adapter.idlePrincipal.toString()} value={`${formatToken(adapter.idlePrincipal)} USDC`} />
     <Metric label="Available principal" rawValue={adapter.availablePrincipalAssets.toString()} value={`${formatToken(adapter.availablePrincipalAssets)} USDC`} />
-    <Metric label="Accrued yield" rawValue={adapter.accruedYieldAssets.toString()} value={`${formatToken(adapter.accruedYieldAssets)} USDC`} />
+    <Metric label="Accrued yield" rawValue={adapter.accruedYieldAssets.toString()} value={`${formatToken(adapter.accruedYieldAssets, 6, 6)} USDC`} />
     <Metric label="Supplied assets" rawValue={adapter.suppliedAssets.toString()} value={`${formatToken(adapter.suppliedAssets)} USDC`} />
     <MarketParamsMetrics params={adapter.marketParams} />
   </dl></Panel>;
