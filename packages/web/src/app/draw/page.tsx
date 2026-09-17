@@ -14,9 +14,10 @@ import { useWallet } from "@/lib/wallet-context";
 import { sendSmartTransaction, signOwnerTypedData, type SmartSession } from "@/lib/web3auth";
 import { getZamaInstance, userDecryptTimestamp } from "@/lib/zama";
 import { useToast } from "@/components/Toast";
+import { getPrizeActions, type PrizeActionId } from "@/lib/prize-actions";
 
 type Status = "idle" | "working" | "success" | "error";
-type WorkingAction = "checkPrize" | "claimPrize" | "addPrizeToSavings" | undefined;
+type WorkingAction = PrizeActionId | undefined;
 
 const ZERO_HANDLE = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
@@ -105,6 +106,13 @@ export default function DrawPage() {
     publicPrizeReserve === undefined || accruedYieldAssets === undefined
       ? undefined
       : publicPrizeReserve + accruedYieldAssets;
+  const prizeActions = getPrizeActions({
+    connected: Boolean(session),
+    ready,
+    busy: status === "working",
+    hasPrizeToClaim,
+    workingAction,
+  });
 
   useEffect(() => {
     void refresh();
@@ -216,10 +224,14 @@ export default function DrawPage() {
     await refreshConfidentialBalances();
   }
 
-  function handlePrizeAction() {
-    return hasPrizeToClaim
-      ? run(claimPrizeToSavings, "Prize added to savings.", "addPrizeToSavings")
-      : run(decryptWinnings, "Winnings revealed.", "checkPrize");
+  function runPrizeAction(action: PrizeActionId) {
+    if (action === "addPrizeToSavings") {
+      return run(claimPrizeToSavings, "Prize added to savings.", "addPrizeToSavings");
+    }
+    if (action === "claimPrize") {
+      return run(claimPrize, "Prize claimed.", "claimPrize");
+    }
+    return run(decryptWinnings, "Winnings revealed.", "checkPrize");
   }
 
   async function run(action: () => Promise<void>, ok: string, currentAction?: WorkingAction) {
@@ -317,30 +329,16 @@ export default function DrawPage() {
             {formatUSDC(winnings, 6)} USDC
           </span>
         </div>
-        <button
-          className="btn-primary w-full"
-          disabled={!session || !ready || status === "working"}
-          onClick={() => void handlePrizeAction()}
-        >
-          {workingAction === "claimPrize"
-            ? "Claiming..."
-            : workingAction === "addPrizeToSavings"
-              ? "Adding..."
-            : workingAction === "checkPrize"
-              ? "Checking..."
-              : hasPrizeToClaim
-                ? "Add prize to savings"
-                : "Check prize"}
-        </button>
-        {hasPrizeToClaim && (
+        {prizeActions.map((action) => (
           <button
-            className="btn-secondary w-full"
-            disabled={!session || !ready || status === "working"}
-            onClick={() => void run(claimPrize, "Prize claimed.", "claimPrize")}
+            key={action.id}
+            className={`${action.variant === "primary" ? "btn-primary" : "btn-secondary"} w-full`}
+            disabled={action.disabled}
+            onClick={() => void runPrizeAction(action.id)}
           >
-            {workingAction === "claimPrize" ? "Claiming..." : "Claim prize"}
+            {action.label}
           </button>
-        )}
+        ))}
       </div>
 
     </div>
