@@ -1,4 +1,7 @@
 import { loadLabConfig } from "./config";
+import { TransactionLog } from "./components/TransactionLog";
+import { WalletBar } from "./components/WalletBar";
+import { MetaMaskProvider } from "./wallet/MetaMaskProvider";
 
 const config = loadLabConfig(import.meta.env);
 
@@ -13,10 +16,6 @@ const deploymentRows = [
 
 const panels = [
   {
-    title: "Wallet",
-    body: "MetaMask connection controls will appear here.",
-  },
-  {
     title: "Metrics",
     body: "Pool, adapter, market, and account reads will appear here.",
   },
@@ -24,13 +23,17 @@ const panels = [
     title: "Workbench",
     body: "Simulation-backed Morpho actions will appear here.",
   },
-  {
-    title: "Activity",
-    body: "Pending, confirmed, and failed transactions will appear here.",
-  },
 ];
 
 export function App() {
+  return (
+    <MetaMaskProvider config={config}>
+      <AppContent />
+    </MetaMaskProvider>
+  );
+}
+
+function AppContent() {
   return (
     <main className="lab-shell">
       <header className="lab-header">
@@ -56,12 +59,18 @@ export function App() {
       </section>
 
       <section className="panel-grid" aria-label="Lab work areas">
+        <article className="panel">
+          <WalletBar />
+        </article>
         {panels.map((panel) => (
           <article className="panel" key={panel.title}>
             <h2>{panel.title}</h2>
             <p>{panel.body}</p>
           </article>
         ))}
+        <article className="panel">
+          <TransactionLog />
+        </article>
       </section>
     </main>
   );
