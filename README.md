@@ -39,6 +39,7 @@ official PoolTogether protocol.
 sortecerta/
   packages/
     contracts/   # Hardhat — ConfidentialUSDC, ConfidentialPrizePool, mocks
+    morpho-lab/  # Vite — local technical Morpho operator playground
     web/         # Next.js 14 PWA — Web3Auth + Safe + Pimlico + Zama relayer
   package.json   # npm workspaces root
 ```
@@ -156,20 +157,13 @@ Useful example transactions:
 Explorer links use the Sepolia Etherscan transaction URL format:
 `https://sepolia.etherscan.io/tx/<hash>`.
 
-## How to test the live app
+## Local Morpho lab
 
-Use the hosted app at https://sortecerta.netlify.app.
-
-1. Create an account in the app.
-2. Fund that account with Circle's faucet: https://faucet.circle.com.
-3. Deposit some funds for saving. To test weighted winner selection, repeat
-   this with more than one account.
-4. Go to the admin tab and close the current round. A new round starts
-   automatically.
-5. Fund the new round from the admin tab.
-6. Wait for the round to end, close it, then check and claim any prize.
-7. Fund each new round before testing it. This sponsor-funded amount stands in
-   for the yield that would fund prizes in a production PoolTogether-style pool.
+The repository includes a separate, local-only technical playground for
+inspecting the configured Morpho deployment and preparing operator actions
+through MetaMask. It is not part of the hosted consumer experience. See
+[packages/morpho-lab/README.md](packages/morpho-lab/README.md) for its fixed
+deployment scope, safety boundaries, setup, and verification commands.
 
 ## Architecture
 
