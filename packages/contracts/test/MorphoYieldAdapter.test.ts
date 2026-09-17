@@ -240,6 +240,32 @@ describe("MorphoYieldAdapter", function () {
     expect(await fhevm.debugger.decryptEuint(FhevmType.euint64, encryptedPoolBalance)).to.equal(USDC(25) - 1n);
   });
 
+  it("allocates accrued Morpho yield to the draw that is being closed", async function () {
+    const { owner, keeper, usdc, confidentialUsdc, pool, morpho, adapter, marketParams } = await deployFixture();
+    const confidentialUsdcAddress = await confidentialUsdc.getAddress();
+    const poolAddress = await pool.getAddress();
+
+    await usdc.approve(confidentialUsdcAddress, USDC(1));
+    await confidentialUsdc.wrap(owner.address, USDC(1));
+    await encryptedDeposit(confidentialUsdc, confidentialUsdcAddress, poolAddress, owner, USDC(1));
+
+    await usdc.transfer(await adapter.getAddress(), USDC(1_000));
+    await pool.supplyFinalizedMorphoPrincipal(USDC(1_000));
+    await usdc.connect(keeper).approve(await morpho.getAddress(), USDC(50));
+    await morpho.connect(keeper).accrueYield(marketParams, USDC(25));
+
+    await ethers.provider.send("evm_increaseTime", [Number(DRAW_INTERVAL)]);
+    await ethers.provider.send("evm_mine", []);
+    await pool.closeDraw();
+
+    const encryptedWinnings = await pool.encryptedWinningsOf(owner.address);
+    expect(await fhevm.userDecryptEuint(FhevmType.euint64, encryptedWinnings, poolAddress, owner)).to.equal(
+      USDC(25) - 1n,
+    );
+    expect(await pool.publicPrizeReserve()).to.equal(0n);
+    expect(await pool.morphoAccruedYieldAssets()).to.equal(0n);
+  });
+
   it("caps harvests and leaves remaining yield in Morpho", async function () {
     const { keeper, usdc, pool, morpho, adapter, marketParams } = await deployFixture();
 

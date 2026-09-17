@@ -314,7 +314,7 @@ export default function DrawPage() {
         <div className="flex min-h-20 items-center justify-between gap-3 rounded-2xl border border-white/50 bg-white/35 px-4 py-3">
           <span className="text-xs font-semibold text-muted">Prize ready</span>
           <span className="min-w-32 max-w-[68%] text-right font-display text-2xl font-bold leading-none tabular-nums text-brand break-words">
-            {formatUSDC(winnings, 6)} tokens
+            {formatUSDC(winnings, 6)} USDC
           </span>
         </div>
         <button
@@ -336,9 +336,9 @@ export default function DrawPage() {
           <button
             className="btn-secondary w-full"
             disabled={!session || !ready || status === "working"}
-            onClick={() => void run(claimPrize, "Prize tokens claimed.", "claimPrize")}
+            onClick={() => void run(claimPrize, "Prize claimed.", "claimPrize")}
           >
-            {workingAction === "claimPrize" ? "Claiming..." : "Claim prize tokens"}
+            {workingAction === "claimPrize" ? "Claiming..." : "Claim prize"}
           </button>
         )}
       </div>
