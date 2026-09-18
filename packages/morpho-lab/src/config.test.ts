@@ -7,8 +7,8 @@ describe("loadLabConfig", () => {
     const config = loadLabConfig({});
 
     expect(config.chainId).toBe(11155111);
-    expect(config.pool).toBe("0x3d974cEF83CaC5BfD970CA95E121774eb8C9f233");
-    expect(config.adapter).toBe("0x84B120Db8b600DE01A49143cf515246B79afcfef");
+    expect(config.pool).toBe("0xeA77fF10B0F7A1090Fe77B482c5556F6fa4a457B");
+    expect(config.adapter).toBe("0x1B538b63D8d88e55D7D6394672474ae2c84326EF");
   });
 
   it("rejects invalid address overrides", () => {

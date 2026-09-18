@@ -43,13 +43,15 @@ state and executes at most one transaction, continuing the state machine on the
 next scheduled run. The Morpho keeper runs every five minutes:
 
 1. supply finalized adapter USDC to Morpho;
-2. harvest available Morpho yield into the prize reserve;
-3. finalize the oldest ready Morpho-bound unwrap;
-4. request a timed unwrap for pending pool principal;
-5. accrue Morpho interest when no higher-priority work is pending and at least
+2. finalize the oldest ready Morpho-bound unwrap;
+3. request a timed unwrap for pending pool principal;
+4. accrue Morpho interest when no higher-priority work is pending and at least
    one hour has elapsed since the market's last update.
 
-The keeper scans from `MORPHO_KEEPER_START_BLOCK` (the wrapper deployment block)
+Available Morpho yield is harvested atomically by `closeDraw()` before the
+closing draw's prize snapshot. The keeper has no standalone harvest action.
+
+The keeper scans from `MORPHO_KEEPER_START_BLOCK` (at or before the active pool deployment)
 to the latest block in exact 10,000-block chunks for wrapper requests and matching
 finalizations. This prevents a delayed request from aging out of discovery. A
 temporarily unavailable Zama public-decryption proof leaves the request pending
@@ -57,8 +59,9 @@ for the next scheduled run instead of submitting a transaction.
 
 `MORPHO_KEEPER_MAX_TXS` is retained for configuration compatibility, but the
 scheduled runtime hard-caps every run to one transaction to stay inside Netlify's
-execution limit. Set `MORPHO_KEEPER_START_BLOCK` to the new wrapper deployment
-block whenever the contracts are redeployed.
+execution limit. When reusing a wrapper for a fresh pool, set
+`MORPHO_KEEPER_START_BLOCK` at or before the new pool deployment, before any
+requests can originate from it. The current deployment uses `11730650`.
 
 The withdrawal keeper runs every minute. It scans the current and recent
 withdrawal batch ids, closes expired nonempty open batches, and settles closed
