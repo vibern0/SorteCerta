@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPublicClient, encodeFunctionData, getAddress, http, isAddress } from "viem";
 import { sepolia } from "viem/chains";
 import {
@@ -15,9 +15,23 @@ import { sendSmartTransaction, signOwnerTypedData, type SmartSession } from "@/l
 import { getZamaInstance, userDecryptTimestamp } from "@/lib/zama";
 import { useToast } from "@/components/Toast";
 import { getPrizeActions, type PrizeActionId } from "@/lib/prize-actions";
+import {
+  createLatestBlockRefresher,
+  readProjectedMorphoYield,
+} from "@/lib/morpho-yield";
 
 type Status = "idle" | "working" | "success" | "error";
 type WorkingAction = PrizeActionId | undefined;
+
+type DrawSnapshot = {
+  blockNumber: bigint;
+  drawId: bigint;
+  drawInterval: bigint;
+  nextDrawAt: bigint;
+  participantCount: bigint;
+  publicPrizeReserve: bigint;
+  accruedYieldAssets: bigint;
+};
 
 const ZERO_HANDLE = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
@@ -76,6 +90,63 @@ function formatInterval(seconds: bigint | undefined) {
   return unit(value, "second", "seconds");
 }
 
+async function readDrawSnapshot(
+  pool: `0x${string}`,
+  requestedBlockNumber?: bigint,
+): Promise<DrawSnapshot> {
+  const blockNumber = requestedBlockNumber ?? await publicClient.getBlockNumber();
+  const [
+    drawId,
+    drawInterval,
+    nextDrawAt,
+    participantCount,
+    publicPrizeReserve,
+    projectedYield,
+  ] = await Promise.all([
+    publicClient.readContract({
+      address: pool,
+      abi: confidentialPrizePoolAbi,
+      functionName: "drawId",
+      blockNumber,
+    }),
+    publicClient.readContract({
+      address: pool,
+      abi: confidentialPrizePoolAbi,
+      functionName: "drawInterval",
+      blockNumber,
+    }),
+    publicClient.readContract({
+      address: pool,
+      abi: confidentialPrizePoolAbi,
+      functionName: "nextDrawAt",
+      blockNumber,
+    }),
+    publicClient.readContract({
+      address: pool,
+      abi: confidentialPrizePoolAbi,
+      functionName: "participantCount",
+      blockNumber,
+    }),
+    publicClient.readContract({
+      address: pool,
+      abi: confidentialPrizePoolAbi,
+      functionName: "publicPrizeReserve",
+      blockNumber,
+    }),
+    readProjectedMorphoYield(publicClient, pool, blockNumber),
+  ]);
+
+  return {
+    blockNumber,
+    drawId,
+    drawInterval,
+    nextDrawAt,
+    participantCount,
+    publicPrizeReserve,
+    accruedYieldAssets: projectedYield.accruedYieldAssets,
+  };
+}
+
 // Draw page for checking prizes, claiming winnings, and viewing round timing.
 export default function DrawPage() {
   const { session, refreshConfidentialBalances } = useWallet();
@@ -89,6 +160,7 @@ export default function DrawPage() {
   const [publicPrizeReserve, setPublicPrizeReserve] = useState<bigint | undefined>();
   const [accruedYieldAssets, setAccruedYieldAssets] = useState<bigint | undefined>();
   const [winnings, setWinnings] = useState<bigint | undefined>();
+  const refreshRef = useRef<(blockNumber?: bigint) => Promise<void>>(async () => undefined);
   const addresses = useMemo(
     () => ({
       pool: isAddress(CONTRACTS.confidentialPrizePool)
@@ -115,9 +187,33 @@ export default function DrawPage() {
   });
 
   useEffect(() => {
-    void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+    if (!ready) return;
+
+    const pool = asAddress(addresses.pool, "Prize pool");
+    const refresher = createLatestBlockRefresher(
+      (blockNumber) => readDrawSnapshot(pool, blockNumber),
+      (snapshot) => {
+        setDrawId(snapshot.drawId);
+        setDrawInterval(snapshot.drawInterval);
+        setNextDrawAt(snapshot.nextDrawAt);
+        setParticipantCount(snapshot.participantCount);
+        setPublicPrizeReserve(snapshot.publicPrizeReserve);
+        setAccruedYieldAssets(snapshot.accruedYieldAssets);
+      },
+    );
+    refreshRef.current = refresher.refresh;
+    void refresher.refresh();
+    const unwatch = publicClient.watchBlockNumber({
+      emitOnBegin: false,
+      onBlockNumber: (blockNumber) => void refresher.refresh(blockNumber),
+    });
+
+    return () => {
+      refreshRef.current = async () => undefined;
+      refresher.dispose();
+      unwatch();
+    };
+  }, [addresses.pool, ready]);
 
   useEffect(() => {
     if (!session?.address) return;
@@ -136,24 +232,7 @@ export default function DrawPage() {
   }
 
   async function refresh() {
-    if (!ready) return;
-
-    const pool = asAddress(addresses.pool, "Prize pool");
-    const [currentDrawId, interval, nextAt, participants, prizeReserve, accruedYield] = await Promise.all([
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "drawId" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "drawInterval" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "nextDrawAt" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "participantCount" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "publicPrizeReserve" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoAccruedYieldAssets" }),
-    ]);
-
-    setDrawId(currentDrawId);
-    setDrawInterval(interval);
-    setNextDrawAt(nextAt);
-    setParticipantCount(participants);
-    setPublicPrizeReserve(prizeReserve);
-    setAccruedYieldAssets(accruedYield);
+    await refreshRef.current();
   }
 
   async function decryptWinnings() {
