@@ -303,10 +303,8 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         IMorphoPrizeYieldAdapter adapter = morphoYieldAdapter;
         if (address(adapter) == address(0)) return 0;
 
-        if (adapter.accruedYieldAssets() == 0) return 0;
-
         harvestedAssets = adapter.harvestYieldToPrizePool(0);
-        emit MorphoYieldHarvested(harvestedAssets);
+        if (harvestedAssets > 0) emit MorphoYieldHarvested(harvestedAssets);
     }
 
     /// @notice Restores Morpho principal as cUSDC liquidity in the pool.

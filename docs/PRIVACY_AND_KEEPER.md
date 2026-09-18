@@ -15,10 +15,12 @@ When the interval has elapsed and there has been deposit activity, it asks the
 pool to unwrap the pending principal to the Morpho adapter. On a later run, the
 keeper discovers that request from wrapper events, obtains Zama's public
 decryption proof, and finalizes the unwrap. Once the adapter has USDC, the keeper
-supplies it to Morpho. Idle runs update Morpho's lazy interest accounting at
-most once per hour; when yield becomes observable, the keeper harvests it into
-the prize reserve. The longer accrual window avoids repeatedly rounding
-sub-base-unit interest down to zero in a small test market.
+supplies it to Morpho. Idle runs update Morpho's recorded interest accounting
+at most once per hour. This idle accrual does not harvest yield or fund the
+prize reserve. Each ready `closeDraw()` accrues interest again, harvests the
+resulting surplus, and allocates it to the closing draw in one transaction.
+The longer idle accrual window reduces extra sub-base-unit rounding in a small
+test market; draw closes and other market operations still trigger accrual.
 
 ## Known privacy tradeoffs
 
@@ -48,8 +50,12 @@ next scheduled run. The Morpho keeper runs every five minutes:
 4. accrue Morpho interest when no higher-priority work is pending and at least
    one hour has elapsed since the market's last update.
 
-Available Morpho yield is harvested atomically by `closeDraw()` before the
-closing draw's prize snapshot. The keeper has no standalone harvest action.
+Each ready `closeDraw()` refreshes Morpho interest before calculating and
+harvesting surplus, then snapshots the closing draw's prize. A zero-yield close
+continues without withdrawing or emitting a harvest event. The keeper has no
+standalone harvest action. Exceptionally, restoring all supplied principal
+withdraws the adapter's full share position and routes any realized surplus to
+the prize reserve for the next draw that closes.
 
 The keeper scans from `MORPHO_KEEPER_START_BLOCK` (at or before the active pool deployment)
 to the latest block in exact 10,000-block chunks for wrapper requests and matching
@@ -61,7 +67,7 @@ for the next scheduled run instead of submitting a transaction.
 scheduled runtime hard-caps every run to one transaction to stay inside Netlify's
 execution limit. When reusing a wrapper for a fresh pool, set
 `MORPHO_KEEPER_START_BLOCK` at or before the new pool deployment, before any
-requests can originate from it. The current deployment uses `11730650`.
+requests can originate from it. The current deployment uses `11730807`.
 
 The withdrawal keeper runs every minute. It scans the current and recent
 withdrawal batch ids, closes expired nonempty open batches, and settles closed

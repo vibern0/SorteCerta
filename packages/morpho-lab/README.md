@@ -39,8 +39,8 @@ in the dashboard and checked against the adapter and Morpho market parameters:
 | USDC | `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238` |
 | WETH | `0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9` |
 | ConfidentialUSDC wrapper | `0x3B4F71c77e288d92871Cda495891Cd42f543A3f5` |
-| ConfidentialPrizePool | `0xeA77fF10B0F7A1090Fe77B482c5556F6fa4a457B` |
-| MorphoYieldAdapter | `0x1B538b63D8d88e55D7D6394672474ae2c84326EF` |
+| ConfidentialPrizePool | `0x9c23E5f7143612dc1232FC643A57300291e0d719` |
+| MorphoYieldAdapter | `0x784C2020a2fbf4a106881E37B673A93604A9559D` |
 | Morpho Blue | `0xd011EE229E7459ba1ddd22631eF7bF528d424A14` |
 | Morpho market ID | `0x8c561f0929c3a3e2b20fba99c2ae15fc57b4d0599e4371b67c9a58388a27b9d2` |
 

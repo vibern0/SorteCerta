@@ -44,16 +44,17 @@ private Netlify environment variables, not `NEXT_PUBLIC_*`:
 ```bash
 SEPOLIA_RPC_URL=https://...
 KEEPER_PRIVATE_KEY=0x...
-MORPHO_KEEPER_START_BLOCK=11730650
+MORPHO_KEEPER_START_BLOCK=11730807
 MORPHO_KEEPER_MAX_TXS=1
 WITHDRAWAL_KEEPER_LOOKBACK_BATCHES=8
 ```
 
 The Morpho function checks deposit-routing work every five minutes and limits
-explicit Morpho interest accrual to once per hour to avoid base-unit rounding
-loss in a small market. The withdrawal function runs every minute, scans recent
-batches, closes expired nonempty batches, and settles closed batches once their
-public-decryption proof is available.
+idle Morpho interest accrual to once per hour to reduce extra base-unit rounding
+in a small market. Each ready `closeDraw()` separately accrues interest and
+harvests the resulting surplus for that draw. The withdrawal function runs every
+minute, scans recent batches, closes expired nonempty batches, and settles closed
+batches once their public-decryption proof is available.
 
 ## Where things live
 
