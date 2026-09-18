@@ -21,7 +21,7 @@ const baseSnapshot = {
   suppliedPrincipalAssets: 0n,
 };
 
-test("prioritizes finalized principal supply before harvest and unwrap", () => {
+test("prioritizes finalized principal supply before other Morpho work", () => {
   const actions = chooseMorphoKeeperActions({
     ...baseSnapshot,
     availablePrincipalAssets: 100n,
@@ -30,6 +30,27 @@ test("prioritizes finalized principal supply before harvest and unwrap", () => {
   });
 
   assert.deepEqual(actions, ["supply"]);
+});
+
+test("does not schedule a Morpho transaction for accrued yield alone", () => {
+  assert.deepEqual(
+    chooseMorphoKeeperActions({
+      ...baseSnapshot,
+      accruedYieldAssets: 1n,
+    }),
+    [],
+  );
+});
+
+test("does not let accrued yield outrank a pending unwrap finalization", () => {
+  assert.deepEqual(
+    chooseMorphoKeeperActions({
+      ...baseSnapshot,
+      accruedYieldAssets: 1n,
+      pendingUnwrapRequestId: "0xaaa",
+    }),
+    ["finalize"],
+  );
 });
 
 test("limits planning to one transaction for the scheduled runtime", () => {

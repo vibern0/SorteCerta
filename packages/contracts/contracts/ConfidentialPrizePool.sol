@@ -183,6 +183,8 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     function closeDraw() external returns (euint128) {
         if (block.timestamp < nextDrawAt) revert DrawNotReady(nextDrawAt);
 
+        _harvestAccruedMorphoYield();
+
         euint128 randomTicket = _scaledRandomTicket(FHE.randEuint64(), _totalPrincipal);
         euint128 cumulative = FHE.asEuint128(0);
         ebool alreadyAwarded = FHE.asEbool(false);
@@ -297,12 +299,12 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         emit MorphoPrincipalSupplied(assetsSupplied, sharesSupplied);
     }
 
-    /// @notice Harvests accrued Morpho surplus and routes it back as prize funding.
-    function harvestMorphoYield(uint256 maxAssets) external returns (uint256 harvestedAssets) {
-        IMorphoPrizeYieldAdapter adapter = _requireMorphoYieldAdapter();
+    function _harvestAccruedMorphoYield() internal returns (uint256 harvestedAssets) {
+        IMorphoPrizeYieldAdapter adapter = morphoYieldAdapter;
+        if (address(adapter) == address(0)) return 0;
 
-        harvestedAssets = adapter.harvestYieldToPrizePool(maxAssets);
-        emit MorphoYieldHarvested(harvestedAssets);
+        harvestedAssets = adapter.harvestYieldToPrizePool(0);
+        if (harvestedAssets > 0) emit MorphoYieldHarvested(harvestedAssets);
     }
 
     /// @notice Restores Morpho principal as cUSDC liquidity in the pool.

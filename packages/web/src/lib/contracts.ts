@@ -342,13 +342,6 @@ export const confidentialPrizePoolAbi = [
   },
   {
     type: "function",
-    name: "harvestMorphoYield",
-    stateMutability: "nonpayable",
-    inputs: [{ name: "maxAssets", type: "uint256" }],
-    outputs: [{ name: "harvestedAssets", type: "uint256" }],
-  },
-  {
-    type: "function",
     name: "requestMorphoPrincipalUnwrap",
     stateMutability: "nonpayable",
     inputs: [],
