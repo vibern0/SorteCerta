@@ -37,8 +37,8 @@ describe("readProtocolSnapshot", () => {
     const snapshot = await readProtocolSnapshot(client, config, account);
     expect(snapshot.adapter).toMatchObject({
       usdcBalance: 500_001n,
-      supplyShares: 70n,
-      backingDifference: 10_000n,
+      supplyShares: 1_000_000_000_000n,
+      backingDifference: 149n,
     });
     expect(snapshot.market).toMatchObject({
       liquidity: 150_629_734n,
@@ -136,6 +136,80 @@ describe("readProtocolSnapshot", () => {
     );
     expect(html).toContain("Borrow rate unavailable");
   });
+
+  it("projects adapter supplied assets and yield from the pinned market timestamp", async () => {
+    const config = loadLabConfig({});
+    const base = createClient(config, [
+      config.usdc,
+      config.weth,
+      oracle,
+      irm,
+      945_000_000_000_000_000n,
+    ]);
+    const client = {
+      ...base,
+      readContract: async (request: ReadRequest) => {
+        const value = await base.readContract(request);
+        if (request.functionName === "market")
+          return [
+            10_000_000_000n,
+            10_000_000_000_000_000n,
+            1_000_000_000n,
+            1_000_000_000_000_000n,
+            0n,
+            0n,
+          ];
+        if (request.functionName === "borrowRateView")
+          return 1_000_000_000_000n;
+        if (
+          request.functionName === "position" &&
+          request.args?.[1] === config.adapter
+        )
+          return [1_000_000_000_000_000n, 0n, 0n];
+        if (request.functionName === "suppliedPrincipal")
+          return 1_000_000_000n;
+        if (request.functionName === "idlePrincipal") return 1n;
+        if (request.functionName === "suppliedAssets")
+          return 1_000_000_000n;
+        if (request.functionName === "accruedYieldAssets") return 0n;
+        return value;
+      },
+    };
+
+    const snapshot = await readProtocolSnapshot(client, config, account);
+
+    expect(snapshot.adapter.suppliedAssets).toBe(1_000_100_050n);
+    expect(snapshot.adapter.accruedYieldAssets).toBe(100_050n);
+    expect(snapshot.adapter.backingDifference).toBe(100_050n);
+  });
+
+  it("keeps raw adapter values when projected market state is unavailable", async () => {
+    const config = loadLabConfig({});
+    const base = createClient(config, [
+      config.usdc,
+      config.weth,
+      oracle,
+      irm,
+      945_000_000_000_000_000n,
+    ]);
+    const snapshot = await readProtocolSnapshot(
+      {
+        ...base,
+        readContract: async (request: ReadRequest) => {
+          if (request.functionName === "borrowRateView")
+            throw new Error("IRM unavailable");
+          return base.readContract(request);
+        },
+      },
+      config,
+      account
+    );
+
+    expect(snapshot.adapter.suppliedAssets).toBe(1_010_000n);
+    expect(snapshot.adapter.accruedYieldAssets).toBe(10_000n);
+    expect(snapshot.adapter.backingDifference).toBe(10_000n);
+  });
+
   it("accepts named tuple objects returned by viem ABI decoding", async () => {
     const config = loadLabConfig({});
     const client = createClient(config, [
@@ -313,7 +387,7 @@ function createClient(
         expect(request.args?.[0]).toBe(config.marketId);
         expect([account, config.adapter]).toContain(request.args?.[1]);
         return request.args?.[1] === config.adapter
-          ? [70n, 0n, 0n]
+          ? [1_000_000_000_000n, 0n, 0n]
           : [50n, 25n, 10n ** 18n];
       }
 

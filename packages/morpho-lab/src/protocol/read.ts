@@ -241,6 +241,26 @@ export async function readProtocolSnapshot(
           marketParams,
           oraclePrice
         );
+  const adapterPosition = parsePosition(adapterPositionRaw);
+  const rawSuppliedAssets = asBigInt(suppliedAssets);
+  const rawAccruedYieldAssets = asBigInt(accruedYieldAssets);
+  const trackedPrincipal = asBigInt(suppliedPrincipal);
+  const trackedIdlePrincipal = asBigInt(idlePrincipal);
+  const projectedSuppliedAssets =
+    accruedState === undefined
+      ? rawSuppliedAssets
+      : trackedIdlePrincipal +
+        toSupplyAssetsDown(
+          adapterPosition.supplyShares,
+          accruedState.totalSupplyAssets,
+          accruedState.totalSupplyShares
+        );
+  const projectedAccruedYieldAssets =
+    accruedState === undefined
+      ? rawAccruedYieldAssets
+      : projectedSuppliedAssets > trackedPrincipal
+      ? projectedSuppliedAssets - trackedPrincipal
+      : 0n;
 
   return {
     blockNumber,
@@ -263,19 +283,19 @@ export async function readProtocolSnapshot(
     },
     adapter: {
       usdcBalance: asBigInt(adapterUsdcBalance),
-      supplyShares: parsePosition(adapterPositionRaw).supplyShares,
+      supplyShares: adapterPosition.supplyShares,
       // suppliedAssets includes the rounding reserve; awaiting-supply USDC is separate.
-      backingDifference: asBigInt(suppliedAssets) - asBigInt(suppliedPrincipal),
+      backingDifference: projectedSuppliedAssets - trackedPrincipal,
       usdc: getAddress(adapterUsdc as Address),
       confidentialUsdc: getAddress(adapterConfidentialUsdc as Address),
       prizePool: getAddress(adapterPrizePool as Address),
       morpho: getAddress(adapterMorpho as Address),
       marketId: adapterMarketId as Hex,
-      suppliedPrincipal: asBigInt(suppliedPrincipal),
-      idlePrincipal: asBigInt(idlePrincipal),
+      suppliedPrincipal: trackedPrincipal,
+      idlePrincipal: trackedIdlePrincipal,
       availablePrincipalAssets: asBigInt(availablePrincipalAssets),
-      accruedYieldAssets: asBigInt(accruedYieldAssets),
-      suppliedAssets: asBigInt(suppliedAssets),
+      accruedYieldAssets: projectedAccruedYieldAssets,
+      suppliedAssets: projectedSuppliedAssets,
       marketParams: adapterMarketParams,
     },
     market: {

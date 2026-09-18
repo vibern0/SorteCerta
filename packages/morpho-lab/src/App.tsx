@@ -11,6 +11,7 @@ import { WalletBar } from "./components/WalletBar";
 import { Workbench } from "./components/Workbench";
 import { blockscoutBlockUrl, formatTimestamp } from "./format";
 import { readProtocolSnapshot } from "./protocol/read";
+import { watchProtocolBlocks } from "./protocol/watch";
 import type { ProtocolSnapshot } from "./types";
 import { MetaMaskProvider, useMetaMask } from "./wallet/MetaMaskProvider";
 import { loadLabConfig, type LabConfig } from "./config";
@@ -98,6 +99,14 @@ function AppContent({ config }: { config: LabConfig }) {
   useEffect(() => {
     void refresh().catch(() => undefined);
   }, [account, chainId, confirmedTransactions, refresh]);
+
+  useEffect(
+    () =>
+      watchProtocolBlocks(publicClient, () => {
+        void refresh().catch(() => undefined);
+      }),
+    [publicClient, refresh]
+  );
 
   const stateLabel =
     refreshError === undefined
