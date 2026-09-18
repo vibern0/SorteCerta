@@ -179,9 +179,6 @@ export async function readProjectedMorphoYield(
   blockNumber: bigint,
 ): Promise<ProjectedMorphoYield> {
   const normalizedPool = getAddress(pool);
-  const storedYield = asBigInt(
-    await read(client, normalizedPool, poolYieldAbi, "morphoAccruedYieldAssets", blockNumber),
-  );
 
   try {
     const [{ timestamp }, adapterValue] = await Promise.all([
@@ -234,6 +231,15 @@ export async function readProjectedMorphoYield(
       source: "projected",
     };
   } catch {
+    const storedYield = asBigInt(
+      await read(
+        client,
+        normalizedPool,
+        poolYieldAbi,
+        "morphoAccruedYieldAssets",
+        blockNumber,
+      ),
+    );
     return {
       blockNumber,
       accruedYieldAssets: storedYield,
@@ -247,35 +253,26 @@ export function createLatestBlockRefresher<T extends BlockSnapshot>(
   applySnapshot: (snapshot: T) => void,
   onError: (error: unknown) => void = () => undefined,
 ) {
-  let requestId = 0;
-  let latestBlock = -1n;
+  let latestAppliedBlock = -1n;
   let disposed = false;
 
   return {
     async refresh(blockNumber?: bigint): Promise<void> {
-      const currentRequestId = ++requestId;
-      if (blockNumber !== undefined && blockNumber > latestBlock) {
-        latestBlock = blockNumber;
-      }
+      if (disposed) return;
 
       try {
         const snapshot = await readSnapshot(blockNumber);
-        if (
-          disposed ||
-          currentRequestId !== requestId ||
-          snapshot.blockNumber < latestBlock
-        ) {
+        if (disposed || snapshot.blockNumber < latestAppliedBlock) {
           return;
         }
-        latestBlock = snapshot.blockNumber;
+        latestAppliedBlock = snapshot.blockNumber;
         applySnapshot(snapshot);
       } catch (error) {
-        if (!disposed && currentRequestId === requestId) onError(error);
+        if (!disposed) onError(error);
       }
     },
     dispose(): void {
       disposed = true;
-      requestId += 1;
     },
   };
 }

@@ -73,7 +73,7 @@ test("reads the active adapter projection entirely at one pinned block", async (
     accruedYieldAssets: 4_732_502n,
     source: "projected",
   });
-  assert.equal(requests.length, 10);
+  assert.equal(requests.length, 9);
   assert.ok(requests.every((request) => request.blockNumber === 77n));
   assert.deepEqual(client.blockRequests, [{ blockNumber: 77n }]);
   assert.equal(requests.find((request) => request.functionName === "morphoYieldAdapter").address, addresses.pool);
@@ -93,6 +93,18 @@ test("falls back to the pool stored yield when projection inputs are unavailable
   });
 });
 
+test("does not read the stored fallback when a valid projection is available", async () => {
+  const client = projectionClient({ failAt: "morphoAccruedYieldAssets" });
+
+  const result = await readProjectedMorphoYield(client, addresses.pool, 77n);
+
+  assert.deepEqual(result, {
+    blockNumber: 77n,
+    accruedYieldAssets: 4_732_502n,
+    source: "projected",
+  });
+});
+
 test("does not let an older overlapping refresh replace a newer block", async () => {
   const pending = new Map();
   const applied = [];
@@ -109,6 +121,49 @@ test("does not let an older overlapping refresh replace a newer block", async ()
   await older;
 
   assert.deepEqual(applied, [11n]);
+});
+
+test("a stale request started later does not cancel an in-flight newer block", async () => {
+  const pending = new Map();
+  const applied = [];
+  const refresher = createLatestBlockRefresher(
+    (blockNumber) => new Promise((resolve) => pending.set(blockNumber, resolve)),
+    (snapshot) => applied.push(snapshot.blockNumber),
+  );
+
+  const newer = refresher.refresh(11n);
+  const stale = refresher.refresh(10n);
+  pending.get(11n)({ blockNumber: 11n });
+  await newer;
+  pending.get(10n)({ blockNumber: 10n });
+  await stale;
+
+  assert.deepEqual(applied, [11n]);
+});
+
+test("a failed higher-block request does not cancel valid in-flight or subsequent blocks", async () => {
+  const pending = new Map();
+  const applied = [];
+  const errors = [];
+  const refresher = createLatestBlockRefresher(
+    (blockNumber) => new Promise((resolve, reject) => pending.set(blockNumber, { resolve, reject })),
+    (snapshot) => applied.push(snapshot.blockNumber),
+    (error) => errors.push(error.message),
+  );
+
+  const inFlight = refresher.refresh(11n);
+  const failed = refresher.refresh(12n);
+  pending.get(12n).reject(new Error("Block 12 unavailable"));
+  await failed;
+  pending.get(11n).resolve({ blockNumber: 11n });
+  await inFlight;
+
+  const subsequent = refresher.refresh(13n);
+  pending.get(13n).resolve({ blockNumber: 13n });
+  await subsequent;
+
+  assert.deepEqual(applied, [11n, 13n]);
+  assert.deepEqual(errors, ["Block 12 unavailable"]);
 });
 
 test("disposal prevents an in-flight refresh from updating state", async () => {
