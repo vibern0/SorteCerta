@@ -299,14 +299,6 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         emit MorphoPrincipalSupplied(assetsSupplied, sharesSupplied);
     }
 
-    /// @notice Harvests accrued Morpho surplus and routes it back as prize funding.
-    function harvestMorphoYield(uint256 maxAssets) external returns (uint256 harvestedAssets) {
-        IMorphoPrizeYieldAdapter adapter = _requireMorphoYieldAdapter();
-
-        harvestedAssets = adapter.harvestYieldToPrizePool(maxAssets);
-        emit MorphoYieldHarvested(harvestedAssets);
-    }
-
     function _harvestAccruedMorphoYield() internal returns (uint256 harvestedAssets) {
         IMorphoPrizeYieldAdapter adapter = morphoYieldAdapter;
         if (address(adapter) == address(0)) return 0;

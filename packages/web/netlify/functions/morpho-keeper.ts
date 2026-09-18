@@ -23,7 +23,6 @@ const prizePoolAbi = parseAbi([
   "function lastMorphoUnwrapAt() view returns (uint256)",
   "function morphoUnwrapInterval() view returns (uint256)",
   "function supplyAvailableMorphoPrincipal() returns (uint256 assetsSupplied,uint256 sharesSupplied)",
-  "function harvestMorphoYield(uint256 maxAssets) returns (uint256 harvestedAssets)",
   "function requestMorphoPrincipalUnwrap() returns (bytes32 unwrapRequestId)",
 ]);
 
@@ -204,17 +203,14 @@ async function runAction(
   const functionName =
     action === "supply"
       ? "supplyAvailableMorphoPrincipal"
-      : action === "harvest"
-        ? "harvestMorphoYield"
-        : "requestMorphoPrincipalUnwrap";
-  const args = action === "harvest" ? [0n] as const : [] as const;
+      : "requestMorphoPrincipalUnwrap";
   const hash = await walletClient.writeContract({
     address: pool,
     abi: prizePoolAbi,
     account,
     chain: sepolia,
     functionName,
-    args,
+    args: [],
   });
   return hash;
 }

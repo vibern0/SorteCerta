@@ -1,4 +1,4 @@
-export type MorphoKeeperAction = "supply" | "harvest" | "finalize" | "unwrap" | "accrue";
+export type MorphoKeeperAction = "supply" | "finalize" | "unwrap" | "accrue";
 
 export type MorphoKeeperSnapshot = {
   availablePrincipalAssets: bigint;
@@ -57,7 +57,6 @@ export function chooseMorphoKeeperActions(
   const max = Math.min(Math.max(Math.floor(maxTransactions), 1), HARD_MAX_TRANSACTIONS);
 
   if (snapshot.availablePrincipalAssets > 0n) actions.push("supply");
-  if (snapshot.accruedYieldAssets > 0n) actions.push("harvest");
 
   if (snapshot.pendingUnwrapRequestId) {
     actions.push("finalize");
