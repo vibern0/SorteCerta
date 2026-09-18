@@ -14,7 +14,7 @@ export function IncreaseUtilization({
 }: {
   context: ActionContext;
   disabled: boolean;
-  onRun(collateral: bigint, borrow: bigint): Promise<void>;
+  onRun: (collateral: bigint, borrow: bigint) => Promise<void>;
 }) {
   const id = useId();
   const [collateralInput, setCollateralInput] = useState("");
@@ -45,7 +45,7 @@ export function IncreaseUtilization({
     error = reason instanceof Error ? reason.message : String(reason);
   }
   const allowance =
-    plan?.allowance ?? context.snapshot.account!.tokens.morphoWethAllowance;
+    plan?.allowance ?? context.snapshot.account.tokens.morphoWethAllowance;
   const needsApproval = collateral > allowance;
 
   return (
@@ -88,7 +88,7 @@ export function IncreaseUtilization({
                   setPlan(undefined);
                   setCollateralInput(
                     formatUnits(
-                      context.snapshot.account!.tokens.wethBalance,
+                      context.snapshot.account.tokens.wethBalance,
                       18
                     )
                   );
@@ -101,7 +101,7 @@ export function IncreaseUtilization({
             </div>
             <p className="action-hint">
               Available:{" "}
-              {formatUnits(context.snapshot.account!.tokens.wethBalance, 18)}{" "}
+              {formatUnits(context.snapshot.account.tokens.wethBalance, 18)}{" "}
               WETH
             </p>
           </div>
@@ -152,7 +152,7 @@ export function IncreaseUtilization({
           <p>
             Account:{" "}
             <span className="action-address">
-              {context.snapshot.account!.address}
+              {context.snapshot.account.address}
             </span>
           </p>
           <p>

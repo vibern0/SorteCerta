@@ -23,14 +23,14 @@ export function OperatorPanel({
 }: {
   config: LabConfig;
   snapshot: ProtocolSnapshot;
-  refresh(): Promise<ProtocolSnapshot>;
+  refresh: () => Promise<ProtocolSnapshot>;
   stale: boolean;
 }) {
   const wallet = useMetaMask();
   const walletRef = useRef(wallet);
   walletRef.current = wallet;
   const running = useRef(false);
-  const { account, chainId, status, submitSimulatedWrite } = wallet;
+  const { account, chainId, status } = wallet;
   const [fundAmount, setFundAmount] = useState("");
   const [reviewed, setReviewed] = useState(false);
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1_000));
@@ -69,18 +69,20 @@ export function OperatorPanel({
   }, [account, chainId]);
 
   async function fundPrize() {
+    const reviewedAccount = account;
     if (
       fundingDisabled ||
       !validFunding ||
       !reviewed ||
       amount === undefined ||
+      reviewedAccount === undefined ||
       running.current
     )
       return;
     running.current = true;
     setBusy(true);
     setError(undefined);
-    const expectedAccount = getAddress(account!);
+    const expectedAccount = getAddress(reviewedAccount);
     const assertWallet = () => {
       const current = walletRef.current;
       if (
@@ -147,7 +149,7 @@ export function OperatorPanel({
     setError(undefined);
     setProgress("Simulating close draw...");
     try {
-      await submitSimulatedWrite(buildCloseDraw(config, snapshot));
+      await wallet.submitSimulatedWrite(buildCloseDraw(config, snapshot));
       setProgress("Close draw confirmed. Refreshing protocol state...");
       await refresh();
       setProgress("Close draw complete.");

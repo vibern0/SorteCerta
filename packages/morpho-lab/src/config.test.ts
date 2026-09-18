@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { loadLabConfig } from "./config";
+import { loadLabConfig, validateLabConfig } from "./config";
 
 describe("loadLabConfig", () => {
   it("loads checksummed current deployment defaults", () => {
@@ -15,5 +15,11 @@ describe("loadLabConfig", () => {
     expect(() => loadLabConfig({ VITE_MORPHO_ADDRESS: "bad" })).toThrow(
       "Morpho address",
     );
+  });
+
+  it("rejects a config for the wrong chain", () => {
+    expect(() =>
+      validateLabConfig({ ...loadLabConfig({}), chainId: 1 }),
+    ).toThrow("11155111");
   });
 });

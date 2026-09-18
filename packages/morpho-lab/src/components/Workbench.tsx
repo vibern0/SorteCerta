@@ -5,6 +5,7 @@ import {
   createActionContext,
   executeAction,
   executeIncreaseUtilization,
+  type ActionContext,
   type ActionRunner,
 } from "../protocol/actions";
 import type { ProtocolSnapshot } from "../types";
@@ -21,7 +22,7 @@ export function Workbench({
 }: {
   config: LabConfig;
   snapshot: ProtocolSnapshot;
-  refresh(): Promise<ProtocolSnapshot>;
+  refresh: () => Promise<ProtocolSnapshot>;
   stale: boolean;
 }) {
   const wallet = useMetaMask();
@@ -38,10 +39,12 @@ export function Workbench({
     getAddress(snapshot.account.address) === getAddress(account);
   let context: ReturnType<typeof createActionContext> | undefined;
   let contextError: string | undefined;
-  try {
-    context = createActionContext(config, snapshot);
-  } catch (reason) {
-    contextError = reason instanceof Error ? reason.message : String(reason);
+  if (snapshot.account !== undefined) {
+    try {
+      context = createActionContext(config, snapshot);
+    } catch (reason) {
+      contextError = reason instanceof Error ? reason.message : String(reason);
+    }
   }
   const disabled =
     busy ||
@@ -49,13 +52,24 @@ export function Workbench({
     wallet.chainId !== 11155111 ||
     wallet.status !== "connected";
 
-  async function run(work: (runner: ActionRunner) => Promise<void>) {
-    if (running.current || disabled || !matches || !context) return;
+  async function run(
+    work: (context: ActionContext, runner: ActionRunner) => Promise<void>,
+  ) {
+    const reviewedAccount = account;
+    const reviewedContext = context;
+    if (
+      running.current ||
+      disabled ||
+      !matches ||
+      !reviewedContext ||
+      reviewedAccount === undefined
+    )
+      return;
     running.current = true;
     setBusy(true);
     setError(undefined);
     setMessages([]);
-    const expectedAccount = getAddress(account!);
+    const expectedAccount = getAddress(reviewedAccount);
     const assertWallet = () => {
       const current = walletRef.current;
       if (
@@ -69,7 +83,7 @@ export function Workbench({
         throw new Error("Switch MetaMask to chain ID 11155111.");
     };
     try {
-      await work({
+      await work(reviewedContext, {
         refresh: async () => {
           assertWallet();
           const next = await refresh();
@@ -153,12 +167,12 @@ export function Workbench({
                 {actions.map((action) => (
                   <AmountAction
                     key={`${account}-${action}`}
-                    context={context!}
+                    context={context}
                     action={action}
                     disabled={disabled}
                     onRun={(kind, amount) =>
-                      run((runner) =>
-                        executeAction(context!, kind, amount, runner)
+                      run((reviewedContext, runner) =>
+                        executeAction(reviewedContext, kind, amount, runner)
                       )
                     }
                   />
@@ -174,8 +188,14 @@ export function Workbench({
                 context={context}
                 disabled={disabled}
                 onRun={(review) =>
-                  run((runner) =>
-                    executeAction(context!, "repayUsdc", "all", runner, review)
+                  run((reviewedContext, runner) =>
+                    executeAction(
+                      reviewedContext,
+                      "repayUsdc",
+                      "all",
+                      runner,
+                      review,
+                    )
                   )
                 }
               />
@@ -186,7 +206,9 @@ export function Workbench({
                 all
                 disabled={disabled}
                 onRun={(kind, amount) =>
-                  run((runner) => executeAction(context!, kind, amount, runner))
+                  run((reviewedContext, runner) =>
+                    executeAction(reviewedContext, kind, amount, runner)
+                  )
                 }
               />
             </div>
@@ -196,8 +218,13 @@ export function Workbench({
             context={context}
             disabled={disabled}
             onRun={(collateral, borrow) =>
-              run((runner) =>
-                executeIncreaseUtilization(context!, collateral, borrow, runner)
+              run((reviewedContext, runner) =>
+                executeIncreaseUtilization(
+                  reviewedContext,
+                  collateral,
+                  borrow,
+                  runner,
+                )
               )
             }
           />

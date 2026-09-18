@@ -1,7 +1,11 @@
 import { formatUnits, getAddress, parseUnits, type Address } from "viem";
 import { erc20WriteAbi, morphoWriteAbi, wethWriteAbi } from "../abis";
 import type { LabConfig } from "../config";
-import type { MarketParams, ProtocolSnapshot } from "../types";
+import type {
+  AccountSnapshot,
+  MarketParams,
+  ProtocolSnapshot,
+} from "../types";
 import type { SimulatedWriteArgs } from "../wallet/MetaMaskProvider";
 import {
   accruedMarketState,
@@ -24,42 +28,58 @@ export type ActionKind =
 export type ActionAmount = bigint | "all";
 export type RepayAllReview = { borrowShares: bigint; approvalAmount: bigint };
 export type ActionContext = LabConfig & {
-  snapshot: ProtocolSnapshot;
+  snapshot: ProtocolSnapshot & { account: AccountSnapshot };
   safetyBps: bigint;
 };
 export const ETH_GAS_RESERVE = 10n ** 15n;
-export const ACTION_LABELS: Record<ActionKind, string> = {
-  wrapEth: "Wrap ETH",
-  unwrapWeth: "Unwrap WETH",
-  supplyUsdc: "Supply USDC",
-  withdrawUsdc: "Withdraw USDC",
-  supplyCollateral: "Supply WETH collateral",
-  borrowUsdc: "Borrow USDC",
-  repayUsdc: "Repay USDC",
-  withdrawCollateral: "Withdraw WETH collateral",
-};
+
+export function actionLabel(action: ActionKind): string {
+  switch (action) {
+    case "wrapEth":
+      return "Wrap ETH";
+    case "unwrapWeth":
+      return "Unwrap WETH";
+    case "supplyUsdc":
+      return "Supply USDC";
+    case "withdrawUsdc":
+      return "Withdraw USDC";
+    case "supplyCollateral":
+      return "Supply WETH collateral";
+    case "borrowUsdc":
+      return "Borrow USDC";
+    case "repayUsdc":
+      return "Repay USDC";
+    case "withdrawCollateral":
+      return "Withdraw WETH collateral";
+  }
+}
 
 export function createActionContext(
   config: LabConfig,
   snapshot: ProtocolSnapshot,
   safetyBps = 8_000n
 ): ActionContext {
-  if (config.chainId !== 11155111)
-    throw new Error("Switch to chain ID 11155111.");
   if (safetyBps <= 0n || safetyBps > 8_000n)
     throw new Error("Safety margin must be at most 80% of LLTV.");
-  const normalized = { ...config };
-  for (const key of [
-    "usdc",
-    "weth",
-    "wrapper",
-    "pool",
-    "adapter",
-    "morpho",
-  ] as const) {
-    normalized[key] = getAddress(config[key]);
-    if (getAddress(snapshot.deployment[key]) !== normalized[key])
-      throw new Error("Deployment binding changed. Refresh before continuing.");
+  assertAccountSnapshot(snapshot);
+  const normalized = {
+    ...config,
+    usdc: getAddress(config.usdc),
+    weth: getAddress(config.weth),
+    wrapper: getAddress(config.wrapper),
+    pool: getAddress(config.pool),
+    adapter: getAddress(config.adapter),
+    morpho: getAddress(config.morpho),
+  };
+  if (
+    getAddress(snapshot.deployment.usdc) !== normalized.usdc ||
+    getAddress(snapshot.deployment.weth) !== normalized.weth ||
+    getAddress(snapshot.deployment.wrapper) !== normalized.wrapper ||
+    getAddress(snapshot.deployment.pool) !== normalized.pool ||
+    getAddress(snapshot.deployment.adapter) !== normalized.adapter ||
+    getAddress(snapshot.deployment.morpho) !== normalized.morpho
+  ) {
+    throw new Error("Deployment binding changed. Refresh before continuing.");
   }
   const params = normalizeParams(snapshot.adapter.marketParams);
   const registered = normalizeParams(snapshot.market.params);
@@ -72,17 +92,19 @@ export function createActionContext(
     getAddress(snapshot.adapter.confidentialUsdc) !== normalized.wrapper ||
     params.loanToken !== normalized.usdc ||
     params.collateralToken !== normalized.weth ||
-    Object.keys(params).some(
-      (key) =>
-        params[key as keyof MarketParams] !==
-        registered[key as keyof MarketParams]
-    )
+    !sameMarketParams(params, registered)
   ) {
     throw new Error(
       "Adapter market binding changed. Refresh before continuing."
     );
   }
   return { ...normalized, snapshot, safetyBps };
+}
+
+function assertAccountSnapshot(
+  snapshot: ProtocolSnapshot,
+): asserts snapshot is ProtocolSnapshot & { account: AccountSnapshot } {
+  if (!snapshot.account) throw new Error("Connect MetaMask before continuing.");
 }
 
 function normalizeParams(params: MarketParams): MarketParams {
@@ -95,9 +117,18 @@ function normalizeParams(params: MarketParams): MarketParams {
   };
 }
 
+function sameMarketParams(left: MarketParams, right: MarketParams): boolean {
+  return (
+    left.loanToken === right.loanToken &&
+    left.collateralToken === right.collateralToken &&
+    left.oracle === right.oracle &&
+    left.irm === right.irm &&
+    left.lltv === right.lltv
+  );
+}
+
 function owner(config: ActionContext, address?: Address) {
   const account = config.snapshot.account;
-  if (!account) throw new Error("Connect MetaMask before continuing.");
   if (address && getAddress(address) !== getAddress(account.address))
     throw new Error("Account changed. Review the action again.");
   return getAddress(account.address);
@@ -118,7 +149,7 @@ export function buildApproval(
 ) {
   positive(amount);
   return {
-    address: getAddress(config[token]),
+    address: getAddress(token === "usdc" ? config.usdc : config.weth),
     abi: erc20WriteAbi,
     functionName: "approve",
     args: [getAddress(config.morpho), amount],
@@ -173,7 +204,7 @@ export function buildWithdraw(
 ) {
   const address = owner(config, account);
   const shares =
-    amount === "all" ? config.snapshot.account!.position.supplyShares : 0n;
+    amount === "all" ? config.snapshot.account.position.supplyShares : 0n;
   positive(amount === "all" ? shares : amount);
   return {
     ...market(config),
@@ -228,7 +259,7 @@ export function buildRepay(
 ) {
   const address = owner(config, account);
   const shares =
-    amount === "all" ? config.snapshot.account!.position.borrowShares : 0n;
+    amount === "all" ? config.snapshot.account.position.borrowShares : 0n;
   positive(amount === "all" ? shares : amount);
   return {
     ...market(config),
@@ -263,15 +294,29 @@ export function buildWithdrawCollateral(
 }
 
 export function parseAmount(value: string, decimals: number): bigint {
-  if (
-    !/^\d+(\.\d*)?$/.test(value) ||
-    (value.split(".")[1]?.length ?? 0) > decimals
-  ) {
+  if (!isDecimalAmount(value, decimals)) {
     throw new Error(`Enter an amount with at most ${decimals} decimal places.`);
   }
   const amount = parseUnits(value, decimals);
   positive(amount);
   return amount;
+}
+
+function isDecimalAmount(value: string, decimals: number): boolean {
+  const separator = value.indexOf(".");
+  if (separator !== value.lastIndexOf(".")) return false;
+  const whole = separator === -1 ? value : value.slice(0, separator);
+  const fraction = separator === -1 ? "" : value.slice(separator + 1);
+  if (!whole || !hasOnlyDigits(whole)) return false;
+  return hasOnlyDigits(fraction, true) && fraction.length <= decimals;
+}
+
+function hasOnlyDigits(value: string, allowEmpty = false): boolean {
+  if (!allowEmpty && value.length === 0) return false;
+  for (const character of value) {
+    if (character < "0" || character > "9") return false;
+  }
+  return true;
 }
 
 function positive(amount: bigint) {
@@ -289,7 +334,7 @@ function ceilDiv(a: bigint, b: bigint) {
 
 export function positionAmounts(config: ActionContext) {
   owner(config);
-  const { position } = config.snapshot.account!;
+  const { position } = config.snapshot.account;
   const state = accruedMarketState(
     config.snapshot.market.state,
     config.snapshot.market.borrowRatePerSecond,
@@ -325,7 +370,7 @@ function debtAssets(config: ActionContext) {
 function borrowCapacity(config: ActionContext, extraCollateral = 0n) {
   const health = positionHealth({
     collateralAssets:
-      config.snapshot.account!.position.collateralAssets + extraCollateral,
+      config.snapshot.account.position.collateralAssets + extraCollateral,
     collateralPrice: config.snapshot.market.oraclePrice,
     borrowAssets: debtAssets(config),
     lltv: config.snapshot.adapter.marketParams.lltv,
@@ -352,7 +397,7 @@ export function getActionMax(
   action: ActionKind
 ): bigint {
   owner(config);
-  const { tokens, position } = config.snapshot.account!;
+  const { tokens, position } = config.snapshot.account;
   switch (action) {
     case "wrapEth":
       return nonnegative(tokens.ethBalance - ETH_GAS_RESERVE);
@@ -416,10 +461,11 @@ export function validateAction(
   owner(config);
   const assets = actionAssets(config, action, amount);
   if (amount === "all") {
+    const { position } = config.snapshot.account;
     positive(
-      config.snapshot.account!.position[
-        action === "repayUsdc" ? "borrowShares" : "supplyShares"
-      ]
+      action === "repayUsdc"
+        ? position.borrowShares
+        : position.supplyShares,
     );
   } else positive(assets);
   if (
@@ -430,7 +476,7 @@ export function validateAction(
   }
   const max =
     amount === "all" && action === "repayUsdc"
-      ? min(assets, config.snapshot.account!.tokens.usdcBalance)
+      ? min(assets, config.snapshot.account.tokens.usdcBalance)
       : getActionMax(config, action);
   if (assets > max) {
     if (action === "borrowUsdc")
@@ -451,7 +497,7 @@ export function requiredApproval(
   amount: ActionAmount
 ) {
   const assets = actionAssets(config, action, amount);
-  const tokens = config.snapshot.account!.tokens;
+  const tokens = config.snapshot.account.tokens;
   if (action === "supplyCollateral")
     return {
       token: "weth" as const,
@@ -496,15 +542,15 @@ export function buildAction(
 }
 
 export type ActionRunner = {
-  refresh(): Promise<ActionContext>;
-  submit(call: SimulatedWriteArgs): Promise<unknown>;
+  refresh: () => Promise<ActionContext>;
+  submit: (call: SimulatedWriteArgs) => Promise<unknown>;
   onStep?(message: string): void;
 };
 
 export function getRepayAllQuote(config: ActionContext) {
   owner(config);
   const { state, borrowRatePerSecond } = config.snapshot.market;
-  const { position, tokens } = config.snapshot.account!;
+  const { position, tokens } = config.snapshot.account;
   if (borrowRatePerSecond === undefined)
     throw new Error(
       "Borrow rate unavailable. Refresh before reviewing repayment."
@@ -559,11 +605,7 @@ function sequence(initial: ActionContext, runner: ActionRunner) {
         next.morpho !== initial.morpho ||
         next.adapter !== initial.adapter ||
         next.marketId !== initial.marketId ||
-        Object.keys(marketParams(initial)).some(
-          (key) =>
-            marketParams(initial)[key as keyof MarketParams] !==
-            marketParams(next)[key as keyof MarketParams]
-        )
+        !sameMarketParams(marketParams(initial), marketParams(next))
       ) {
         throw new Error("Market changed. Review the action again.");
       }
@@ -596,7 +638,7 @@ export async function executeAction(
     let current = await flow.refresh();
     validateRepayAllReview(current, review);
     if (
-      current.snapshot.account!.tokens.morphoUsdcAllowance !==
+      current.snapshot.account.tokens.morphoUsdcAllowance !==
       review.approvalAmount
     ) {
       await flow.submit(buildApproval(current, "usdc", review.approvalAmount));
@@ -604,14 +646,14 @@ export async function executeAction(
     }
     validateRepayAllReview(current, review);
     if (
-      current.snapshot.account!.tokens.morphoUsdcAllowance !==
+      current.snapshot.account.tokens.morphoUsdcAllowance !==
       review.approvalAmount
     ) {
       throw new Error("Approval limit changed. Review repayment again.");
     }
     await flow.submit(buildRepay(current, owner(current), "all"));
     const result = await flow.refresh();
-    if (result.snapshot.account!.position.borrowShares !== 0n)
+    if (result.snapshot.account.position.borrowShares !== 0n)
       throw new Error(
         "Borrow shares remain after repayment. Refresh and review your position."
       );
@@ -653,16 +695,19 @@ export async function executeIncreaseUtilization(
       );
   };
   validatePlan();
-  const approval = requiredApproval(current, "supplyCollateral", collateral)!;
+  const approval = requiredApproval(current, "supplyCollateral", collateral);
+  if (!approval) throw new Error("WETH approval is unavailable.");
   if (approval.allowance < collateral) {
     await flow.submit(buildApproval(current, "weth", collateral));
     current = await flow.refresh();
   }
   validatePlan();
-  if (
-    requiredApproval(current, "supplyCollateral", collateral)!.allowance <
-    collateral
-  )
+  const latestApproval = requiredApproval(
+    current,
+    "supplyCollateral",
+    collateral,
+  );
+  if (!latestApproval || latestApproval.allowance < collateral)
     throw new Error("WETH approval is insufficient.");
   await flow.submit(buildSupplyCollateral(current, owner(current), collateral));
   current = await flow.refresh();

@@ -9,6 +9,11 @@ const transaction = {
   input: "0x1234",
   value: 0n,
 };
+type ReplacementHandler = (event: {
+  reason: "cancelled" | "replaced" | "repriced";
+  replacedTransaction: typeof transaction;
+  transaction: typeof transaction & { hash: Hash };
+}) => void;
 
 describe("action receipts", () => {
   it.each([
@@ -20,7 +25,11 @@ describe("action receipts", () => {
   ])("rejects %s even when its receipt succeeds", async (kind) => {
     let continued = false;
     const client = {
-      waitForTransactionReceipt: async ({ onReplaced }: any) => {
+      waitForTransactionReceipt: async ({
+        onReplaced,
+      }: {
+        onReplaced: ReplacementHandler;
+      }) => {
         onReplaced({
           reason:
             kind === "cancelled" || kind === "replaced" ? kind : "repriced",
@@ -53,7 +62,11 @@ describe("action receipts", () => {
   it("tracks speed-up hashes and returns the mined receipt", async () => {
     const hashes: Hash[] = [];
     const client = {
-      waitForTransactionReceipt: async ({ onReplaced }: any) => {
+      waitForTransactionReceipt: async ({
+        onReplaced,
+      }: {
+        onReplaced: ReplacementHandler;
+      }) => {
         onReplaced({
           reason: "repriced",
           replacedTransaction: transaction,

@@ -1,7 +1,7 @@
 import { encodeFunctionData, getAddress, type Address } from "viem";
 import { describe, expect, it } from "vitest";
 import { loadLabConfig } from "../config";
-import type { ProtocolSnapshot } from "../types";
+import type { AccountSnapshot, ProtocolSnapshot } from "../types";
 import {
   buildApproval,
   buildBorrow,
@@ -34,7 +34,9 @@ const params = {
   lltv: 900_000_000_000_000_000n,
 };
 
-function snapshot(): ProtocolSnapshot {
+type TestSnapshot = ProtocolSnapshot & { account: AccountSnapshot };
+
+function snapshot(): TestSnapshot {
   return {
     blockNumber: 123n,
     blockTimestamp: 1n,
@@ -124,6 +126,12 @@ function context(state = snapshot()) {
   return createActionContext(deployment, state);
 }
 
+function secondBigIntArg(call: { args?: readonly unknown[] }): bigint {
+  const value = call.args?.[1];
+  if (typeof value !== "bigint") throw new Error("Expected bigint argument");
+  return value;
+}
+
 describe("action builders", () => {
   it("borrows assets to and on behalf of the account using adapter parameters", () => {
     const config = context();
@@ -177,7 +185,7 @@ describe("action builders", () => {
   it("approves only the action amount to Morpho for either token", () => {
     for (const token of ["usdc", "weth"] as const) {
       expect(buildApproval(context(), token, 13n)).toMatchObject({
-        address: deployment[token],
+        address: token === "usdc" ? deployment.usdc : deployment.weth,
         functionName: "approve",
         args: [deployment.morpho, 13n],
       });
@@ -281,16 +289,16 @@ describe("local validation", () => {
     state.market.borrowRatePerSecond = undefined;
 
     expect(getActionMax(context(state), "wrapEth")).toBe(
-      state.account!.tokens.ethBalance - 10n ** 15n
+      state.account.tokens.ethBalance - 10n ** 15n
     );
     expect(getActionMax(context(state), "unwrapWeth")).toBe(
-      state.account!.tokens.wethBalance
+      state.account.tokens.wethBalance
     );
     expect(getActionMax(context(state), "supplyUsdc")).toBe(
-      state.account!.tokens.usdcBalance
+      state.account.tokens.usdcBalance
     );
     expect(getActionMax(context(state), "supplyCollateral")).toBe(
-      state.account!.tokens.wethBalance
+      state.account.tokens.wethBalance
     );
 
     expect(() => validateAction(context(state), "wrapEth", 1n)).not.toThrow();
@@ -317,7 +325,15 @@ describe("local validation", () => {
 
   it("rejects excess precision instead of rounding the amount", () => {
     expect(parseAmount("1.000001", 6)).toBe(1_000_001n);
-    for (const value of ["1.0000001", "-1", "1e3", "", ".", "NaN"]) {
+    for (const value of [
+      "1.0000001",
+      "-1",
+      "1e3",
+      "",
+      ".",
+      "NaN",
+      `${"1".repeat(100_000)}x`,
+    ]) {
       expect(() => parseAmount(value, 6)).toThrow();
     }
   });
@@ -367,7 +383,7 @@ describe("local validation", () => {
   it("rejects borrowing and direct withdrawals above market liquidity", () => {
     const state = snapshot();
     state.market.state.totalBorrowAssets = 9_999_999_999n;
-    state.account!.position.borrowShares = 0n;
+    state.account.position.borrowShares = 0n;
     for (const action of ["borrowUsdc", "withdrawUsdc"] as const) {
       expect(() => validateAction(context(state), action, 2n)).toThrow(
         /liquidity/i
@@ -380,7 +396,7 @@ describe("local validation", () => {
 
   it("does not turn repay-all into a partial repayment when balance is insufficient", () => {
     const state = snapshot();
-    state.account!.tokens.usdcBalance = 1n;
+    state.account.tokens.usdcBalance = 1n;
     expect(() => validateAction(context(state), "repayUsdc", "all")).toThrow(
       /balance/i
     );
@@ -388,7 +404,7 @@ describe("local validation", () => {
 
   it("allows removing all supply shares even when they round down to zero assets", () => {
     const state = snapshot();
-    state.account!.position.supplyShares = 1n;
+    state.account.position.supplyShares = 1n;
     expect(() =>
       validateAction(context(state), "withdrawUsdc", "all")
     ).not.toThrow();
@@ -403,7 +419,7 @@ describe("local validation", () => {
 
   it("rounds partial repay max down while allowing a full share repayment to round up", () => {
     const state = snapshot();
-    state.account!.position.borrowShares = 1_000_001n;
+    state.account.position.borrowShares = 1_000_001n;
     state.market.state.totalBorrowAssets = 2n;
     state.market.state.totalBorrowShares = 1_000_002n;
     expect(getActionMax(context(state), "repayUsdc")).toBe(1n);
@@ -424,7 +440,7 @@ describe("local validation", () => {
 describe("transaction sequences", () => {
   function harness(failAt?: string, approved = false) {
     const state = snapshot();
-    if (approved) state.account!.tokens.morphoWethAllowance = 10n ** 18n;
+    if (approved) state.account.tokens.morphoWethAllowance = 10n ** 18n;
     const events: string[] = [];
     const refresh = async () => {
       events.push("refresh");
@@ -438,18 +454,18 @@ describe("transaction sequences", () => {
       events.push(call.functionName);
       if (call.functionName === failAt) throw new Error("Rejected");
       if (call.functionName === "approve") {
-        state.account!.tokens[
-          call.address === deployment.usdc
-            ? "morphoUsdcAllowance"
-            : "morphoWethAllowance"
-        ] = call.args![1] as bigint;
+        const amount = secondBigIntArg(call);
+        if (call.address === deployment.usdc)
+          state.account.tokens.morphoUsdcAllowance = amount;
+        else state.account.tokens.morphoWethAllowance = amount;
       }
       if (call.functionName === "supplyCollateral") {
-        state.account!.position.collateralAssets += call.args![1] as bigint;
-        state.account!.tokens.wethBalance -= call.args![1] as bigint;
+        const amount = secondBigIntArg(call);
+        state.account.position.collateralAssets += amount;
+        state.account.tokens.wethBalance -= amount;
       }
       if (call.functionName === "repay")
-        state.account!.position.borrowShares = 0n;
+        state.account.position.borrowShares = 0n;
     };
     return { state, events, refresh, submit };
   }
@@ -516,7 +532,7 @@ describe("transaction sequences", () => {
       const refresh = async (): Promise<ActionContext> => {
         if (++reads > 1) {
           if (reason === "failure") throw new Error("Refresh failed");
-          h.state.account!.address = params.oracle;
+          h.state.account.address = params.oracle;
         }
         return h.refresh();
       };
@@ -551,7 +567,7 @@ describe("transaction sequences", () => {
         h,
         amount === "all"
           ? {
-              borrowShares: h.state.account!.position.borrowShares,
+              borrowShares: h.state.account.position.borrowShares,
               approvalAmount: 500_000_000n,
             }
           : undefined
@@ -563,7 +579,7 @@ describe("transaction sequences", () => {
         name,
         "refresh",
       ]);
-      expect(h.state.account!.tokens.morphoUsdcAllowance).toBe(
+      expect(h.state.account.tokens.morphoUsdcAllowance).toBe(
         amount === "all" ? 500_000_000n : 10n
       );
     }
@@ -605,7 +621,7 @@ describe("transaction sequences", () => {
         "all",
         { ...h, submit },
         {
-          borrowShares: h.state.account!.position.borrowShares,
+          borrowShares: h.state.account.position.borrowShares,
           approvalAmount: 500_000_000n,
         }
       )
@@ -649,7 +665,7 @@ describe("reviewed repay-all with pending interest", () => {
           calls.push(call.functionName);
           if (call.functionName === "approve") {
             expect(call.args).toEqual([deployment.morpho, 505_505_253n]);
-            state.account!.tokens.morphoUsdcAllowance = call.args![1] as bigint;
+            state.account.tokens.morphoUsdcAllowance = secondBigIntArg(call);
             state.blockTimestamp = 1_601n;
             // No market interaction: stored totals and lastUpdate still do not accrue.
             expect(state.market.state.totalBorrowAssets).toBe(1_000_000_000n);
@@ -663,19 +679,19 @@ describe("reviewed repay-all with pending interest", () => {
               "0x",
             ]);
             // At t=1601, Morpho's pending interest increases the repayment to 500800640.
-            if (state.account!.tokens.morphoUsdcAllowance < 500_800_640n)
+            if (state.account.tokens.morphoUsdcAllowance < 500_800_640n)
               throw new Error("ERC20InsufficientAllowance");
-            state.account!.tokens.usdcBalance -= 500_800_640n;
-            state.account!.tokens.morphoUsdcAllowance -= 500_800_640n;
-            state.account!.position.borrowShares = 0n;
+            state.account.tokens.usdcBalance -= 500_800_640n;
+            state.account.tokens.morphoUsdcAllowance -= 500_800_640n;
+            state.account.position.borrowShares = 0n;
           }
         },
       },
       review
     );
     expect(calls).toEqual(["approve", "repay"]);
-    expect(state.account!.position.borrowShares).toBe(0n);
-    expect(state.account!.tokens.usdcBalance).toBe(1_499_199_360n);
+    expect(state.account.position.borrowShares).toBe(0n);
+    expect(state.account.tokens.usdcBalance).toBe(1_499_199_360n);
   });
 
   it("requires a reviewed bound and rejects unlimited, over-balance or insufficient limits before writing", async () => {
@@ -701,7 +717,7 @@ describe("reviewed repay-all with pending interest", () => {
           approvalAmount === undefined
             ? undefined
             : {
-                borrowShares: state.account!.position.borrowShares,
+                borrowShares: state.account.position.borrowShares,
                 approvalAmount,
               }
         )
@@ -729,12 +745,12 @@ describe("reviewed repay-all with pending interest", () => {
           refresh: async () => context(state),
           submit: async (call) => {
             writes.push(call.functionName);
-            state.account!.tokens.morphoUsdcAllowance = call.args![1] as bigint;
+            state.account.tokens.morphoUsdcAllowance = secondBigIntArg(call);
             state.blockTimestamp = 100_001n;
           },
         },
         {
-          borrowShares: state.account!.position.borrowShares,
+          borrowShares: state.account.position.borrowShares,
           approvalAmount: 505_000_000n,
         }
       )

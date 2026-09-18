@@ -1,8 +1,8 @@
 import { useId, useState } from "react";
 import { formatUnits } from "viem";
 import {
-  ACTION_LABELS,
   actionAssets,
+  actionLabel,
   buildAction,
   getActionMax,
   parseAmount,
@@ -17,7 +17,7 @@ export type AmountActionProps = {
   action: ActionKind;
   disabled: boolean;
   all?: boolean;
-  onRun(action: ActionKind, amount: ActionAmount): Promise<void>;
+  onRun: (action: ActionKind, amount: ActionAmount) => Promise<void>;
 };
 
 export function AmountAction({
@@ -36,7 +36,7 @@ export function AmountAction({
     ? action === "repayUsdc"
       ? "Repay all debt"
       : "Withdraw all direct supply"
-    : ACTION_LABELS[action];
+    : actionLabel(action);
   let error: string | undefined;
   let max = 0n;
   let amount: ActionAmount = 0n;
@@ -120,15 +120,16 @@ export function AmountAction({
         {all ? (
           <p>
             All {action === "repayUsdc" ? "borrow" : "supply"} shares:{" "}
-            {context.snapshot.account!.position[
-              action === "repayUsdc" ? "borrowShares" : "supplyShares"
-            ].toString()}
+            {(action === "repayUsdc"
+              ? context.snapshot.account.position.borrowShares
+              : context.snapshot.account.position.supplyShares
+            ).toString()}
           </p>
         ) : null}
         <p>
           Account:{" "}
           <span className="action-address">
-            {context.snapshot.account!.address}
+            {context.snapshot.account.address}
           </span>
         </p>
         <p>
@@ -151,9 +152,9 @@ export function AmountAction({
             : "Not required"}
         </p>
         <ol aria-label={`${title} transaction sequence`}>
-          {needsApproval ? (
+          {needsApproval && approval ? (
             <li>
-              Approve exactly {formatUnits(approval!.amount, decimals)} {symbol}{" "}
+              Approve exactly {formatUnits(approval.amount, decimals)} {symbol}{" "}
               for Morpho
             </li>
           ) : null}

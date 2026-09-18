@@ -17,7 +17,9 @@ import { sepolia } from "viem/chains";
 
 // External reference/compiler paths keep the app's runtime dependencies unchanged.
 const require = createRequire(import.meta.url);
-const solc = require(process.env.SOLC_MODULE ?? "solc");
+const solc = process.env.SOLC_MODULE
+  ? createRequire(process.env.SOLC_MODULE)("./index.js")
+  : require("solc");
 const reference = resolve(
   process.env.MORPHO_SOURCE ??
     ".superpowers/sdd/2026-09-17-morpho-lab/morpho-blue-reference"

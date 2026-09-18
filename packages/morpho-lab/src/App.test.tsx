@@ -8,9 +8,9 @@ describe("configuration bootstrap", () => {
     { VITE_MORPHO_MARKET_ID: "0x12" },
     { VITE_SEPOLIA_RPC_URL: "not-a-url" },
   ])("mounts an actionable error for %j", (env) => {
-    const html = renderToStaticMarkup(<App env={env} />);
-    expect(html).toContain("Configuration error");
-    expect(html).toContain("packages/morpho-lab/.env.local");
-    expect(html).not.toContain("Protocol dashboard");
+    const markup = renderToStaticMarkup(<App env={env} />);
+    expect(markup).toContain("Configuration error");
+    expect(markup).toContain("packages/morpho-lab/.env.local");
+    expect(markup).not.toContain("Protocol dashboard");
   });
 });

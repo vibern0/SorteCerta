@@ -15,7 +15,7 @@ export function RepayAllAction({
 }: {
   context: ActionContext;
   disabled: boolean;
-  onRun(review: RepayAllReview): Promise<void>;
+  onRun: (review: RepayAllReview) => Promise<void>;
 }) {
   const id = useId();
   const [limitInput, setLimitInput] = useState<string>();
@@ -24,7 +24,7 @@ export function RepayAllAction({
     review: RepayAllReview;
   }>();
   const [confirmed, setConfirmed] = useState(false);
-  if (context.snapshot.account!.position.borrowShares === 0n)
+  if (context.snapshot.account.position.borrowShares === 0n)
     return (
       <section className="amount-action">
         <h3>Repay all debt</h3>
@@ -47,7 +47,7 @@ export function RepayAllAction({
   } catch (reason) {
     error = reason instanceof Error ? reason.message : String(reason);
   }
-  const allowance = context.snapshot.account!.tokens.morphoUsdcAllowance;
+  const allowance = context.snapshot.account.tokens.morphoUsdcAllowance;
   const limit = frozen
     ? formatUnits(frozen.review.approvalAmount, 6)
     : limitInput ?? (quote ? formatUnits(quote.suggestedApproval, 6) : "");
@@ -85,7 +85,7 @@ export function RepayAllAction({
       </div>
       <p className="action-hint">
         Available:{" "}
-        {formatUnits(context.snapshot.account!.tokens.usdcBalance, 6)} USDC.
+        {formatUnits(context.snapshot.account.tokens.usdcBalance, 6)} USDC.
         Maximum approval:{" "}
         {quote ? formatUnits(quote.maxApproval, 6) : "Unavailable"} USDC.
       </p>
@@ -112,7 +112,7 @@ export function RepayAllAction({
         <p>
           Account:{" "}
           <span className="action-address">
-            {context.snapshot.account!.address}
+            {context.snapshot.account.address}
           </span>
         </p>
         <p>

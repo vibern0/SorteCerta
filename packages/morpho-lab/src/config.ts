@@ -13,26 +13,6 @@ const DEFAULTS = {
   marketId: "0x8c561f0929c3a3e2b20fba99c2ae15fc57b4d0599e4371b67c9a58388a27b9d2",
 } as const;
 
-type AddressKey = "usdc" | "weth" | "wrapper" | "pool" | "adapter" | "morpho";
-
-const ADDRESS_ENV: Record<AddressKey, string> = {
-  usdc: "VITE_USDC_ADDRESS",
-  weth: "VITE_WETH_ADDRESS",
-  wrapper: "VITE_WRAPPER_ADDRESS",
-  pool: "VITE_POOL_ADDRESS",
-  adapter: "VITE_ADAPTER_ADDRESS",
-  morpho: "VITE_MORPHO_ADDRESS",
-};
-
-const ADDRESS_LABEL: Record<AddressKey, string> = {
-  usdc: "USDC address",
-  weth: "WETH address",
-  wrapper: "Wrapper address",
-  pool: "Pool address",
-  adapter: "Adapter address",
-  morpho: "Morpho address",
-};
-
 export type LabConfig = {
   chainId: 11155111;
   rpcUrl: string;
@@ -45,16 +25,30 @@ export type LabConfig = {
   marketId: Hex;
 };
 
+type LabConfigCandidate = Omit<LabConfig, "chainId"> & { chainId: number };
+
 export function loadLabConfig(env: Record<string, string | undefined>): LabConfig {
   const config: LabConfig = {
     chainId: 11155111,
     rpcUrl: env.VITE_SEPOLIA_RPC_URL ?? DEFAULTS.rpcUrl,
-    usdc: loadAddress("usdc", env),
-    weth: loadAddress("weth", env),
-    wrapper: loadAddress("wrapper", env),
-    pool: loadAddress("pool", env),
-    adapter: loadAddress("adapter", env),
-    morpho: loadAddress("morpho", env),
+    usdc: loadAddress("USDC address", env.VITE_USDC_ADDRESS, DEFAULTS.usdc),
+    weth: loadAddress("WETH address", env.VITE_WETH_ADDRESS, DEFAULTS.weth),
+    wrapper: loadAddress(
+      "Wrapper address",
+      env.VITE_WRAPPER_ADDRESS,
+      DEFAULTS.wrapper,
+    ),
+    pool: loadAddress("Pool address", env.VITE_POOL_ADDRESS, DEFAULTS.pool),
+    adapter: loadAddress(
+      "Adapter address",
+      env.VITE_ADAPTER_ADDRESS,
+      DEFAULTS.adapter,
+    ),
+    morpho: loadAddress(
+      "Morpho address",
+      env.VITE_MORPHO_ADDRESS,
+      DEFAULTS.morpho,
+    ),
     marketId: loadMarketId(env),
   };
 
@@ -62,7 +56,9 @@ export function loadLabConfig(env: Record<string, string | undefined>): LabConfi
   return config;
 }
 
-export function validateLabConfig(config: LabConfig): void {
+export function validateLabConfig(
+  config: LabConfigCandidate,
+): asserts config is LabConfig {
   if (config.chainId !== 11155111) {
     throw new Error("Chain ID must be 11155111");
   }
@@ -76,27 +72,37 @@ export function validateLabConfig(config: LabConfig): void {
     throw new Error("RPC URL must be a valid HTTP or HTTPS URL");
   }
 
-  for (const key of Object.keys(ADDRESS_LABEL) as AddressKey[]) {
-    try {
-      getAddress(config[key]);
-    } catch {
-      throw new Error(`${ADDRESS_LABEL[key]} is invalid`);
-    }
-  }
+  validateAddress("USDC address", config.usdc);
+  validateAddress("WETH address", config.weth);
+  validateAddress("Wrapper address", config.wrapper);
+  validateAddress("Pool address", config.pool);
+  validateAddress("Adapter address", config.adapter);
+  validateAddress("Morpho address", config.morpho);
 
   if (!isMarketId(config.marketId)) {
     throw new Error("Market ID must be exactly 32 bytes");
   }
 }
 
-function loadAddress(key: AddressKey, env: Record<string, string | undefined>): Address {
-  const override = env[ADDRESS_ENV[key]];
-  const rawAddress = override === undefined ? DEFAULTS[key] : override.toLowerCase();
+function loadAddress(
+  label: string,
+  override: string | undefined,
+  fallback: string,
+): Address {
+  const rawAddress = override === undefined ? fallback : override.toLowerCase();
 
   try {
     return getAddress(rawAddress);
   } catch {
-    throw new Error(`${ADDRESS_LABEL[key]} is invalid`);
+    throw new Error(`${label} is invalid`);
+  }
+}
+
+function validateAddress(label: string, address: Address): void {
+  try {
+    getAddress(address);
+  } catch {
+    throw new Error(`${label} is invalid`);
   }
 }
 

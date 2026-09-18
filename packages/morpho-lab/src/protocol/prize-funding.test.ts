@@ -2,12 +2,13 @@ import {
   decodeAbiParameters,
   decodeFunctionData,
   getAddress,
+  isHex,
   parseAbi,
   type Hex,
 } from "viem";
 import { describe, expect, it } from "vitest";
 import { loadLabConfig } from "../config";
-import type { ProtocolSnapshot } from "../types";
+import type { AccountSnapshot, ProtocolSnapshot } from "../types";
 import type { SimulatedWriteArgs } from "../wallet/MetaMaskProvider";
 import { executePrizeFunding } from "./prize-funding";
 
@@ -21,6 +22,26 @@ const wrapperAbi = parseAbi([
   "function confidentialTransferAndCall(address to, bytes32 amount, bytes proof, bytes data) returns (bytes32)",
 ]);
 
+type TestSnapshot = ProtocolSnapshot & { account: AccountSnapshot };
+
+function secondBigIntArg(call: SimulatedWriteArgs): bigint {
+  const value = call.args?.[1];
+  if (typeof value !== "bigint") throw new Error("Expected bigint argument");
+  return value;
+}
+
+function hexPair(value: unknown): [Hex, Hex] {
+  if (
+    !Array.isArray(value) ||
+    value.length !== 2 ||
+    !isHex(value[0]) ||
+    !isHex(value[1])
+  ) {
+    throw new Error("Expected two encoded calls");
+  }
+  return [value[0], value[1]];
+}
+
 function harness(allowance = 0n) {
   const calls: SimulatedWriteArgs[] = [];
   const params = {
@@ -30,7 +51,7 @@ function harness(allowance = 0n) {
     irm: account,
     lltv: 1n,
   };
-  const state: ProtocolSnapshot = {
+  const state: TestSnapshot = {
     blockNumber: 1n,
     blockTimestamp: 1n,
     refreshedAt: 1,
@@ -106,7 +127,7 @@ function harness(allowance = 0n) {
     submit: async (call: SimulatedWriteArgs) => {
       calls.push(call);
       if (call.functionName === "approve")
-        state.account!.tokens.usdcAllowance = call.args![1] as bigint;
+        state.account.tokens.usdcAllowance = secondBigIntArg(call);
     },
     encrypt: async (wrapper: string, user: string, amount: bigint) => {
       expect(wrapper).toBe(config.wrapper);
@@ -141,15 +162,16 @@ describe("sponsor prize funding", () => {
       address: config.wrapper,
       functionName: "multicall",
     });
-    const [wrap, transfer] = h.calls[1].args![0] as Hex[];
+    const [wrap, transfer] = hexPair(h.calls.at(1)?.args?.at(0));
     expect(decodeFunctionData({ abi: wrapperAbi, data: wrap })).toMatchObject({
       functionName: "wrap",
       args: [account, 10_000_000n],
     });
     const decoded = decodeFunctionData({ abi: wrapperAbi, data: transfer });
     expect(decoded.functionName).toBe("confidentialTransferAndCall");
-    expect(decoded.args?.slice(0, 3)).toEqual([config.pool, handle, "0xbeef"]);
-    const data = decoded.args![3] as Hex;
+    expect(decoded.args.slice(0, 3)).toEqual([config.pool, handle, "0xbeef"]);
+    const data = decoded.args[3];
+    if (data === undefined) throw new Error("Expected callback data");
     expect(data.slice(0, 10)).toBe(selector);
     expect(
       decodeAbiParameters([{ type: "uint64" }], `0x${data.slice(10)}`)
@@ -181,10 +203,10 @@ describe("sponsor prize funding", () => {
       h.runner.submit = async (call) => {
         await submit(call);
         if (failure === "cancel") throw new Error("Transaction cancelled");
-        if (failure === "account") h.state.account!.address = config.usdc;
+        if (failure === "account") h.state.account.address = config.usdc;
         if (failure === "binding")
           h.state.deployment = { ...config, wrapper: account };
-        if (failure === "allowance") h.state.account!.tokens.usdcAllowance = 0n;
+        if (failure === "allowance") h.state.account.tokens.usdcAllowance = 0n;
         if (failure === "refresh")
           h.runner.refresh = async () => {
             throw new Error("Read failed");

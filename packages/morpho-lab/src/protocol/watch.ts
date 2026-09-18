@@ -1,9 +1,9 @@
 export type ProtocolBlockWatcher = {
-  watchBlockNumber(options: {
+  watchBlockNumber: (options: {
     emitOnBegin?: boolean;
-    onBlockNumber(blockNumber: bigint): void;
-    onError(error: Error): void;
-  }): () => void;
+    onBlockNumber: (blockNumber: bigint) => void;
+    onError: (error: Error) => void;
+  }) => () => void;
 };
 
 export function watchProtocolBlocks(

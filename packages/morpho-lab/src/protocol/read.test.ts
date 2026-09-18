@@ -13,7 +13,9 @@ import { AccountPanel } from "../components/AccountPanel";
 import { AdapterPanel } from "../components/AdapterPanel";
 import { MarketPanel } from "../components/MarketPanel";
 import { AmountAction } from "../components/AmountAction";
+import { Workbench } from "../components/Workbench";
 import { createActionContext } from "./actions";
+import { MetaMaskProvider } from "../wallet/MetaMaskProvider";
 
 import { loadLabConfig } from "../config";
 import { readProtocolSnapshot } from "./read";
@@ -70,8 +72,8 @@ describe("readProtocolSnapshot", () => {
         ],
       ],
     ] as const) {
-      const html = renderToStaticMarkup(element);
-      for (const label of labels) expect(html).toContain(label);
+      const markup = renderToStaticMarkup(element);
+      for (const label of labels) expect(markup).toContain(label);
     }
   });
 
@@ -125,7 +127,7 @@ describe("readProtocolSnapshot", () => {
     );
     expect(unavailable.account?.health).toBeUndefined();
     expect(unavailable.market.supplierRatePerSecond).toBeUndefined();
-    const html = renderToStaticMarkup(
+    const markup = renderToStaticMarkup(
       createElement(AmountAction, {
         context: createActionContext(config, unavailable),
         action: "withdrawUsdc",
@@ -134,7 +136,50 @@ describe("readProtocolSnapshot", () => {
         onRun: async () => {},
       })
     );
-    expect(html).toContain("Borrow rate unavailable");
+    expect(markup).toContain("Borrow rate unavailable");
+
+    const synchronouslyUnavailable = await readProtocolSnapshot(
+      {
+        ...client,
+        readContract(request) {
+          if (request.functionName === "borrowRateView")
+            throw new Error("IRM unavailable synchronously");
+          return client.readContract(request);
+        },
+      },
+      config,
+      account,
+    );
+    expect(synchronouslyUnavailable.market.borrowRatePerSecond).toBeUndefined();
+  });
+
+  it("shows only the empty state when no wallet account was read", async () => {
+    const config = loadLabConfig({});
+    const snapshot = await readProtocolSnapshot(
+      createClient(config, [
+        config.usdc,
+        config.weth,
+        oracle,
+        irm,
+        945_000_000_000_000_000n,
+      ]),
+      config,
+    );
+    const markup = renderToStaticMarkup(
+      createElement(
+        MetaMaskProvider,
+        { config },
+        createElement(Workbench, {
+          config,
+          snapshot,
+          refresh: async () => snapshot,
+          stale: false,
+        }),
+      ),
+    );
+
+    expect(markup).toContain("Connect MetaMask and refresh your account balances.");
+    expect(markup).not.toContain("Connect MetaMask before continuing.");
   });
 
   it("projects adapter supplied assets and yield from the pinned market timestamp", async () => {
@@ -537,9 +582,9 @@ function createClient(
         });
         expect(request.args?.[1]).toHaveProperty("totalBorrowAssets");
       } else expect(request.args).toBeUndefined();
-      if (!(functionName in values))
+      if (!Object.hasOwn(values, functionName))
         throw new Error(`Unexpected read: ${functionName}`);
-      return values[functionName];
+      return Reflect.get(values, functionName);
     },
   };
 }

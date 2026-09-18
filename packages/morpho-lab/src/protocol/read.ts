@@ -362,21 +362,20 @@ async function readWithdrawalBatch(
   };
 }
 
-async function readBorrowRate(
+function readBorrowRate(
   client: SnapshotReadClient,
   marketParams: MarketParams,
   marketState: MarketState
 ): Promise<bigint | undefined> {
-  try {
-    return asBigInt(
-      await read(client, marketParams.irm, irmReadAbi, "borrowRateView", [
+  return Promise.resolve()
+    .then(() =>
+      read(client, marketParams.irm, irmReadAbi, "borrowRateView", [
         marketParams,
         marketState,
-      ])
-    );
-  } catch {
-    return undefined;
-  }
+      ]),
+    )
+    .then(asBigInt)
+    .catch(() => undefined);
 }
 
 async function readAccount(
@@ -578,7 +577,7 @@ function tupleValues(value: unknown, names: string[]): unknown[] {
   if (Array.isArray(value)) return value;
   if (typeof value !== "object" || value === null)
     throw new Error("Expected a contract tuple.");
-  return names.map((name) => (value as Record<string, unknown>)[name]);
+  return names.map((name) => Reflect.get(value, name));
 }
 function asBigInt(value: unknown): bigint {
   if (typeof value !== "bigint")

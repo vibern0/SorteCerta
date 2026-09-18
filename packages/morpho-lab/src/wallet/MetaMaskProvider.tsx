@@ -48,9 +48,9 @@ export type MetaMaskContextValue = {
   ethBalance?: bigint;
   error?: string;
   transactions: TransactionRecord[];
-  connect(): Promise<void>;
-  switchToConfiguredChain(): Promise<void>;
-  submitSimulatedWrite(args: SimulatedWriteArgs): Promise<Hash>;
+  connect: () => Promise<void>;
+  switchToConfiguredChain: () => Promise<void>;
+  submitSimulatedWrite: (args: SimulatedWriteArgs) => Promise<Hash>;
 };
 
 const MetaMaskContext = createContext<MetaMaskContextValue | undefined>(undefined);
