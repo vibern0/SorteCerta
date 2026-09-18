@@ -166,6 +166,60 @@ test("a failed higher-block request does not cancel valid in-flight or subsequen
   assert.deepEqual(errors, ["Block 12 unavailable"]);
 });
 
+test("a stored fallback cannot replace projected data for the same block", async () => {
+  const pending = [];
+  const applied = [];
+  const refresher = createLatestBlockRefresher(
+    () => new Promise((resolve) => pending.push(resolve)),
+    (snapshot) => applied.push(snapshot.source),
+  );
+
+  const olderStored = refresher.refresh(77n);
+  const newerProjected = refresher.refresh(77n);
+  pending[1]({ blockNumber: 77n, source: "projected" });
+  await newerProjected;
+  pending[0]({ blockNumber: 77n, source: "stored" });
+  await olderStored;
+
+  assert.deepEqual(applied, ["projected"]);
+});
+
+test("an unpinned refresh cannot regress a watcher projection for the same block", async () => {
+  const pending = new Map();
+  const applied = [];
+  const refresher = createLatestBlockRefresher(
+    (blockNumber) => new Promise((resolve) => pending.set(blockNumber, resolve)),
+    (snapshot) => applied.push(snapshot.source),
+  );
+
+  const unpinned = refresher.refresh();
+  const watcher = refresher.refresh(77n);
+  pending.get(77n)({ blockNumber: 77n, source: "projected" });
+  await watcher;
+  pending.get(undefined)({ blockNumber: 77n, source: "stored" });
+  await unpinned;
+
+  assert.deepEqual(applied, ["projected"]);
+});
+
+test("projected data upgrades a stored result for the same block", async () => {
+  const pending = [];
+  const applied = [];
+  const refresher = createLatestBlockRefresher(
+    () => new Promise((resolve) => pending.push(resolve)),
+    (snapshot) => applied.push(snapshot.source),
+  );
+
+  const stored = refresher.refresh(77n);
+  const projected = refresher.refresh(77n);
+  pending[0]({ blockNumber: 77n, source: "stored" });
+  await stored;
+  pending[1]({ blockNumber: 77n, source: "projected" });
+  await projected;
+
+  assert.deepEqual(applied, ["stored", "projected"]);
+});
+
 test("disposal prevents an in-flight refresh from updating state", async () => {
   let resolveRead;
   const applied = [];

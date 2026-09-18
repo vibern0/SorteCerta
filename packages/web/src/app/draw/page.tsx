@@ -25,6 +25,7 @@ type WorkingAction = PrizeActionId | undefined;
 
 type DrawSnapshot = {
   blockNumber: bigint;
+  source: "projected" | "stored";
   drawId: bigint;
   drawInterval: bigint;
   nextDrawAt: bigint;
@@ -138,6 +139,7 @@ async function readDrawSnapshot(
 
   return {
     blockNumber,
+    source: projectedYield.source,
     drawId,
     drawInterval,
     nextDrawAt,

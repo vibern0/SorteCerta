@@ -38,7 +38,10 @@ export type ProjectedMorphoYield = {
 
 type MorphoYieldClient = Pick<PublicClient, "getBlock" | "readContract">;
 
-type BlockSnapshot = { blockNumber: bigint };
+type BlockSnapshot = {
+  blockNumber: bigint;
+  source?: ProjectedMorphoYield["source"];
+};
 
 const marketParamsComponents = [
   { type: "address", name: "loanToken" },
@@ -253,7 +256,7 @@ export function createLatestBlockRefresher<T extends BlockSnapshot>(
   applySnapshot: (snapshot: T) => void,
   onError: (error: unknown) => void = () => undefined,
 ) {
-  let latestAppliedBlock = -1n;
+  let latestApplied: { blockNumber: bigint; quality: number } | undefined;
   let disposed = false;
 
   return {
@@ -262,10 +265,17 @@ export function createLatestBlockRefresher<T extends BlockSnapshot>(
 
       try {
         const snapshot = await readSnapshot(blockNumber);
-        if (disposed || snapshot.blockNumber < latestAppliedBlock) {
+        const quality = snapshot.source === "projected" ? 1 : 0;
+        if (
+          disposed ||
+          (latestApplied !== undefined &&
+            (snapshot.blockNumber < latestApplied.blockNumber ||
+              (snapshot.blockNumber === latestApplied.blockNumber &&
+                quality <= latestApplied.quality)))
+        ) {
           return;
         }
-        latestAppliedBlock = snapshot.blockNumber;
+        latestApplied = { blockNumber: snapshot.blockNumber, quality };
         applySnapshot(snapshot);
       } catch (error) {
         if (!disposed) onError(error);
