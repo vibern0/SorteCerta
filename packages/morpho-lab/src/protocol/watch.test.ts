@@ -18,7 +18,8 @@ describe("watchProtocolBlocks", () => {
       },
       () => {
         refreshes += 1;
-      }
+      },
+      () => {}
     );
 
     expect(refreshes).toBe(0);
@@ -28,5 +29,32 @@ describe("watchProtocolBlocks", () => {
 
     stop();
     expect(stopped).toBe(true);
+  });
+
+  it("surfaces polling errors and recovers on the next successful refresh", () => {
+    let onBlockNumber: ((blockNumber: bigint) => void) | undefined;
+    let onError: ((error: Error) => void) | undefined;
+    let status = "Current";
+    watchProtocolBlocks(
+      {
+        watchBlockNumber(options) {
+          onBlockNumber = options.onBlockNumber;
+          onError = options.onError;
+          return () => {};
+        },
+      },
+      () => {
+        status = "Current";
+      },
+      (error) => {
+        status = error.message;
+      }
+    );
+
+    onError?.(new Error("RPC unavailable"));
+    expect(status).toBe("RPC unavailable");
+
+    onBlockNumber?.(124n);
+    expect(status).toBe("Current");
   });
 });

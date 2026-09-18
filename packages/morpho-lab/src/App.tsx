@@ -102,9 +102,15 @@ function AppContent({ config }: { config: LabConfig }) {
 
   useEffect(
     () =>
-      watchProtocolBlocks(publicClient, () => {
-        void refresh().catch(() => undefined);
-      }),
+      watchProtocolBlocks(
+        publicClient,
+        () => {
+          void refresh().catch(() => undefined);
+        },
+        (reason) => {
+          setRefreshError(reason.message);
+        }
+      ),
     [publicClient, refresh]
   );
 

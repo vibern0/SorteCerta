@@ -183,6 +183,51 @@ describe("readProtocolSnapshot", () => {
     expect(snapshot.adapter.backingDifference).toBe(100_050n);
   });
 
+  it("floors projected yield at zero when supplied assets are below principal", async () => {
+    const config = loadLabConfig({});
+    const base = createClient(config, [
+      config.usdc,
+      config.weth,
+      oracle,
+      irm,
+      945_000_000_000_000_000n,
+    ]);
+    const snapshot = await readProtocolSnapshot(
+      {
+        ...base,
+        readContract: async (request: ReadRequest) => {
+          const value = await base.readContract(request);
+          if (request.functionName === "market")
+            return [
+              10_000_000_000n,
+              10_000_000_000_000_000n,
+              1_000_000_000n,
+              1_000_000_000_000_000n,
+              0n,
+              0n,
+            ];
+          if (request.functionName === "borrowRateView")
+            return 1_000_000_000_000n;
+          if (
+            request.functionName === "position" &&
+            request.args?.[1] === config.adapter
+          )
+            return [1_000_000_000_000_000n, 0n, 0n];
+          if (request.functionName === "suppliedPrincipal")
+            return 1_000_200_000n;
+          if (request.functionName === "idlePrincipal") return 1n;
+          return value;
+        },
+      },
+      config,
+      account
+    );
+
+    expect(snapshot.adapter.suppliedAssets).toBe(1_000_100_050n);
+    expect(snapshot.adapter.accruedYieldAssets).toBe(0n);
+    expect(snapshot.adapter.backingDifference).toBe(-99_950n);
+  });
+
   it("keeps raw adapter values when projected market state is unavailable", async () => {
     const config = loadLabConfig({});
     const base = createClient(config, [
