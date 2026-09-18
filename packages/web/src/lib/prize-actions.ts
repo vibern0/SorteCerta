@@ -19,34 +19,32 @@ type PrizeActionState = {
 
 export function getPrizeActions(state: PrizeActionState): PrizeAction[] {
   const baseDisabled = !state.connected || !state.ready || state.busy;
-  const actions: PrizeAction[] = [
-    {
-      id: "checkPrize",
-      label: "Check prize",
-      busyLabel: "Checking...",
-      disabled: baseDisabled,
-      variant: state.hasPrizeToClaim ? "secondary" : "primary",
-    },
-  ];
-
-  if (!state.hasPrizeToClaim) return actions;
-
-  actions.push(
-    {
-      id: "addPrizeToSavings",
-      label: "Add prize to savings",
-      busyLabel: "Adding...",
-      disabled: baseDisabled,
-      variant: "primary",
-    },
-    {
-      id: "claimPrize",
-      label: "Claim prize",
-      busyLabel: "Claiming...",
-      disabled: baseDisabled,
-      variant: "secondary",
-    },
-  );
+  const actions: PrizeAction[] = state.hasPrizeToClaim
+    ? [
+        {
+          id: "addPrizeToSavings",
+          label: "Add prize to savings",
+          busyLabel: "Adding...",
+          disabled: baseDisabled,
+          variant: "primary",
+        },
+        {
+          id: "claimPrize",
+          label: "Claim prize",
+          busyLabel: "Claiming...",
+          disabled: baseDisabled,
+          variant: "secondary",
+        },
+      ]
+    : [
+        {
+          id: "checkPrize",
+          label: "Check prize",
+          busyLabel: "Checking...",
+          disabled: baseDisabled,
+          variant: "primary",
+        },
+      ];
 
   return actions.map((action) => ({
     ...action,

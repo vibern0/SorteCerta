@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { getPrizeActions } from "../src/lib/prize-actions.ts";
 
-test("keeps check prize available when a prize can be claimed", () => {
+test("shows only claim choices when a prize can be claimed", () => {
   const actions = getPrizeActions({
     connected: true,
     ready: true,
@@ -14,9 +14,8 @@ test("keeps check prize available when a prize can be claimed", () => {
 
   assert.deepEqual(
     actions.map((action) => action.id),
-    ["checkPrize", "addPrizeToSavings", "claimPrize"],
+    ["addPrizeToSavings", "claimPrize"],
   );
-  assert.equal(actions.find((action) => action.id === "checkPrize")?.label, "Check prize");
 });
 
 test("shows only check prize when no claimable prize is known", () => {
