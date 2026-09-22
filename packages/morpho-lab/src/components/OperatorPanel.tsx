@@ -61,6 +61,7 @@ export function OperatorPanel({
   }
   const validFunding =
     amount !== undefined &&
+    amount > 0n &&
     amount < 2n ** 64n &&
     amount <= (snapshot.account?.tokens.usdcBalance ?? 0n);
 

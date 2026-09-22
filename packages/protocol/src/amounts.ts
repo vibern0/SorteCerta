@@ -1,6 +1,14 @@
+// ERC-20 token decimals are exposed as uint8, so larger values are invalid for
+// this parser and could otherwise make BigInt exponentiation consume resources.
+const MAX_TOKEN_DECIMALS = 255;
+
 export function parseAmount(input: string, decimals: number): bigint {
-  if (!Number.isSafeInteger(decimals) || decimals < 0) {
-    throw new Error("Decimals must be a non-negative safe integer.");
+  if (
+    !Number.isSafeInteger(decimals) ||
+    decimals < 0 ||
+    decimals > MAX_TOKEN_DECIMALS
+  ) {
+    throw new Error("Decimals must be an integer between 0 and 255.");
   }
 
   const value = input.trim();

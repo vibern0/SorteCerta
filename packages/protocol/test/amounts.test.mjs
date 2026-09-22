@@ -30,6 +30,7 @@ test("rejects invalid syntax and misplaced grouping", () => {
 });
 
 test("reports precision and validates decimals before arithmetic", () => {
+  assert.equal(parseAmount("1", 255), 10n ** 255n);
   assert.throws(
     () => parseAmount("1.0000001", 6),
     /at most 6 decimal places/i,
@@ -42,7 +43,13 @@ test("reports precision and validates decimals before arithmetic", () => {
   ]) {
     assert.throws(
       () => parseAmount("1", decimals),
-      /non-negative safe integer/i,
+      /between 0 and 255/i,
+    );
+  }
+  for (const decimals of [256, 1_000_000_000_000]) {
+    assert.throws(
+      () => parseAmount("1", decimals),
+      /between 0 and 255/i,
     );
   }
 });

@@ -1,5 +1,6 @@
 packages:
   - .
+  - ../protocol
 
 allowBuilds:
   bufferutil: true

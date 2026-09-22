@@ -36,6 +36,7 @@ export function IncreaseUtilization({
       validateAction(context, "supplyCollateral", collateral);
       maxBorrow = getIncreaseBorrowMax(context, collateral);
       borrow = parseAmount(borrowInput ?? formatUnits(maxBorrow, 6), 6);
+      if (borrow <= 0n) throw new Error("Enter a positive amount.");
       if (borrow > maxBorrow)
         throw new Error(
           "Borrow amount exceeds the safety margin or market liquidity."
