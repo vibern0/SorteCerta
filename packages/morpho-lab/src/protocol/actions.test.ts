@@ -244,6 +244,22 @@ describe("action builders", () => {
     expect(call.args[3]).toBe(account);
   });
 
+  it("accepts case-varied equivalent market addresses but rejects a changed LLTV", () => {
+    const equivalent = snapshot();
+    equivalent.adapter.marketParams = {
+      ...params,
+      loanToken: params.loanToken.toLowerCase() as Address,
+      collateralToken: params.collateralToken.toLowerCase() as Address,
+      oracle: params.oracle.toLowerCase() as Address,
+      irm: params.irm.toLowerCase() as Address,
+    };
+    expect(() => context(equivalent)).not.toThrow();
+
+    const changed = snapshot();
+    changed.market.params = { ...params, lltv: params.lltv - 1n };
+    expect(() => context(changed)).toThrow(/market binding/i);
+  });
+
   it("refuses inconsistent deployment and account bindings", () => {
     const state = snapshot();
     state.deployment = { ...deployment, adapter: account };

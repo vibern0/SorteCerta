@@ -1,21 +1,24 @@
 import { formatUnits, getAddress, type Address } from "viem";
+import {
+  accruedMarketState,
+  erc20Abi,
+  morphoBlueAbi,
+  positionHealth,
+  safeBorrowCapacity,
+  sameMarketParams,
+  toBorrowAssetsUp,
+  toMarketParams,
+  toSupplyAssetsDown,
+  WAD,
+  wethAbi,
+} from "@sortecerta/protocol";
 export { parseAmount } from "@sortecerta/protocol";
-import { erc20WriteAbi, morphoWriteAbi, wethWriteAbi } from "../abis";
 import type { LabConfig } from "../config";
 import type {
   AccountSnapshot,
-  MarketParams,
   ProtocolSnapshot,
 } from "../types";
 import type { SimulatedWriteArgs } from "../wallet/MetaMaskProvider";
-import {
-  accruedMarketState,
-  positionHealth,
-  safeBorrowCapacity,
-  toBorrowAssetsUp,
-  toSupplyAssetsDown,
-  WAD,
-} from "./math";
 
 export type ActionKind =
   | "wrapEth"
@@ -82,8 +85,8 @@ export function createActionContext(
   ) {
     throw new Error("Deployment binding changed. Refresh before continuing.");
   }
-  const params = normalizeParams(snapshot.adapter.marketParams);
-  const registered = normalizeParams(snapshot.market.params);
+  const params = toMarketParams(snapshot.adapter.marketParams);
+  const registered = toMarketParams(snapshot.market.params);
   if (
     snapshot.deployment.marketId !== config.marketId ||
     snapshot.adapter.marketId !== config.marketId ||
@@ -108,26 +111,6 @@ function assertAccountSnapshot(
   if (!snapshot.account) throw new Error("Connect MetaMask before continuing.");
 }
 
-function normalizeParams(params: MarketParams): MarketParams {
-  return {
-    loanToken: getAddress(params.loanToken),
-    collateralToken: getAddress(params.collateralToken),
-    oracle: getAddress(params.oracle),
-    irm: getAddress(params.irm),
-    lltv: params.lltv,
-  };
-}
-
-function sameMarketParams(left: MarketParams, right: MarketParams): boolean {
-  return (
-    left.loanToken === right.loanToken &&
-    left.collateralToken === right.collateralToken &&
-    left.oracle === right.oracle &&
-    left.irm === right.irm &&
-    left.lltv === right.lltv
-  );
-}
-
 function owner(config: ActionContext, address?: Address) {
   const account = config.snapshot.account;
   if (address && getAddress(address) !== getAddress(account.address))
@@ -136,11 +119,14 @@ function owner(config: ActionContext, address?: Address) {
 }
 
 function market(config: ActionContext) {
-  return { address: getAddress(config.morpho), abi: morphoWriteAbi } as const;
+  return { address: getAddress(config.morpho), abi: morphoBlueAbi } as const;
 }
 
 function marketParams(config: ActionContext) {
-  return normalizeParams(config.snapshot.adapter.marketParams);
+  const { loanToken, collateralToken, oracle, irm, lltv } = toMarketParams(
+    config.snapshot.adapter.marketParams,
+  );
+  return { loanToken, collateralToken, oracle, irm, lltv };
 }
 
 export function buildApproval(
@@ -151,7 +137,7 @@ export function buildApproval(
   positive(amount);
   return {
     address: getAddress(token === "usdc" ? config.usdc : config.weth),
-    abi: erc20WriteAbi,
+    abi: erc20Abi,
     functionName: "approve",
     args: [getAddress(config.morpho), amount],
     summary: `Approve ${formatUnits(
@@ -165,7 +151,7 @@ export function buildWrap(config: ActionContext, amount: bigint) {
   positive(amount);
   return {
     address: getAddress(config.weth),
-    abi: wethWriteAbi,
+    abi: wethAbi,
     functionName: "deposit",
     args: [],
     value: amount,
@@ -177,7 +163,7 @@ export function buildUnwrap(config: ActionContext, amount: bigint) {
   positive(amount);
   return {
     address: getAddress(config.weth),
-    abi: wethWriteAbi,
+    abi: wethAbi,
     functionName: "withdraw",
     args: [amount],
     summary: `Unwrap ${formatUnits(amount, 18)} WETH`,

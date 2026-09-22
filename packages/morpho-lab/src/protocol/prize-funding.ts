@@ -4,24 +4,21 @@ import {
   encodeFunctionData,
   formatUnits,
   getAddress,
-  parseAbi,
   type Address,
   type Hex,
 } from "viem";
-import { erc20WriteAbi } from "../abis";
+import {
+  confidentialPrizePoolAbi,
+  confidentialUsdcAbi,
+  erc20Abi,
+} from "@sortecerta/protocol";
 import type { LabConfig } from "../config";
 import type { ProtocolSnapshot } from "../types";
 import type { SimulatedWriteArgs } from "../wallet/MetaMaskProvider";
 import { createActionContext } from "./actions";
 
-export const prizeFundingAbi = parseAbi([
-  "function PRIZE_FUNDING_DATA() view returns (bytes4)",
-]);
-export const fundingWrapperAbi = parseAbi([
-  "function wrap(address to, uint256 amount)",
-  "function confidentialTransferAndCall(address to, bytes32 amount, bytes proof, bytes data) returns (bytes32)",
-  "function multicall(bytes[] data) returns (bytes[])",
-]);
+export const prizeFundingAbi = confidentialPrizePoolAbi;
+export const fundingWrapperAbi = confidentialUsdcAbi;
 
 type FundingRunner = {
   refresh(): Promise<ProtocolSnapshot>;
@@ -70,7 +67,7 @@ export async function executePrizeFunding(
     runner.onStep?.("Approve USDC for the wrapper in MetaMask.");
     await runner.submit({
       address: getAddress(config.usdc),
-      abi: erc20WriteAbi,
+      abi: erc20Abi,
       functionName: "approve",
       args: [getAddress(config.wrapper), amount],
       summary: `Approve ${formatUnits(amount, 6)} USDC for wrapper`,

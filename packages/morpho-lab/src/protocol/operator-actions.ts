@@ -1,18 +1,9 @@
-import { getAddress, type Address } from "viem";
+import { buildCloseDrawRequest } from "@sortecerta/protocol";
+import { getAddress } from "viem";
 
 import type { LabConfig } from "../config";
 import type { ProtocolSnapshot } from "../types";
 import type { SimulatedWriteArgs } from "../wallet/MetaMaskProvider";
-
-const closeDrawAbi = [
-  {
-    type: "function",
-    name: "closeDraw",
-    inputs: [],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-] as const;
 
 export function buildCloseDraw(
   config: Pick<LabConfig, "pool">,
@@ -27,10 +18,7 @@ export function buildCloseDraw(
   }
 
   return {
-    address: pool as Address,
-    abi: closeDrawAbi,
-    functionName: "closeDraw",
-    args: [],
+    ...buildCloseDrawRequest(pool),
     summary: `Close draw ${snapshot.pool.drawId.toString()}`,
   };
 }
