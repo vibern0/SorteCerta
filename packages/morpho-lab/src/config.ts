@@ -3,7 +3,7 @@ import type { Address, Hex } from "viem";
 
 const DEFAULTS = {
   chainId: 11155111,
-  rpcUrl: "https://ethereum-sepolia-rpc.publicnode.com",
+  rpcUrl: "https://rpc.sepolia.org",
   usdc: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
   weth: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
   wrapper: "0x3B4F71c77e288d92871Cda495891Cd42f543A3f5",
