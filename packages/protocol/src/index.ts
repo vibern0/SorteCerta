@@ -40,3 +40,10 @@ export {
   buildCloseDrawRequest,
   buildFinalizeUnwrapRequest,
 } from "./transaction-builders.ts";
+export {
+  projectMorphoYield,
+  readProjectedMorphoYield,
+  type MorphoYieldClient,
+  type ProjectedMorphoYield,
+  type ProjectionInput,
+} from "./morpho-yield.ts";
