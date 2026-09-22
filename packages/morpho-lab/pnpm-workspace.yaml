@@ -1,0 +1,7 @@
+packages:
+  - .
+  - ../protocol
+
+allowBuilds:
+  esbuild: true
+  keccak: true

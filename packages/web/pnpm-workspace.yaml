@@ -2,8 +2,6 @@ packages:
   - .
   - ../protocol
 
-linkWorkspacePackages: true
-
 allowBuilds:
   bufferutil: true
   keccak: true
