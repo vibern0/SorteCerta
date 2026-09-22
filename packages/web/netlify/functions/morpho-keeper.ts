@@ -31,17 +31,35 @@ type MorphoKeeperRuntimeSnapshot = MorphoKeeperSnapshot & {
   adapter: `0x${string}`;
 };
 
-function env(name: string): string | undefined {
-  return typeof Netlify !== "undefined" ? Netlify.env.get(name) : process.env[name];
+type EnvName =
+  | "SEPOLIA_RPC_URL"
+  | "NEXT_PUBLIC_RPC_URL"
+  | "CONFIDENTIAL_PRIZE_POOL_ADDRESS"
+  | "NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS"
+  | "KEEPER_PRIVATE_KEY"
+  | "MORPHO_KEEPER_MAX_TXS"
+  | "MORPHO_KEEPER_START_BLOCK";
+
+function env(name: EnvName): string | undefined {
+  if (typeof Netlify !== "undefined") return Netlify.env.get(name);
+  switch (name) {
+    case "SEPOLIA_RPC_URL": return process.env.SEPOLIA_RPC_URL;
+    case "NEXT_PUBLIC_RPC_URL": return process.env.NEXT_PUBLIC_RPC_URL;
+    case "CONFIDENTIAL_PRIZE_POOL_ADDRESS": return process.env.CONFIDENTIAL_PRIZE_POOL_ADDRESS;
+    case "NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS": return process.env.NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS;
+    case "KEEPER_PRIVATE_KEY": return process.env.KEEPER_PRIVATE_KEY;
+    case "MORPHO_KEEPER_MAX_TXS": return process.env.MORPHO_KEEPER_MAX_TXS;
+    case "MORPHO_KEEPER_START_BLOCK": return process.env.MORPHO_KEEPER_START_BLOCK;
+  }
 }
 
-function requiredEnv(name: string): string {
+function requiredEnv(name: EnvName): string {
   const value = env(name);
   if (!value) throw new Error(`${name} is required`);
   return value;
 }
 
-function privateKeyEnv(name: string): Hex {
+function privateKeyEnv(name: EnvName): Hex {
   const value = requiredEnv(name);
   return (value.startsWith("0x") ? value : `0x${value}`) as Hex;
 }
@@ -138,7 +156,7 @@ export async function runMorphoAction(
         const { createInstance, SepoliaConfig } = await import("@zama-fhe/relayer-sdk/node");
         const zama = await createInstance({ ...SepoliaConfig, network: rpcUrl });
         const decrypted = await zama.publicDecrypt([requestId], { timeout: PUBLIC_DECRYPT_TIMEOUT_MS });
-        clearValue = decrypted.clearValues[requestId];
+        clearValue = clearValueFor(decrypted.clearValues, requestId);
         decryptionProof = decrypted.decryptionProof;
       }
     } catch (error) {
@@ -195,6 +213,13 @@ export async function runMorphoAction(
     args: [],
   });
   return hash;
+}
+
+function clearValueFor(values: Readonly<Record<string, unknown>>, handle: Hex): unknown {
+  for (const [key, value] of Object.entries(values)) {
+    if (key === handle) return value;
+  }
+  return undefined;
 }
 
 export default async () => {

@@ -4,7 +4,16 @@ export function formatUSDC(amount: bigint | undefined, maxDecimals = 2): string 
   const whole = amount / 1_000_000n;
   const frac = amount % 1_000_000n;
   const fracStr = frac.toString().padStart(6, "0").slice(0, maxDecimals);
-  return `${whole.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${fracStr}`;
+  return `${groupDigits(whole.toString())}.${fracStr}`;
+}
+
+function groupDigits(value: string): string {
+  let grouped = "";
+  for (let index = 0; index < value.length; index += 1) {
+    if (index > 0 && (value.length - index) % 3 === 0) grouped += ",";
+    grouped += value.charAt(index);
+  }
+  return grouped;
 }
 
 /** Seconds-remaining → "2d 4h 13m 02s". */

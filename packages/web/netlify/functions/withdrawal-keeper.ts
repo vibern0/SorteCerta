@@ -17,7 +17,6 @@ import {
 declare const Netlify: { env: { get(name: string): string | undefined } } | undefined;
 
 const PUBLIC_DECRYPT_TIMEOUT_MS = 8_000;
-const STATUS_NAMES = ["open", "closed", "funded"] as const satisfies readonly WithdrawalBatchStatus[];
 
 async function decryptHandles(handles: Hex[], rpcUrl: string) {
   const { createInstance, SepoliaConfig } = await import("@zama-fhe/relayer-sdk/node");
@@ -25,25 +24,42 @@ async function decryptHandles(handles: Hex[], rpcUrl: string) {
   return zama.publicDecrypt(handles, { timeout: PUBLIC_DECRYPT_TIMEOUT_MS });
 }
 
-function env(name: string): string | undefined {
-  return typeof Netlify !== "undefined" ? Netlify.env.get(name) : process.env[name];
+type EnvName =
+  | "SEPOLIA_RPC_URL"
+  | "NEXT_PUBLIC_RPC_URL"
+  | "CONFIDENTIAL_PRIZE_POOL_ADDRESS"
+  | "NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS"
+  | "KEEPER_PRIVATE_KEY";
+
+function env(name: EnvName): string | undefined {
+  if (typeof Netlify !== "undefined") return Netlify.env.get(name);
+  switch (name) {
+    case "SEPOLIA_RPC_URL": return process.env.SEPOLIA_RPC_URL;
+    case "NEXT_PUBLIC_RPC_URL": return process.env.NEXT_PUBLIC_RPC_URL;
+    case "CONFIDENTIAL_PRIZE_POOL_ADDRESS": return process.env.CONFIDENTIAL_PRIZE_POOL_ADDRESS;
+    case "NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS": return process.env.NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS;
+    case "KEEPER_PRIVATE_KEY": return process.env.KEEPER_PRIVATE_KEY;
+  }
 }
 
-function requiredEnv(name: string): string {
+function requiredEnv(name: EnvName): string {
   const value = env(name);
   if (!value) throw new Error(`${name} is required`);
   return value;
 }
 
-function privateKeyEnv(name: string): Hex {
+function privateKeyEnv(name: EnvName): Hex {
   const value = requiredEnv(name);
   return (value.startsWith("0x") ? value : `0x${value}`) as Hex;
 }
 
 function statusName(status: number): WithdrawalBatchStatus {
-  const name = STATUS_NAMES[status];
-  if (!name) throw new Error(`Unknown withdrawal batch status: ${status}`);
-  return name;
+  switch (status) {
+    case 0: return "open";
+    case 1: return "closed";
+    case 2: return "funded";
+    default: throw new Error(`Unknown withdrawal batch status: ${status}`);
+  }
 }
 
 async function readSnapshot(
@@ -99,8 +115,8 @@ async function runAction(
     return undefined;
   }
 
-  const clearTotal = decrypted.clearValues[totalHandle];
-  const clearRestore = decrypted.clearValues[restoreHandle];
+  const clearTotal = clearValueFor(decrypted.clearValues, totalHandle);
+  const clearRestore = clearValueFor(decrypted.clearValues, restoreHandle);
   if (typeof clearTotal !== "bigint" || typeof clearRestore !== "bigint") {
     console.log(JSON.stringify({ action, batchId: batchId.toString(), status: "invalid-decryption-response" }));
     return undefined;
@@ -114,6 +130,13 @@ async function runAction(
     functionName: "settleWithdrawalBatch",
     args: [batchId, clearTotal, clearRestore, decrypted.decryptionProof],
   });
+}
+
+function clearValueFor(values: Readonly<Record<string, unknown>>, handle: Hex): unknown {
+  for (const [key, value] of Object.entries(values)) {
+    if (key === handle) return value;
+  }
+  return undefined;
 }
 
 export default async () => {
@@ -177,7 +200,7 @@ export async function runWithdrawalKeeper({ rpcUrl, pool, account, publicClient,
           const receiver = await publicClient.readContract({ address: token, abi: wrapperAbi, functionName: "unwrapRequester", args: [requestId] });
           if (receiver === zeroAddress) continue;
           const decrypted = await decrypt([requestId], rpcUrl);
-          const amount = decrypted.clearValues[requestId];
+          const amount = clearValueFor(decrypted.clearValues, requestId);
           if (typeof amount !== "bigint") throw new Error("Invalid payout proof response");
           await confirmed(await walletClient.writeContract({
             ...buildFinalizeUnwrapRequest(token, requestId, amount, decrypted.decryptionProof),

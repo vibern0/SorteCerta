@@ -217,17 +217,14 @@ export default function SavingsPage() {
     if (!session?.address || !poolReady) return;
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
-    async function poll() {
-      try {
-        await refreshPendingWithdrawals(session!.address);
-        await refreshBalances(session!.address);
-        if (!stopped) setWithdrawalRefreshError(false);
-      } catch {
-        if (!stopped) setWithdrawalRefreshError(true);
-      }
-      if (!stopped) timer = setTimeout(() => void poll(), 15_000);
+    function poll() {
+      refreshPendingWithdrawals(session!.address)
+        .then(() => refreshBalances(session!.address))
+        .then(() => { if (!stopped) setWithdrawalRefreshError(false); })
+        .catch(() => { if (!stopped) setWithdrawalRefreshError(true); })
+        .finally(() => { if (!stopped) timer = setTimeout(poll, 15_000); });
     }
-    timer = setTimeout(() => void poll(), 15_000);
+    timer = setTimeout(poll, 15_000);
     return () => { stopped = true; clearTimeout(timer); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.address, poolReady]);
@@ -444,7 +441,7 @@ export default function SavingsPage() {
     const token = asAddress(addresses.confidentialUsdc, "Savings token");
     const zama = await getZamaInstance();
     const decrypted = await zama.publicDecrypt([requestId]);
-    const clearValue = decrypted.clearValues[requestId];
+    const clearValue = clearValueFor(decrypted.clearValues, requestId);
     if (typeof clearValue !== "bigint") throw new Error("Withdrawal is not ready yet.");
     if (finalizationOutcome(clearValue) === "invariant-error") throw new Error("Withdrawal needs support. Please contact us.");
     const request = buildFinalizeUnwrapRequest(token, requestId, clearValue, decrypted.decryptionProof);
@@ -1278,4 +1275,11 @@ export default function SavingsPage() {
 
     </div>
   );
+}
+
+function clearValueFor(values: Readonly<Record<string, unknown>>, handle: `0x${string}`): unknown {
+  for (const [key, value] of Object.entries(values)) {
+    if (key === handle) return value;
+  }
+  return undefined;
 }

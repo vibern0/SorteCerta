@@ -36,27 +36,24 @@ const MARKET_STATE_NAMES = [
 ] as const;
 
 export function decodeMarketState(value: unknown): MarketState {
-  const values = tupleValues(value, MARKET_STATE_NAMES).map((item, index) =>
-    asBigInt(item, MARKET_STATE_NAMES[index]),
-  );
+  const [supplyAssets, supplyShares, borrowAssets, borrowShares, lastUpdate, fee] =
+    tupleValues(value, MARKET_STATE_NAMES);
   return {
-    totalSupplyAssets: values[0],
-    totalSupplyShares: values[1],
-    totalBorrowAssets: values[2],
-    totalBorrowShares: values[3],
-    lastUpdate: values[4],
-    fee: values[5],
+    totalSupplyAssets: asBigInt(supplyAssets, "totalSupplyAssets"),
+    totalSupplyShares: asBigInt(supplyShares, "totalSupplyShares"),
+    totalBorrowAssets: asBigInt(borrowAssets, "totalBorrowAssets"),
+    totalBorrowShares: asBigInt(borrowShares, "totalBorrowShares"),
+    lastUpdate: asBigInt(lastUpdate, "lastUpdate"),
+    fee: asBigInt(fee, "fee"),
   };
 }
 
 export function decodePosition(value: unknown): Position {
   const names = ["supplyShares", "borrowShares", "collateral"] as const;
-  const values = tupleValues(value, names).map((item, index) =>
-    asBigInt(item, names[index]),
-  );
+  const [supplyShares, borrowShares, collateral] = tupleValues(value, names);
   return {
-    supplyShares: values[0],
-    borrowShares: values[1],
-    collateralAssets: values[2],
+    supplyShares: asBigInt(supplyShares, "supplyShares"),
+    borrowShares: asBigInt(borrowShares, "borrowShares"),
+    collateralAssets: asBigInt(collateral, "collateral"),
   };
 }
