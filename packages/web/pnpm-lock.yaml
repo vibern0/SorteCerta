@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       '@sortecerta/protocol':
-        specifier: workspace:*
+        specifier: ^0.1.0
         version: link:../protocol
       '@tanstack/react-query':
         specifier: ^5.59.0
