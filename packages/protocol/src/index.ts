@@ -47,3 +47,19 @@ export {
   type ProjectedMorphoYield,
   type ProjectionInput,
 } from "./morpho-yield.ts";
+export {
+  readProtocolSnapshotAtBlock,
+  type ProtocolReadClient,
+} from "./protocol-read.ts";
+export type {
+  AccountSnapshot,
+  AdapterSnapshot,
+  DeploymentSnapshot,
+  MorphoMarketSnapshot,
+  NormalizedMarketParams,
+  PoolSnapshot,
+  ProtocolDeploymentConfig,
+  ProtocolSnapshotData,
+  TokenSnapshot,
+  WithdrawalBatchSnapshot,
+} from "./snapshot-types.ts";

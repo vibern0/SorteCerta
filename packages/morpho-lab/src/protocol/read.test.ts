@@ -16,6 +16,7 @@ import { AmountAction } from "../components/AmountAction";
 import { Workbench } from "../components/Workbench";
 import { createActionContext } from "./actions";
 import { MetaMaskProvider } from "../wallet/MetaMaskProvider";
+import { readProtocolSnapshotAtBlock } from "@sortecerta/protocol";
 
 import { loadLabConfig } from "../config";
 import { readProtocolSnapshot } from "./read";
@@ -27,6 +28,21 @@ const handle =
   "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Hex;
 
 describe("readProtocolSnapshot", () => {
+  it("pins the shared snapshot reader to the requested block", async () => {
+    const config = loadLabConfig({});
+    const client = createClient(
+      config,
+      [config.usdc, config.weth, oracle, irm, 945_000_000_000_000_000n],
+      config.adapter,
+      456n,
+    );
+
+    const snapshot = await readProtocolSnapshotAtBlock(client, config, 456n, account);
+
+    expect(snapshot.blockNumber).toBe(456n);
+    expect(client.calls.every((call) => call.blockNumber === 456n)).toBe(true);
+  });
+
   it("maps complete telemetry with spender-specific allowances to dashboard metrics", async () => {
     const config = loadLabConfig({});
     const client = createClient(config, [
@@ -435,19 +451,20 @@ describe("readProtocolSnapshot", () => {
 function createClient(
   config: ReturnType<typeof loadLabConfig>,
   adapterMarketParams: readonly [Address, Address, Address, Address, bigint],
-  activeAdapter = config.adapter
+  activeAdapter = config.adapter,
+  blockNumber = 123n,
 ) {
   const calls: ReadRequest[] = [];
 
   return {
     calls,
-    getBlockNumber: async () => 123n,
+    getBlockNumber: async () => blockNumber,
     getBlock: async (request: { blockNumber: bigint }) => {
-      expect(request.blockNumber).toBe(123n);
+      expect(request.blockNumber).toBe(blockNumber);
       return { timestamp: 1_000n };
     },
     getBalance: async (request: { address: Address; blockNumber?: bigint }) => {
-      expect(request).toEqual({ address: account, blockNumber: 123n });
+      expect(request).toEqual({ address: account, blockNumber });
       return 3n * 10n ** 18n;
     },
     readContract: async (request: ReadRequest) => {
