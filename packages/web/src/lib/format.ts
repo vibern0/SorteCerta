@@ -7,17 +7,6 @@ export function formatUSDC(amount: bigint | undefined, maxDecimals = 2): string 
   return `${whole.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${fracStr}`;
 }
 
-/** Parse a USDC string ("10.5") into 6-decimal bigint. */
-export function parseUSDC(input: string): bigint {
-  const cleaned = input.replace(/,/g, "").trim();
-  if (!/^\d+(\.\d{1,6})?$/.test(cleaned)) {
-    throw new Error("Invalid USDC amount");
-  }
-  const [whole, frac = ""] = cleaned.split(".");
-  const fracPadded = (frac + "000000").slice(0, 6);
-  return BigInt(whole) * 1_000_000n + BigInt(fracPadded);
-}
-
 /** Seconds-remaining → "2d 4h 13m 02s". */
 export function formatCountdown(seconds: number): string {
   if (seconds <= 0) return "0s";

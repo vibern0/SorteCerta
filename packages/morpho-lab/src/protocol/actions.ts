@@ -1,4 +1,5 @@
-import { formatUnits, getAddress, parseUnits, type Address } from "viem";
+import { formatUnits, getAddress, type Address } from "viem";
+export { parseAmount } from "@sortecerta/protocol";
 import { erc20WriteAbi, morphoWriteAbi, wethWriteAbi } from "../abis";
 import type { LabConfig } from "../config";
 import type {
@@ -291,32 +292,6 @@ export function buildWithdrawCollateral(
     args: [marketParams(config), amount, address, address],
     summary: `Withdraw ${formatUnits(amount, 18)} WETH collateral`,
   } as const;
-}
-
-export function parseAmount(value: string, decimals: number): bigint {
-  if (!isDecimalAmount(value, decimals)) {
-    throw new Error(`Enter an amount with at most ${decimals} decimal places.`);
-  }
-  const amount = parseUnits(value, decimals);
-  positive(amount);
-  return amount;
-}
-
-function isDecimalAmount(value: string, decimals: number): boolean {
-  const separator = value.indexOf(".");
-  if (separator !== value.lastIndexOf(".")) return false;
-  const whole = separator === -1 ? value : value.slice(0, separator);
-  const fraction = separator === -1 ? "" : value.slice(separator + 1);
-  if (!whole || !hasOnlyDigits(whole)) return false;
-  return hasOnlyDigits(fraction, true) && fraction.length <= decimals;
-}
-
-function hasOnlyDigits(value: string, allowEmpty = false): boolean {
-  if (!allowEmpty && value.length === 0) return false;
-  for (const character of value) {
-    if (character < "0" || character > "9") return false;
-  }
-  return true;
 }
 
 function positive(amount: bigint) {

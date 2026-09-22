@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { createPublicClient, encodeAbiParameters, encodeEventTopics, encodeFunctionData, getAddress, http, isAddress, parseEventLogs, toHex, zeroAddress, zeroHash } from "viem";
+import { parseAmount } from "@sortecerta/protocol";
 import { sepolia } from "viem/chains";
 import {
   CONTRACTS,
@@ -11,7 +12,7 @@ import {
   confidentialUsdcAbi,
   erc20Abi,
 } from "@/lib/contracts";
-import { formatUSDC, parseUSDC } from "@/lib/format";
+import { formatUSDC } from "@/lib/format";
 import { useWallet } from "@/lib/wallet-context";
 import { sendSmartTransaction, sendSmartTransactionBatch, type SmartSession } from "@/lib/web3auth";
 import { getZamaInstance } from "@/lib/zama";
@@ -725,7 +726,7 @@ export default function SavingsPage() {
 
   function parsedAmount(value: string) {
     try {
-      return parseUSDC(value);
+      return parseAmount(value, 6);
     } catch {
       return 0n;
     }
