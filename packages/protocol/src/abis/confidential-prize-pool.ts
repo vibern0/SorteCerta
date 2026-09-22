@@ -1,8 +1,14 @@
-function getter(name: string, outputType: string) {
+function getter<const Name extends string, const OutputType extends string>(
+  name: Name,
+  outputType: OutputType,
+) {
   return { type: "function", name, stateMutability: "view", inputs: [], outputs: [{ type: outputType }] } as const;
 }
 
-function batchGetter(name: string, outputType: string) {
+function batchGetter<const Name extends string, const OutputType extends string>(
+  name: Name,
+  outputType: OutputType,
+) {
   return {
     type: "function",
     name,

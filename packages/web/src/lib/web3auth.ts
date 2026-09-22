@@ -33,6 +33,7 @@ import {
 
 import { CONTRACTS, PIMLICO_URL, RPC_URL, prizePoolAbi } from "./contracts";
 import { stringifyTypedData } from "./zama";
+import { buildCloseDrawRequest } from "@sortecerta/protocol";
 
 // ─── Web3Auth lifecycle (browser-only) ─────────────────────────────────────
 
@@ -287,13 +288,15 @@ export async function fundPrizePool(
 
 /** Close the current draw (anyone can call after the period ends). */
 export async function closeDraw(session: SmartSession): Promise<Hex> {
+  const request = buildCloseDrawRequest(CONTRACTS.prizePool);
   return session.smartAccountClient.sendTransaction({
     calls: [
       {
-        to: CONTRACTS.prizePool,
+        to: request.address,
         data: encodeFunctionData({
-          abi: prizePoolAbi,
-          functionName: "closeDraw",
+          abi: request.abi,
+          functionName: request.functionName,
+          args: request.args,
         }),
       },
     ],

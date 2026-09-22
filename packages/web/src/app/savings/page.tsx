@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { createPublicClient, encodeAbiParameters, encodeEventTopics, encodeFunctionData, getAddress, http, isAddress, parseEventLogs, toHex, zeroAddress, zeroHash } from "viem";
-import { parseAmount } from "@sortecerta/protocol";
+import { buildFinalizeUnwrapRequest, parseAmount } from "@sortecerta/protocol";
 import { sepolia } from "viem/chains";
 import {
   CONTRACTS,
@@ -447,12 +447,13 @@ export default function SavingsPage() {
     const clearValue = decrypted.clearValues[requestId];
     if (typeof clearValue !== "bigint") throw new Error("Withdrawal is not ready yet.");
     if (finalizationOutcome(clearValue) === "invariant-error") throw new Error("Withdrawal needs support. Please contact us.");
+    const request = buildFinalizeUnwrapRequest(token, requestId, clearValue, decrypted.decryptionProof);
     const data = encodeFunctionData({
-      abi: confidentialUsdcAbi,
-      functionName: "finalizeUnwrap",
-      args: [requestId, clearValue, decrypted.decryptionProof],
+      abi: request.abi,
+      functionName: request.functionName,
+      args: request.args,
     });
-    await sendTx(currentSession, token, data);
+    await sendTx(currentSession, request.address, data);
     await refreshBalances(user);
     await refreshPendingUnwraps(user);
     await refreshPendingWithdrawals(user);

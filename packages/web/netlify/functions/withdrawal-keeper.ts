@@ -1,7 +1,12 @@
-import { createPublicClient, createWalletClient, getAddress, http, parseAbi, zeroAddress, zeroHash, type Hex } from "viem";
+import { createPublicClient, createWalletClient, getAddress, http, zeroAddress, zeroHash, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { PrivateKeyAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
+import {
+  buildFinalizeUnwrapRequest,
+  confidentialPrizePoolAbi as prizePoolAbi,
+  confidentialUsdcAbi as wrapperAbi,
+} from "@sortecerta/protocol";
 import { sanitizeKeeperError } from "../../src/lib/morpho-keeper.ts";
 import {
   chooseWithdrawalKeeperAction,
@@ -10,26 +15,6 @@ import {
 } from "../../src/lib/withdrawal-keeper.ts";
 
 declare const Netlify: { env: { get(name: string): string | undefined } } | undefined;
-
-const prizePoolAbi = parseAbi([
-  "function currentWithdrawalBatchId() view returns (uint256)",
-  "function withdrawalBatchStatus(uint256 batchId) view returns (uint8)",
-  "function withdrawalBatchClosesAt(uint256 batchId) view returns (uint256)",
-  "function withdrawalBatchRequestCount(uint256 batchId) view returns (uint256)",
-  "function encryptedWithdrawalBatchTotal(uint256 batchId) view returns (bytes32)",
-  "function encryptedWithdrawalBatchMorphoRestore(uint256 batchId) view returns (bytes32)",
-  "function closeWithdrawalBatch(uint256 batchId)",
-  "function settleWithdrawalBatch(uint256 batchId,uint64 cleartextTotal,uint64 cleartextMorphoRestore,bytes decryptionProof)",
-  "function token() view returns (address)",
-  "function withdrawalAccounts(uint256 batchId) view returns (address[])",
-  "function hasWithdrawalClaim(uint256 batchId,address account) view returns (bool)",
-  "function withdrawalUnwrapRequest(uint256 batchId,address account) view returns (bytes32)",
-  "function processWithdrawal(uint256 batchId,address account) returns (bytes32)",
-]);
-const wrapperAbi = parseAbi([
-  "function unwrapRequester(bytes32 requestId) view returns (address)",
-  "function finalizeUnwrap(bytes32 requestId,uint64 amount,bytes proof)",
-]);
 
 const PUBLIC_DECRYPT_TIMEOUT_MS = 8_000;
 const STATUS_NAMES = ["open", "closed", "funded"] as const satisfies readonly WithdrawalBatchStatus[];
@@ -194,7 +179,11 @@ export async function runWithdrawalKeeper({ rpcUrl, pool, account, publicClient,
           const decrypted = await decrypt([requestId], rpcUrl);
           const amount = decrypted.clearValues[requestId];
           if (typeof amount !== "bigint") throw new Error("Invalid payout proof response");
-          await confirmed(await walletClient.writeContract({ account, chain: sepolia, address: token, abi: wrapperAbi, functionName: "finalizeUnwrap", args: [requestId, amount, decrypted.decryptionProof] }), "deliver", batchId);
+          await confirmed(await walletClient.writeContract({
+            ...buildFinalizeUnwrapRequest(token, requestId, amount, decrypted.decryptionProof),
+            account,
+            chain: sepolia,
+          }), "deliver", batchId);
         } catch (error) {
           pending.push({ batchId: batchId.toString(), account: claimant, status: "retrying-delivery", error: sanitizeKeeperError(error) });
         }

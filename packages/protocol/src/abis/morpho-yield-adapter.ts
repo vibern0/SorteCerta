@@ -6,11 +6,11 @@ const marketParamsComponents = [
   { type: "uint256", name: "lltv" },
 ] as const;
 
-function addressGetter(name: string) {
+function addressGetter<const Name extends string>(name: Name) {
   return { type: "function", name, stateMutability: "view", inputs: [], outputs: [{ type: "address" }] } as const;
 }
 
-function uintGetter(name: string) {
+function uintGetter<const Name extends string>(name: Name) {
   return { type: "function", name, stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] } as const;
 }
 
