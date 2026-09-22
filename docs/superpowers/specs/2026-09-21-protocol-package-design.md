@@ -2,8 +2,7 @@
 
 ## Status
 
-Conversational design approved on 2026-09-21. This written specification is
-awaiting review before implementation planning begins.
+Approved for implementation planning on 2026-09-22.
 
 ## Goal
 
