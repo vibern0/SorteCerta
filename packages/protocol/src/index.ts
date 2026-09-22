@@ -7,3 +7,20 @@ export {
   toMarketParams,
   type IMarketParams,
 } from "./market-params.ts";
+export {
+  decodeMarketState,
+  decodePosition,
+  type MarketState,
+  type Position,
+  type PositionHealth,
+} from "./market-state.ts";
+export {
+  WAD,
+  accruedBorrowAssets,
+  accruedMarketState,
+  positionHealth,
+  safeBorrowCapacity,
+  toBorrowAssetsUp,
+  toSupplyAssetsDown,
+  utilizationWad,
+} from "./morpho-math.ts";
