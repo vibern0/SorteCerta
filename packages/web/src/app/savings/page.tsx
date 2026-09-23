@@ -210,7 +210,6 @@ export default function SavingsPage() {
     void refreshBalances(session.address);
     void refreshPendingUnwraps(session.address);
     void refreshPendingWithdrawals(session.address);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.address, poolReady]);
 
   useEffect(() => {
@@ -227,7 +226,6 @@ export default function SavingsPage() {
     }
     timer = setTimeout(poll, 15_000);
     return () => { stopped = true; clearTimeout(timer); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.address, poolReady]);
 
   const sheetOpen = Boolean(depositSheetStep || withdrawSheetStep);
