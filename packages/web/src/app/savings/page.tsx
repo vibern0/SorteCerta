@@ -215,11 +215,12 @@ export default function SavingsPage() {
 
   useEffect(() => {
     if (!session?.address || !poolReady) return;
+    const address = session.address;
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
     function poll() {
-      refreshPendingWithdrawals(session!.address)
-        .then(() => refreshBalances(session!.address))
+      refreshPendingWithdrawals(address)
+        .then(() => refreshBalances(address))
         .then(() => { if (!stopped) setWithdrawalRefreshError(false); })
         .catch(() => { if (!stopped) setWithdrawalRefreshError(true); })
         .finally(() => { if (!stopped) timer = setTimeout(poll, 15_000); });

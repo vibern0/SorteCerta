@@ -44,7 +44,7 @@ describe("watchProtocolBlocks", () => {
             options.onBlockNumber(blockNumber);
           };
           onError = (error) => {
-            options.onError?.(error);
+            options.onError(error);
           };
           return () => {};
         },
