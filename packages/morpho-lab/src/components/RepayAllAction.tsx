@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { formatUnits } from "viem";
+import { ActionParties } from "./ActionParties";
 import {
   getRepayAllQuote,
   parseAmount,
@@ -40,7 +41,7 @@ export function RepayAllAction({
       borrowShares: quote.borrowShares,
       approvalAmount: parseAmount(
         limitInput ?? formatUnits(quote.suggestedApproval, 6),
-        6
+        6,
       ),
     };
     validateRepayAllReview(context, review);
@@ -50,7 +51,7 @@ export function RepayAllAction({
   const allowance = context.snapshot.account.tokens.morphoUsdcAllowance;
   const limit = frozen
     ? formatUnits(frozen.review.approvalAmount, 6)
-    : limitInput ?? (quote ? formatUnits(quote.suggestedApproval, 6) : "");
+    : (limitInput ?? (quote ? formatUnits(quote.suggestedApproval, 6) : ""));
 
   return (
     <form
@@ -84,9 +85,8 @@ export function RepayAllAction({
         />
       </div>
       <p className="action-hint">
-        Available:{" "}
-        {formatUnits(context.snapshot.account.tokens.usdcBalance, 6)} USDC.
-        Maximum approval:{" "}
+        Available: {formatUnits(context.snapshot.account.tokens.usdcBalance, 6)}{" "}
+        USDC. Maximum approval:{" "}
         {quote ? formatUnits(quote.maxApproval, 6) : "Unavailable"} USDC.
       </p>
       <p className="action-hint">
@@ -109,15 +109,10 @@ export function RepayAllAction({
           <strong>Confirmation</strong>: repay all{" "}
           {quote?.borrowShares.toString() ?? "-"} borrow shares
         </p>
-        <p>
-          Account:{" "}
-          <span className="action-address">
-            {context.snapshot.account.address}
-          </span>
-        </p>
-        <p>
-          Destination: <span className="action-address">{context.morpho}</span>
-        </p>
+        <ActionParties
+          account={context.snapshot.account.address}
+          destination={context.morpho}
+        />
         <p>Current allowance: {formatUnits(allowance, 6)} USDC</p>
         <p>Reviewed approval limit: {limit || "-"} USDC</p>
         <ol aria-label="Repay all debt transaction sequence">

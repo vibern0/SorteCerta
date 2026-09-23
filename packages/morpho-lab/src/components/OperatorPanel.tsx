@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { getAddress } from "viem";
 
-import type { LabConfig } from "../config";
 import { formatTimestamp, formatToken } from "../format";
 import { buildCloseDraw } from "../protocol/operator-actions";
 import { getCloseDrawState } from "../protocol/operator-state";
@@ -11,25 +10,13 @@ import {
   prizeFundingAbi,
 } from "../protocol/prize-funding";
 import { encryptPrizeAmount } from "../protocol/zama";
-import type { ProtocolSnapshot } from "../types";
-import { useMetaMask } from "../wallet/MetaMaskProvider";
 import { Panel } from "./DeploymentPanel";
+import type { ProtocolViewProps } from "./protocol-view-props";
+import { useWalletExecution } from "./useWalletExecution";
 
-export function OperatorPanel({
-  config,
-  snapshot,
-  refresh,
-  stale,
-}: {
-  config: LabConfig;
-  snapshot: ProtocolSnapshot;
-  refresh: () => Promise<ProtocolSnapshot>;
-  stale: boolean;
-}) {
-  const wallet = useMetaMask();
-  const walletRef = useRef(wallet);
-  walletRef.current = wallet;
-  const running = useRef(false);
+export function OperatorPanel(props: ProtocolViewProps) {
+  const { config, snapshot, refresh, stale } = props;
+  const { running, wallet, walletRef } = useWalletExecution();
   const { account, chainId, status } = wallet;
   const [fundAmount, setFundAmount] = useState("");
   const [reviewed, setReviewed] = useState(false);
@@ -93,7 +80,7 @@ export function OperatorPanel({
         current.status !== "connected"
       )
         throw new Error(
-          "MetaMask account or chain changed. Review funding again."
+          "MetaMask account or chain changed. Review funding again.",
         );
     };
     try {
@@ -124,7 +111,7 @@ export function OperatorPanel({
       setError(
         `${
           reason instanceof Error ? reason.message : String(reason)
-        } Sequence stopped; review activity before retrying.`
+        } Sequence stopped; review activity before retrying.`,
       );
       setProgress(undefined);
     } finally {
@@ -135,11 +122,12 @@ export function OperatorPanel({
   }
 
   useEffect(() => {
-    const interval = window.setInterval(
-      () => setNow(Math.floor(Date.now() / 1_000)),
-      1_000
-    );
-    return () => window.clearInterval(interval);
+    const interval = window.setInterval(() => {
+      setNow(Math.floor(Date.now() / 1_000));
+    }, 1_000);
+    return () => {
+      window.clearInterval(interval);
+    };
   }, []);
 
   async function closeDraw() {
@@ -216,7 +204,9 @@ export function OperatorPanel({
             type="checkbox"
             checked={reviewed}
             disabled={Boolean(fundingDisabled) || !validFunding}
-            onChange={(event) => setReviewed(event.target.checked)}
+            onChange={(event) => {
+              setReviewed(event.target.checked);
+            }}
           />{" "}
           Fund the prize with {formatToken(amount, 6, 6)} USDC
         </label>

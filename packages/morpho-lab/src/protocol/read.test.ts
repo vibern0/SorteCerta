@@ -26,18 +26,26 @@ const oracle = getAddress("0x2222222222222222222222222222222222222222");
 const irm = getAddress("0x3333333333333333333333333333333333333333");
 const handle =
   "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Hex;
+const defaultMarketParams = (config: ReturnType<typeof loadLabConfig>) =>
+  [config.usdc, config.weth, oracle, irm, 945_000_000_000_000_000n] as const;
+const createDefaultClient = (
+  config: ReturnType<typeof loadLabConfig>,
+  activeAdapter = config.adapter,
+  blockNumber = 123n,
+) =>
+  createClient(config, defaultMarketParams(config), activeAdapter, blockNumber);
 
 describe("readProtocolSnapshot", () => {
   it("pins the shared snapshot reader to the requested block", async () => {
     const config = loadLabConfig({});
-    const client = createClient(
-      config,
-      [config.usdc, config.weth, oracle, irm, 945_000_000_000_000_000n],
-      config.adapter,
-      456n,
-    );
+    const client = createDefaultClient(config, config.adapter, 456n);
 
-    const snapshot = await readProtocolSnapshotAtBlock(client, config, 456n, account);
+    const snapshot = await readProtocolSnapshotAtBlock(
+      client,
+      config,
+      456n,
+      account,
+    );
 
     expect(snapshot.blockNumber).toBe(456n);
     expect(client.calls.every((call) => call.blockNumber === 456n)).toBe(true);
@@ -45,13 +53,7 @@ describe("readProtocolSnapshot", () => {
 
   it("maps complete telemetry with spender-specific allowances to dashboard metrics", async () => {
     const config = loadLabConfig({});
-    const client = createClient(config, [
-      config.usdc,
-      config.weth,
-      oracle,
-      irm,
-      945_000_000_000_000_000n,
-    ]);
+    const client = createDefaultClient(config);
     const snapshot = await readProtocolSnapshot(client, config, account);
     expect(snapshot.adapter).toMatchObject({
       usdcBalance: 500_001n,
@@ -95,13 +97,7 @@ describe("readProtocolSnapshot", () => {
 
   it("includes idle-market interest in displayed debt, health, and remaining capacity", async () => {
     const config = loadLabConfig({});
-    const base = createClient(config, [
-      config.usdc,
-      config.weth,
-      oracle,
-      irm,
-      945_000_000_000_000_000n,
-    ]);
+    const base = createDefaultClient(config);
     const client = {
       ...base,
       readContract: async (request: ReadRequest) => {
@@ -139,7 +135,7 @@ describe("readProtocolSnapshot", () => {
         },
       },
       config,
-      account
+      account,
     );
     expect(unavailable.account?.health).toBeUndefined();
     expect(unavailable.market.supplierRatePerSecond).toBeUndefined();
@@ -150,7 +146,7 @@ describe("readProtocolSnapshot", () => {
         all: true,
         disabled: false,
         onRun: async () => {},
-      })
+      }),
     );
     expect(markup).toContain("Borrow rate unavailable");
 
@@ -172,13 +168,7 @@ describe("readProtocolSnapshot", () => {
   it("shows only the empty state when no wallet account was read", async () => {
     const config = loadLabConfig({});
     const snapshot = await readProtocolSnapshot(
-      createClient(config, [
-        config.usdc,
-        config.weth,
-        oracle,
-        irm,
-        945_000_000_000_000_000n,
-      ]),
+      createDefaultClient(config),
       config,
     );
     const markup = renderToStaticMarkup(
@@ -194,19 +184,15 @@ describe("readProtocolSnapshot", () => {
       ),
     );
 
-    expect(markup).toContain("Connect MetaMask and refresh your account balances.");
+    expect(markup).toContain(
+      "Connect MetaMask and refresh your account balances.",
+    );
     expect(markup).not.toContain("Connect MetaMask before continuing.");
   });
 
   it("projects adapter supplied assets and yield from the pinned market timestamp", async () => {
     const config = loadLabConfig({});
-    const base = createClient(config, [
-      config.usdc,
-      config.weth,
-      oracle,
-      irm,
-      945_000_000_000_000_000n,
-    ]);
+    const base = createDefaultClient(config);
     const client = {
       ...base,
       readContract: async (request: ReadRequest) => {
@@ -227,11 +213,9 @@ describe("readProtocolSnapshot", () => {
           request.args?.[1] === config.adapter
         )
           return [1_000_000_000_000_000n, 0n, 0n];
-        if (request.functionName === "suppliedPrincipal")
-          return 1_000_000_000n;
+        if (request.functionName === "suppliedPrincipal") return 1_000_000_000n;
         if (request.functionName === "idlePrincipal") return 1n;
-        if (request.functionName === "suppliedAssets")
-          return 1_000_000_000n;
+        if (request.functionName === "suppliedAssets") return 1_000_000_000n;
         if (request.functionName === "accruedYieldAssets") return 0n;
         return value;
       },
@@ -246,13 +230,7 @@ describe("readProtocolSnapshot", () => {
 
   it("floors projected yield at zero when supplied assets are below principal", async () => {
     const config = loadLabConfig({});
-    const base = createClient(config, [
-      config.usdc,
-      config.weth,
-      oracle,
-      irm,
-      945_000_000_000_000_000n,
-    ]);
+    const base = createDefaultClient(config);
     const snapshot = await readProtocolSnapshot(
       {
         ...base,
@@ -281,7 +259,7 @@ describe("readProtocolSnapshot", () => {
         },
       },
       config,
-      account
+      account,
     );
 
     expect(snapshot.adapter.suppliedAssets).toBe(1_000_100_050n);
@@ -291,13 +269,7 @@ describe("readProtocolSnapshot", () => {
 
   it("keeps raw adapter values when projected market state is unavailable", async () => {
     const config = loadLabConfig({});
-    const base = createClient(config, [
-      config.usdc,
-      config.weth,
-      oracle,
-      irm,
-      945_000_000_000_000_000n,
-    ]);
+    const base = createDefaultClient(config);
     const snapshot = await readProtocolSnapshot(
       {
         ...base,
@@ -308,7 +280,7 @@ describe("readProtocolSnapshot", () => {
         },
       },
       config,
-      account
+      account,
     );
 
     expect(snapshot.adapter.suppliedAssets).toBe(1_010_000n);
@@ -318,13 +290,7 @@ describe("readProtocolSnapshot", () => {
 
   it("accepts named tuple objects returned by viem ABI decoding", async () => {
     const config = loadLabConfig({});
-    const client = createClient(config, [
-      config.usdc,
-      config.weth,
-      oracle,
-      irm,
-      945_000_000_000_000_000n,
-    ]);
+    const client = createDefaultClient(config);
     const snapshot = await readProtocolSnapshot(
       {
         ...client,
@@ -343,7 +309,7 @@ describe("readProtocolSnapshot", () => {
         },
       },
       config,
-      account
+      account,
     );
     expect(snapshot.adapter.marketParams.lltv).toBe(945_000_000_000_000_000n);
     expect(snapshot.market.state.totalSupplyAssets).toBe(185_634_262n);
@@ -352,13 +318,7 @@ describe("readProtocolSnapshot", () => {
 
   it("reads deployment bindings, protocol metrics, market state, and an account position", async () => {
     const config = loadLabConfig({});
-    const client = createClient(config, [
-      config.usdc,
-      config.weth,
-      oracle,
-      irm,
-      945_000_000_000_000_000n,
-    ]);
+    const client = createDefaultClient(config);
 
     const snapshot = await readProtocolSnapshot(client, config, account);
 
@@ -390,10 +350,10 @@ describe("readProtocolSnapshot", () => {
     });
     expect(snapshot.account?.encryptedPrincipalHandle).toBe(handle);
     expect(client.calls.map((call) => call.functionName)).toContain(
-      "borrowRateView"
+      "borrowRateView",
     );
     expect(client.calls.map((call) => call.functionName)).toContain(
-      "allowance"
+      "allowance",
     );
     expect(client.calls.map((call) => call.functionName)).toContain("position");
     expect(client.calls).toEqual(
@@ -408,7 +368,7 @@ describe("readProtocolSnapshot", () => {
           functionName: "suppliedPrincipal",
           blockNumber: 123n,
         }),
-      ])
+      ]),
     );
     expect(client.calls.every((call) => call.blockNumber === 123n)).toBe(true);
   });
@@ -424,26 +384,22 @@ describe("readProtocolSnapshot", () => {
     ]);
 
     await expect(readProtocolSnapshot(client, config)).rejects.toThrow(
-      "Adapter market parameters"
+      "Adapter market parameters",
     );
   });
 
   it("rejects a retired adapter before reading any of its state", async () => {
     const config = loadLabConfig({});
     const retiredAdapter = getAddress(
-      "0x4444444444444444444444444444444444444444"
+      "0x4444444444444444444444444444444444444444",
     );
-    const client = createClient(
-      config,
-      [config.usdc, config.weth, oracle, irm, 945_000_000_000_000_000n],
-      retiredAdapter
-    );
+    const client = createDefaultClient(config, retiredAdapter);
 
     await expect(readProtocolSnapshot(client, config)).rejects.toThrow(
-      "Configured adapter is not the pool's active Morpho adapter"
+      "Configured adapter is not the pool's active Morpho adapter",
     );
     expect(
-      client.calls.filter((call) => call.address === config.adapter)
+      client.calls.filter((call) => call.address === config.adapter),
     ).toHaveLength(0);
   });
 });
@@ -569,14 +525,14 @@ function createClient(
       const expectedAddress = adapterFunctions.includes(functionName)
         ? config.adapter
         : ["market", "idToMarketParams"].includes(functionName)
-        ? config.morpho
-        : functionName === "price"
-        ? oracle
-        : functionName === "borrowRateView"
-        ? irm
-        : functionName === "confidentialBalanceOf"
-        ? config.wrapper
-        : config.pool;
+          ? config.morpho
+          : functionName === "price"
+            ? oracle
+            : functionName === "borrowRateView"
+              ? irm
+              : functionName === "confidentialBalanceOf"
+                ? config.wrapper
+                : config.pool;
       expect(request.address).toBe(expectedAddress);
       if (["market", "idToMarketParams"].includes(functionName))
         expect(request.args).toEqual([config.marketId]);

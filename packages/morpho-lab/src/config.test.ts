@@ -18,8 +18,8 @@ describe("loadLabConfig", () => {
   });
 
   it("rejects a config for the wrong chain", () => {
-    expect(() =>
-      validateLabConfig({ ...loadLabConfig({}), chainId: 1 }),
-    ).toThrow("11155111");
+    expect(() => {
+      validateLabConfig({ ...loadLabConfig({}), chainId: 1 });
+    }).toThrow("11155111");
   });
 });

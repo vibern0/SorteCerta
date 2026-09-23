@@ -3,6 +3,7 @@ import {
   accruedMarketState,
   erc20Abi,
   morphoBlueAbi,
+  normalizeDeployment,
   positionHealth,
   safeBorrowCapacity,
   sameMarketParams,
@@ -14,10 +15,7 @@ import {
 } from "@sortecerta/protocol";
 export { parseAmount } from "@sortecerta/protocol";
 import type { LabConfig } from "../config";
-import type {
-  AccountSnapshot,
-  ProtocolSnapshot,
-} from "../types";
+import type { AccountSnapshot, ProtocolSnapshot } from "../types";
 import type { SimulatedWriteArgs } from "../wallet/MetaMaskProvider";
 
 export type ActionKind =
@@ -61,19 +59,14 @@ export function actionLabel(action: ActionKind): string {
 export function createActionContext(
   config: LabConfig,
   snapshot: ProtocolSnapshot,
-  safetyBps = 8_000n
+  safetyBps = 8_000n,
 ): ActionContext {
   if (safetyBps <= 0n || safetyBps > 8_000n)
     throw new Error("Safety margin must be at most 80% of LLTV.");
   assertAccountSnapshot(snapshot);
   const normalized = {
     ...config,
-    usdc: getAddress(config.usdc),
-    weth: getAddress(config.weth),
-    wrapper: getAddress(config.wrapper),
-    pool: getAddress(config.pool),
-    adapter: getAddress(config.adapter),
-    morpho: getAddress(config.morpho),
+    ...normalizeDeployment(config),
   };
   if (
     getAddress(snapshot.deployment.usdc) !== normalized.usdc ||
@@ -99,7 +92,7 @@ export function createActionContext(
     !sameMarketParams(params, registered)
   ) {
     throw new Error(
-      "Adapter market binding changed. Refresh before continuing."
+      "Adapter market binding changed. Refresh before continuing.",
     );
   }
   return { ...normalized, snapshot, safetyBps };
@@ -132,7 +125,7 @@ function marketParams(config: ActionContext) {
 export function buildApproval(
   config: ActionContext,
   token: "usdc" | "weth",
-  amount: bigint
+  amount: bigint,
 ) {
   positive(amount);
   return {
@@ -142,7 +135,7 @@ export function buildApproval(
     args: [getAddress(config.morpho), amount],
     summary: `Approve ${formatUnits(
       amount,
-      token === "usdc" ? 6 : 18
+      token === "usdc" ? 6 : 18,
     )} ${token.toUpperCase()} for Morpho`,
   } as const;
 }
@@ -173,7 +166,7 @@ export function buildUnwrap(config: ActionContext, amount: bigint) {
 export function buildSupply(
   config: ActionContext,
   account: Address,
-  amount: bigint
+  amount: bigint,
 ) {
   positive(amount);
   return {
@@ -187,7 +180,7 @@ export function buildSupply(
 export function buildWithdraw(
   config: ActionContext,
   account: Address,
-  amount: ActionAmount
+  amount: ActionAmount,
 ) {
   const address = owner(config, account);
   const shares =
@@ -213,7 +206,7 @@ export function buildWithdraw(
 export function buildSupplyCollateral(
   config: ActionContext,
   account: Address,
-  amount: bigint
+  amount: bigint,
 ) {
   positive(amount);
   return {
@@ -227,7 +220,7 @@ export function buildSupplyCollateral(
 export function buildBorrow(
   config: ActionContext,
   account: Address,
-  amount: bigint
+  amount: bigint,
 ) {
   positive(amount);
   const address = owner(config, account);
@@ -242,7 +235,7 @@ export function buildBorrow(
 export function buildRepay(
   config: ActionContext,
   account: Address,
-  amount: ActionAmount
+  amount: ActionAmount,
 ) {
   const address = owner(config, account);
   const shares =
@@ -268,7 +261,7 @@ export function buildRepay(
 export function buildWithdrawCollateral(
   config: ActionContext,
   account: Address,
-  amount: bigint
+  amount: bigint,
 ) {
   positive(amount);
   const address = owner(config, account);
@@ -299,18 +292,18 @@ export function positionAmounts(config: ActionContext) {
   const state = accruedMarketState(
     config.snapshot.market.state,
     config.snapshot.market.borrowRatePerSecond,
-    config.snapshot.blockTimestamp
+    config.snapshot.blockTimestamp,
   );
   return {
     supply: toSupplyAssetsDown(
       position.supplyShares,
       state.totalSupplyAssets,
-      state.totalSupplyShares
+      state.totalSupplyShares,
     ),
     debt: toBorrowAssetsUp(
       position.borrowShares,
       state.totalBorrowAssets,
-      state.totalBorrowShares
+      state.totalBorrowShares,
     ),
     liquidity: nonnegative(state.totalSupplyAssets - state.totalBorrowAssets),
   };
@@ -338,24 +331,21 @@ function borrowCapacity(config: ActionContext, extraCollateral = 0n) {
   });
   return safeBorrowCapacity(
     health,
-    (config.snapshot.adapter.marketParams.lltv * config.safetyBps) / 10_000n
+    (config.snapshot.adapter.marketParams.lltv * config.safetyBps) / 10_000n,
   );
 }
 
 export function getIncreaseBorrowMax(
   config: ActionContext,
-  collateral: bigint
+  collateral: bigint,
 ) {
   owner(config);
-  return min(
-    borrowCapacity(config, collateral),
-    marketLiquidity(config)
-  );
+  return min(borrowCapacity(config, collateral), marketLiquidity(config));
 }
 
 export function getActionMax(
   config: ActionContext,
-  action: ActionKind
+  action: ActionKind,
 ): bigint {
   owner(config);
   const { tokens, position } = config.snapshot.account;
@@ -375,13 +365,13 @@ export function getActionMax(
       const state = accruedMarketState(
         config.snapshot.market.state,
         config.snapshot.market.borrowRatePerSecond,
-        config.snapshot.blockTimestamp
+        config.snapshot.blockTimestamp,
       );
       // Asset-based repayment must not burn more borrow shares than owned.
       const repayAssets = toSupplyAssetsDown(
         position.borrowShares,
         state.totalBorrowAssets,
-        state.totalBorrowShares
+        state.totalBorrowShares,
       );
       return min(repayAssets, tokens.usdcBalance);
     }
@@ -394,7 +384,7 @@ export function getActionMax(
       // Invert both floor divisions in the LLTV health check, rounding up.
       const required = ceilDiv(
         ceilDiv(debt * WAD, lltv) * 10n ** 36n,
-        oraclePrice
+        oraclePrice,
       );
       return nonnegative(position.collateralAssets - required);
     }
@@ -404,29 +394,27 @@ export function getActionMax(
 export function actionAssets(
   config: ActionContext,
   action: ActionKind,
-  amount: ActionAmount
+  amount: ActionAmount,
 ): bigint {
   if (amount !== "all") return amount;
   if (action === "repayUsdc") return getRepayAllQuote(config).estimatedAssets;
   if (action === "withdrawUsdc") return directSupply(config);
   throw new Error(
-    "All shares applies only to debt repayment or direct supply withdrawal."
+    "All shares applies only to debt repayment or direct supply withdrawal.",
   );
 }
 
 export function validateAction(
   config: ActionContext,
   action: ActionKind,
-  amount: ActionAmount
+  amount: ActionAmount,
 ): void {
   owner(config);
   const assets = actionAssets(config, action, amount);
   if (amount === "all") {
     const { position } = config.snapshot.account;
     positive(
-      action === "repayUsdc"
-        ? position.borrowShares
-        : position.supplyShares,
+      action === "repayUsdc" ? position.borrowShares : position.supplyShares,
     );
   } else positive(assets);
   if (
@@ -444,10 +432,10 @@ export function validateAction(
       throw new Error("Amount exceeds the borrowing safety margin.");
     if (action === "withdrawCollateral")
       throw new Error(
-        "Withdrawal exceeds collateral or leaves an unhealthy position."
+        "Withdrawal exceeds collateral or leaves an unhealthy position.",
       );
     throw new Error(
-      "Amount exceeds available balance or position. ETH wrapping reserves 0.001 ETH for fees."
+      "Amount exceeds available balance or position. ETH wrapping reserves 0.001 ETH for fees.",
     );
   }
 }
@@ -455,7 +443,7 @@ export function validateAction(
 export function requiredApproval(
   config: ActionContext,
   action: ActionKind,
-  amount: ActionAmount
+  amount: ActionAmount,
 ) {
   const assets = actionAssets(config, action, amount);
   const tokens = config.snapshot.account.tokens;
@@ -477,7 +465,7 @@ export function requiredApproval(
 export function buildAction(
   config: ActionContext,
   action: ActionKind,
-  amount: ActionAmount
+  amount: ActionAmount,
 ): SimulatedWriteArgs {
   validateAction(config, action, amount);
   const account = owner(config);
@@ -514,17 +502,17 @@ export function getRepayAllQuote(config: ActionContext) {
   const { position, tokens } = config.snapshot.account;
   if (borrowRatePerSecond === undefined)
     throw new Error(
-      "Borrow rate unavailable. Refresh before reviewing repayment."
+      "Borrow rate unavailable. Refresh before reviewing repayment.",
     );
   const totalAssets = accruedMarketState(
     state,
     borrowRatePerSecond,
-    config.snapshot.blockTimestamp
+    config.snapshot.blockTimestamp,
   ).totalBorrowAssets;
   const estimatedAssets = toBorrowAssetsUp(
     position.borrowShares,
     totalAssets,
-    state.totalBorrowShares
+    state.totalBorrowShares,
   );
   return {
     borrowShares: position.borrowShares,
@@ -532,7 +520,7 @@ export function getRepayAllQuote(config: ActionContext) {
     // The user reviews this finite allowance; the contract can collect only what is owed.
     suggestedApproval: min(
       ceilDiv(estimatedAssets * 101n, 100n),
-      tokens.usdcBalance
+      tokens.usdcBalance,
     ),
     maxApproval: min(ceilDiv(estimatedAssets * 110n, 100n), tokens.usdcBalance),
   };
@@ -540,7 +528,7 @@ export function getRepayAllQuote(config: ActionContext) {
 
 export function validateRepayAllReview(
   config: ActionContext,
-  review: RepayAllReview
+  review: RepayAllReview,
 ) {
   const quote = getRepayAllQuote(config);
   if (review.borrowShares <= 0n || review.borrowShares !== quote.borrowShares) {
@@ -551,7 +539,7 @@ export function validateRepayAllReview(
     review.approvalAmount > quote.maxApproval
   ) {
     throw new Error(
-      "Approval limit must cover accrued debt and stay within your balance and 110% of estimated debt. Review a new limit."
+      "Approval limit must cover accrued debt and stay within your balance and 110% of estimated debt. Review a new limit.",
     );
   }
 }
@@ -585,12 +573,12 @@ export async function executeAction(
   action: ActionKind,
   amount: ActionAmount,
   runner: ActionRunner,
-  repayReview?: RepayAllReview
+  repayReview?: RepayAllReview,
 ) {
   if (action === "repayUsdc" && amount === "all") {
     if (!repayReview)
       throw new Error(
-        "Review a bounded approval limit before repaying all debt."
+        "Review a bounded approval limit before repaying all debt.",
       );
     // Copy the review before awaiting so refreshes cannot change the approved bound.
     const review = { ...repayReview };
@@ -616,7 +604,7 @@ export async function executeAction(
     const result = await flow.refresh();
     if (result.snapshot.account.position.borrowShares !== 0n)
       throw new Error(
-        "Borrow shares remain after repayment. Refresh and review your position."
+        "Borrow shares remain after repayment. Refresh and review your position.",
       );
     return;
   }
@@ -632,7 +620,7 @@ export async function executeAction(
   const latestApproval = requiredApproval(current, action, amount);
   if (latestApproval && latestApproval.allowance < latestApproval.amount) {
     throw new Error(
-      "Required approval changed. Review the updated amount and try again."
+      "Required approval changed. Review the updated amount and try again.",
     );
   }
   await flow.submit(buildAction(current, action, amount));
@@ -643,7 +631,7 @@ export async function executeIncreaseUtilization(
   initial: ActionContext,
   collateral: bigint,
   borrow: bigint,
-  runner: ActionRunner
+  runner: ActionRunner,
 ) {
   const flow = sequence(initial, runner);
   let current = await flow.refresh();
@@ -652,7 +640,7 @@ export async function executeIncreaseUtilization(
     positive(borrow);
     if (borrow > getIncreaseBorrowMax(current, collateral))
       throw new Error(
-        "Borrow amount exceeds projected safety margin or market liquidity."
+        "Borrow amount exceeds projected safety margin or market liquidity.",
       );
   };
   validatePlan();

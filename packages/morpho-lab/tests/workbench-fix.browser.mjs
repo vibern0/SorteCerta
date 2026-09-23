@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { createServer, transformWithEsbuild } from "vite";
 
-// Supply PLAYWRIGHT_MODULE when running with a cached, external Playwright install.
+// The optional module path is developer-controlled for this local browser harness.
+// eslint-disable-next-line no-unsanitized/method
 const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE ?? "playwright"
 );
@@ -103,16 +104,23 @@ const server = await createServer({
 server.middlewares.use("/__regression", async (_req, res) => {
   res.setHeader("Content-Type", "text/html");
   res.end(
+    // The HTML is a fixed local test harness and contains no untrusted input.
+    // eslint-disable-next-line xss/no-mixed-html
     await server.transformIndexHtml(
       "/__regression",
-      '<div id="root"></div><script type="module" src="/test-harness.tsx"></script>'
-    )
+      '<div id="root"></div><script type="module" src="/test-harness.tsx"></script>',
+    ),
   );
 });
 await server.listen();
 const browser = await chromium.launch({ headless: true });
 try {
-  for (const [fail, balance] of [[false, 2], [true, 2], [false, 1], [true, 1]]) {
+  for (const [fail, balance] of [
+    [false, 2],
+    [true, 2],
+    [false, 1],
+    [true, 1],
+  ]) {
     const page = await browser.newPage({
       viewport: { width: 900, height: 900 },
     });
@@ -128,12 +136,14 @@ try {
       errors.push(error.message);
       console.error(error.message);
     });
-    await page.goto(`${server.resolvedUrls.local[0]}__regression${balance === 2 ? "?extra" : ""}`);
+    await page.goto(
+      `${server.resolvedUrls.local[0]}__regression${balance === 2 ? "?extra" : ""}`,
+    );
     await page.waitForLoadState("networkidle");
     await page.getByLabel("WETH collateral amount", { exact: true }).fill("1");
     assert.equal(
       await page.getByLabel("USDC borrow amount", { exact: true }).inputValue(),
-      "2380"
+      "2380",
     );
     await page.getByRole("checkbox").check();
     await page
@@ -146,11 +156,11 @@ try {
     assert.equal(
       await page.getByLabel("USDC borrow amount", { exact: true }).inputValue(),
       "2380",
-      "Reviewed borrow must stay frozen after collateral refresh"
+      "Reviewed borrow must stay frozen after collateral refresh",
     );
     assert.match(
       await page.locator(".action-review").innerText(),
-      /supply 1 WETH and borrow 2380 USDC/
+      /supply 1 WETH and borrow 2380 USDC/,
     );
     assert.match(await page.getByRole("list").innerText(), /Borrow 2380 USDC/);
     assert.deepEqual(await page.evaluate(() => window.testRun.calls), [
@@ -161,15 +171,15 @@ try {
     await page.evaluate((fail) => window.finishBorrow(fail), fail);
     await page.waitForFunction(
       (phase) => window.testRun.phase === phase,
-      fail ? "failed" : "success"
+      fail ? "failed" : "success",
     );
     assert.equal(
       await page.getByLabel("USDC borrow amount", { exact: true }).inputValue(),
-      "2380"
+      "2380",
     );
     assert.match(
       await page.locator(".action-review").innerText(),
-      /supply 1 WETH and borrow 2380 USDC/
+      /supply 1 WETH and borrow 2380 USDC/,
     );
     assert.deepEqual(errors, []);
     await page.close();
@@ -192,7 +202,7 @@ try {
   await page.getByRole("checkbox").check();
   assert.match(
     await page.locator(".action-review").innerText(),
-    /Reviewed approval limit: 505.505253 USDC/
+    /Reviewed approval limit: 505.505253 USDC/,
   );
   await confirm.click();
   await page.waitForFunction(() => window.testRun.phase === "success");
@@ -203,7 +213,7 @@ try {
   ]);
   await page.close();
   console.log(
-    "PASS: guided review frozen after collateral supply through success/failure; repay-all shows accrued estimate, requires explicit limit review, rejects insufficient bounds, and submits the reviewed bounded approval."
+    "PASS: guided review frozen after collateral supply through success/failure; repay-all shows accrued estimate, requires explicit limit review, rejects insufficient bounds, and submits the reviewed bounded approval.",
   );
 } finally {
   await browser.close();

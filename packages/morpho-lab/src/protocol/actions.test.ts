@@ -224,7 +224,7 @@ describe("action builders", () => {
     });
     expect(encodeFunctionData(buildWrap(context(), 12n))).toBe("0xd0e30db0");
     expect(encodeFunctionData(buildUnwrap(context(), 12n))).toBe(
-      `0x2e1a7d4d${"c".padStart(64, "0")}`
+      `0x2e1a7d4d${"c".padStart(64, "0")}`,
     );
   });
 
@@ -238,7 +238,7 @@ describe("action builders", () => {
     const call = buildBorrow(
       context(state),
       account.toLowerCase() as Address,
-      1n
+      1n,
     );
     expect(call.args[0].oracle).toBe(account);
     expect(call.args[3]).toBe(account);
@@ -276,14 +276,14 @@ describe("local validation", () => {
     state.market.borrowRatePerSecond = 1_000_000_000_000n;
     expect(getActionMax(context(state), "borrowUsdc")).toBe(939_499_750n);
     expect(getIncreaseBorrowMax(context(state), 10n ** 18n)).toBe(
-      2_379_499_750n
+      2_379_499_750n,
     );
-    expect(() =>
-      validateAction(context(state), "borrowUsdc", 940_000_000n)
-    ).toThrow(/safety/i);
-    expect(() =>
-      validateAction(context(state), "withdrawCollateral", oldCollateralMax)
-    ).toThrow(/healthy/i);
+    expect(() => {
+      validateAction(context(state), "borrowUsdc", 940_000_000n);
+    }).toThrow(/safety/i);
+    expect(() => {
+      validateAction(context(state), "withdrawCollateral", oldCollateralMax);
+    }).toThrow(/healthy/i);
     expect(state.market.state.totalBorrowAssets).toBe(1_000_000_000n);
   });
 
@@ -291,12 +291,12 @@ describe("local validation", () => {
     const state = snapshot();
     state.blockTimestamp = 100n;
     state.market.borrowRatePerSecond = undefined;
-    expect(() => validateAction(context(state), "borrowUsdc", 1n)).toThrow(
-      /rate/i
-    );
-    expect(() =>
-      validateAction(context(state), "withdrawCollateral", 1n)
-    ).toThrow(/rate/i);
+    expect(() => {
+      validateAction(context(state), "borrowUsdc", 1n);
+    }).toThrow(/rate/i);
+    expect(() => {
+      validateAction(context(state), "withdrawCollateral", 1n);
+    }).toThrow(/rate/i);
   });
 
   it("allows independent balance-improving actions when borrow rate is unavailable", () => {
@@ -305,24 +305,30 @@ describe("local validation", () => {
     state.market.borrowRatePerSecond = undefined;
 
     expect(getActionMax(context(state), "wrapEth")).toBe(
-      state.account.tokens.ethBalance - 10n ** 15n
+      state.account.tokens.ethBalance - 10n ** 15n,
     );
     expect(getActionMax(context(state), "unwrapWeth")).toBe(
-      state.account.tokens.wethBalance
+      state.account.tokens.wethBalance,
     );
     expect(getActionMax(context(state), "supplyUsdc")).toBe(
-      state.account.tokens.usdcBalance
+      state.account.tokens.usdcBalance,
     );
     expect(getActionMax(context(state), "supplyCollateral")).toBe(
-      state.account.tokens.wethBalance
+      state.account.tokens.wethBalance,
     );
 
-    expect(() => validateAction(context(state), "wrapEth", 1n)).not.toThrow();
-    expect(() => validateAction(context(state), "unwrapWeth", 1n)).not.toThrow();
-    expect(() => validateAction(context(state), "supplyUsdc", 1n)).not.toThrow();
-    expect(() =>
-      validateAction(context(state), "supplyCollateral", 1n)
-    ).not.toThrow();
+    expect(() => {
+      validateAction(context(state), "wrapEth", 1n);
+    }).not.toThrow();
+    expect(() => {
+      validateAction(context(state), "unwrapWeth", 1n);
+    }).not.toThrow();
+    expect(() => {
+      validateAction(context(state), "supplyUsdc", 1n);
+    }).not.toThrow();
+    expect(() => {
+      validateAction(context(state), "supplyCollateral", 1n);
+    }).not.toThrow();
   });
 
   it.each<ActionKind>([
@@ -335,8 +341,12 @@ describe("local validation", () => {
     "repayUsdc",
     "withdrawCollateral",
   ])("rejects zero and negative %s amounts", (action) => {
-    expect(() => validateAction(context(), action, 0n)).toThrow(/positive/i);
-    expect(() => validateAction(context(), action, -1n)).toThrow(/positive/i);
+    expect(() => {
+      validateAction(context(), action, 0n);
+    }).toThrow(/positive/i);
+    expect(() => {
+      validateAction(context(), action, -1n);
+    }).toThrow(/positive/i);
   });
 
   it("rejects excess precision instead of rounding the amount", () => {
@@ -356,30 +366,30 @@ describe("local validation", () => {
 
   it("enforces the default and configured safety margin", () => {
     expect(getActionMax(context(), "borrowUsdc")).toBe(940_000_000n);
-    expect(() => validateAction(context(), "borrowUsdc", 940_000_001n)).toThrow(
-      /safety/i
-    );
-    expect(() =>
-      validateAction(context(), "borrowUsdc", 940_000_000n)
-    ).not.toThrow();
+    expect(() => {
+      validateAction(context(), "borrowUsdc", 940_000_001n);
+    }).toThrow(/safety/i);
+    expect(() => {
+      validateAction(context(), "borrowUsdc", 940_000_000n);
+    }).not.toThrow();
     const config = createActionContext(deployment, snapshot(), 5_000n);
     expect(getActionMax(config, "borrowUsdc")).toBe(400_000_000n);
   });
 
   it("rejects collateral withdrawals that leave unhealthy debt, allowing safe boundaries", () => {
-    expect(() =>
-      validateAction(context(), "withdrawCollateral", 800_000_000_000_000_000n)
-    ).toThrow(/healthy/i);
-    expect(() =>
-      validateAction(context(), "withdrawCollateral", 500_000_000_000_000_000n)
-    ).not.toThrow();
+    expect(() => {
+      validateAction(context(), "withdrawCollateral", 800_000_000_000_000_000n);
+    }).toThrow(/healthy/i);
+    expect(() => {
+      validateAction(context(), "withdrawCollateral", 500_000_000_000_000_000n);
+    }).not.toThrow();
     const max = getActionMax(context(), "withdrawCollateral");
-    expect(() =>
-      validateAction(context(), "withdrawCollateral", max)
-    ).not.toThrow();
-    expect(() =>
-      validateAction(context(), "withdrawCollateral", max + 1n)
-    ).toThrow();
+    expect(() => {
+      validateAction(context(), "withdrawCollateral", max);
+    }).not.toThrow();
+    expect(() => {
+      validateAction(context(), "withdrawCollateral", max + 1n);
+    }).toThrow();
   });
 
   it.each<ActionKind>([
@@ -391,9 +401,9 @@ describe("local validation", () => {
     "repayUsdc",
     "withdrawCollateral",
   ])("rejects %s above balance/position", (action) => {
-    expect(() =>
-      validateAction(context(), action, 100_000n * 10n ** 18n)
-    ).toThrow();
+    expect(() => {
+      validateAction(context(), action, 100_000n * 10n ** 18n);
+    }).toThrow();
   });
 
   it("rejects borrowing and direct withdrawals above market liquidity", () => {
@@ -401,29 +411,29 @@ describe("local validation", () => {
     state.market.state.totalBorrowAssets = 9_999_999_999n;
     state.account.position.borrowShares = 0n;
     for (const action of ["borrowUsdc", "withdrawUsdc"] as const) {
-      expect(() => validateAction(context(state), action, 2n)).toThrow(
-        /liquidity/i
-      );
+      expect(() => {
+        validateAction(context(state), action, 2n);
+      }).toThrow(/liquidity/i);
     }
-    expect(() => validateAction(context(state), "withdrawUsdc", "all")).toThrow(
-      /liquidity/i
-    );
+    expect(() => {
+      validateAction(context(state), "withdrawUsdc", "all");
+    }).toThrow(/liquidity/i);
   });
 
   it("does not turn repay-all into a partial repayment when balance is insufficient", () => {
     const state = snapshot();
     state.account.tokens.usdcBalance = 1n;
-    expect(() => validateAction(context(state), "repayUsdc", "all")).toThrow(
-      /balance/i
-    );
+    expect(() => {
+      validateAction(context(state), "repayUsdc", "all");
+    }).toThrow(/balance/i);
   });
 
   it("allows removing all supply shares even when they round down to zero assets", () => {
     const state = snapshot();
     state.account.position.supplyShares = 1n;
-    expect(() =>
-      validateAction(context(state), "withdrawUsdc", "all")
-    ).not.toThrow();
+    expect(() => {
+      validateAction(context(state), "withdrawUsdc", "all");
+    }).not.toThrow();
     expect(buildWithdraw(context(state), account, "all").args).toEqual([
       params,
       0n,
@@ -439,10 +449,12 @@ describe("local validation", () => {
     state.market.state.totalBorrowAssets = 2n;
     state.market.state.totalBorrowShares = 1_000_002n;
     expect(getActionMax(context(state), "repayUsdc")).toBe(1n);
-    expect(() => validateAction(context(state), "repayUsdc", 2n)).toThrow();
-    expect(() =>
-      validateAction(context(state), "repayUsdc", "all")
-    ).not.toThrow();
+    expect(() => {
+      validateAction(context(state), "repayUsdc", 2n);
+    }).toThrow();
+    expect(() => {
+      validateAction(context(state), "repayUsdc", "all");
+    }).not.toThrow();
   });
 
   it("caps guided borrowing by projected collateral, existing debt and market liquidity", () => {
@@ -492,7 +504,7 @@ describe("transaction sequences", () => {
       context(h.state),
       10n ** 18n,
       2_000_000_000n,
-      h
+      h,
     );
     expect(h.events).toEqual([
       "refresh",
@@ -522,10 +534,10 @@ describe("transaction sequences", () => {
     async (step) => {
       const h = harness(step);
       await expect(
-        executeIncreaseUtilization(context(h.state), 10n ** 18n, 1n, h)
+        executeIncreaseUtilization(context(h.state), 10n ** 18n, 1n, h),
       ).rejects.toThrow("Rejected");
       expect(h.events.at(-1)).toBe(step);
-    }
+    },
   );
 
   it("does not request approval when the planned borrow is already invalid", async () => {
@@ -535,8 +547,8 @@ describe("transaction sequences", () => {
         context(h.state),
         10n ** 18n,
         3_000_000_000n,
-        h
-      )
+        h,
+      ),
     ).rejects.toThrow();
     expect(h.events.filter((event) => event !== "refresh")).toEqual([]);
   });
@@ -556,7 +568,7 @@ describe("transaction sequences", () => {
         executeIncreaseUtilization(context(h.state), 10n ** 18n, 1n, {
           ...h,
           refresh,
-        })
+        }),
       ).rejects.toThrow();
       expect(h.events).not.toContain("supplyCollateral");
     }
@@ -565,7 +577,7 @@ describe("transaction sequences", () => {
   it("guards independent actions before submitting any transaction", async () => {
     const h = harness();
     await expect(
-      executeAction(context(h.state), "borrowUsdc", 2_000_000_000n, h)
+      executeAction(context(h.state), "borrowUsdc", 2_000_000_000n, h),
     ).rejects.toThrow();
     expect(h.events).toEqual(["refresh"]);
   });
@@ -586,7 +598,7 @@ describe("transaction sequences", () => {
               borrowShares: h.state.account.position.borrowShares,
               approvalAmount: 500_000_000n,
             }
-          : undefined
+          : undefined,
       );
       expect(h.events).toEqual([
         "refresh",
@@ -596,7 +608,7 @@ describe("transaction sequences", () => {
         "refresh",
       ]);
       expect(h.state.account.tokens.morphoUsdcAllowance).toBe(
-        amount === "all" ? 500_000_000n : 10n
+        amount === "all" ? 500_000_000n : 10n,
       );
     }
   });
@@ -612,7 +624,7 @@ describe("transaction sequences", () => {
       executeIncreaseUtilization(context(h.state), 10n ** 18n, 1n, {
         ...h,
         submit,
-      })
+      }),
     ).rejects.toThrow(/liquidity/i);
     expect(h.events).toEqual([
       "refresh",
@@ -639,8 +651,8 @@ describe("transaction sequences", () => {
         {
           borrowShares: h.state.account.position.borrowShares,
           approvalAmount: 500_000_000n,
-        }
-      )
+        },
+      ),
     ).rejects.toThrow(/approval/i);
     expect(h.events).toEqual(["refresh", "approve", "refresh"]);
   });
@@ -703,7 +715,7 @@ describe("reviewed repay-all with pending interest", () => {
           }
         },
       },
-      review
+      review,
     );
     expect(calls).toEqual(["approve", "repay"]);
     expect(state.account.position.borrowShares).toBe(0n);
@@ -735,8 +747,8 @@ describe("reviewed repay-all with pending interest", () => {
             : {
                 borrowShares: state.account.position.borrowShares,
                 approvalAmount,
-              }
-        )
+              },
+        ),
       ).rejects.toThrow(/review|limit|approval/i);
       expect(writes).toBe(0);
     }
@@ -768,8 +780,8 @@ describe("reviewed repay-all with pending interest", () => {
         {
           borrowShares: state.account.position.borrowShares,
           approvalAmount: 505_000_000n,
-        }
-      )
+        },
+      ),
     ).rejects.toThrow(/limit|approval/i);
     expect(writes).toEqual(["approve"]);
   });

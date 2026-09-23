@@ -10,7 +10,9 @@ describe("watchProtocolBlocks", () => {
     const stop = watchProtocolBlocks(
       {
         watchBlockNumber(options) {
-          onBlockNumber = options.onBlockNumber;
+          onBlockNumber = (blockNumber) => {
+            options.onBlockNumber(blockNumber);
+          };
           return () => {
             stopped = true;
           };
@@ -19,7 +21,7 @@ describe("watchProtocolBlocks", () => {
       () => {
         refreshes += 1;
       },
-      () => {}
+      () => {},
     );
 
     expect(refreshes).toBe(0);
@@ -38,8 +40,12 @@ describe("watchProtocolBlocks", () => {
     watchProtocolBlocks(
       {
         watchBlockNumber(options) {
-          onBlockNumber = options.onBlockNumber;
-          onError = options.onError;
+          onBlockNumber = (blockNumber) => {
+            options.onBlockNumber(blockNumber);
+          };
+          onError = (error) => {
+            options.onError?.(error);
+          };
           return () => {};
         },
       },
@@ -48,7 +54,7 @@ describe("watchProtocolBlocks", () => {
       },
       (error) => {
         status = error.message;
-      }
+      },
     );
 
     onError?.(new Error("RPC unavailable"));

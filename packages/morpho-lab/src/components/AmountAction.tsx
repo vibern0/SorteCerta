@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { formatUnits } from "viem";
+import { ActionParties } from "./ActionParties";
 import {
   actionAssets,
   actionLabel,
@@ -73,22 +74,22 @@ export function AmountAction({
           inputMode="decimal"
           autoComplete="off"
           placeholder="0.00"
-          value={
-            all
-              ? formatUnits(assets, decimals)
-              : input
-          }
+          value={all ? formatUnits(assets, decimals) : input}
           readOnly={all}
           disabled={disabled}
           aria-invalid={input !== "" && error !== undefined}
           aria-describedby={`${id}-max ${id}-error`}
-          onChange={(event) => setInput(event.target.value)}
+          onChange={(event) => {
+            setInput(event.target.value);
+          }}
         />
         {all ? null : (
           <button
             type="button"
             disabled={disabled || max === 0n}
-            onClick={() => setInput(formatUnits(max, decimals))}
+            onClick={() => {
+              setInput(formatUnits(max, decimals));
+            }}
           >
             Max
           </button>
@@ -113,7 +114,7 @@ export function AmountAction({
           {call
             ? `${title}: ${all ? "approximately " : ""}${formatUnits(
                 assets,
-                decimals
+                decimals,
               )} ${symbol}`
             : "Amount required"}
         </p>
@@ -126,26 +127,20 @@ export function AmountAction({
             ).toString()}
           </p>
         ) : null}
-        <p>
-          Account:{" "}
-          <span className="action-address">
-            {context.snapshot.account.address}
-          </span>
-        </p>
-        <p>
-          Destination:{" "}
-          <span className="action-address">
-            {usdc || action.includes("Collateral")
+        <ActionParties
+          account={context.snapshot.account.address}
+          destination={
+            usdc || action.includes("Collateral")
               ? context.morpho
-              : context.weth}
-          </span>
-        </p>
+              : context.weth
+          }
+        />
         <p>
           Approval:{" "}
           {approval
             ? `${formatUnits(
                 approval.allowance,
-                decimals
+                decimals,
               )} ${symbol} allowed for Morpho${
                 needsApproval ? "; approval required" : "; sufficient"
               }`

@@ -48,6 +48,7 @@ export {
   type ProjectionInput,
 } from "./morpho-yield.ts";
 export {
+  normalizeDeployment,
   readProtocolSnapshotAtBlock,
   type ProtocolReadClient,
 } from "./protocol-read.ts";

@@ -3,11 +3,15 @@ import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { createServer, transformWithEsbuild } from "vite";
 
+// The optional module path is developer-controlled for this local browser harness.
+// eslint-disable-next-line no-unsanitized/method
 const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE ?? "playwright"
 );
 const root = fileURLToPath(new URL("../", import.meta.url));
 const reportDirectory = `${root}/../../.superpowers/sdd/2026-09-17-morpho-lab`;
+// The path is derived solely from this checked-in test file, not user input.
+// eslint-disable-next-line security/detect-non-literal-fs-filename
 await mkdir(reportDirectory, { recursive: true });
 const harness = `
 import React from 'react';
@@ -63,10 +67,12 @@ const server = await createServer({
 server.middlewares.use("/__final_fix", async (_req, res) => {
   res.setHeader("Content-Type", "text/html");
   res.end(
+    // The HTML is a fixed local test harness and contains no untrusted input.
+    // eslint-disable-next-line xss/no-mixed-html
     await server.transformIndexHtml(
       "/__final_fix",
-      '<div id="root"></div><script type="module" src="/final-fix-harness.tsx"></script>'
-    )
+      '<div id="root"></div><script type="module" src="/final-fix-harness.tsx"></script>',
+    ),
   );
 });
 await server.listen();
@@ -93,20 +99,20 @@ try {
     assert.deepEqual(
       errors,
       [],
-      "Clipboard denial must not escape as an unhandled rejection"
+      "Clipboard denial must not escape as an unhandled rejection",
     );
     assert.equal(
       await page
         .getByRole("button", { name: "Confirm prize funding" })
         .isDisabled(),
-      true
+      true,
     );
     assert.equal(
       await page.evaluate(
-        () => document.documentElement.scrollWidth <= innerWidth
+        () => document.documentElement.scrollWidth <= innerWidth,
       ),
       true,
-      "Funding addresses must not overflow"
+      "Funding addresses must not overflow",
     );
     await page.screenshot({
       path: `${reportDirectory}/final-fix-${width}.png`,
@@ -123,12 +129,12 @@ try {
   await page.waitForFunction(
     () => window.sdkReady || window.sdkError,
     undefined,
-    { timeout: 60000 }
+    { timeout: 60000 },
   );
   assert.equal(await page.evaluate(() => window.sdkError), undefined);
   assert.equal(await page.evaluate(() => window.sdkReady), true);
   console.log(
-    "PASS: desktop/mobile funding layout, disconnected funding guard, configuration error mount, clipboard rejection, and Zama browser WASM initialization."
+    "PASS: desktop/mobile funding layout, disconnected funding guard, configuration error mount, clipboard rejection, and Zama browser WASM initialization.",
   );
 } finally {
   await browser.close();

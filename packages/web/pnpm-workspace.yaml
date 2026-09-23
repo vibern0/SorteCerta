@@ -2,9 +2,33 @@ packages:
   - .
   - ../protocol
 
+overrides:
+  axios: 1.20.0
+  decode-uri-component: 0.5.0
+  hono: 4.13.8
+  lodash: 4.18.1
+  postcss: 8.5.28
+  stream-json: 3.7.0
+  uuid: 14.0.2
+  ws: 8.21.3
+
 allowBuilds:
   bufferutil: true
   keccak: true
   tiny-secp256k1: true
   unrs-resolver: true
   utf-8-validate: true
+
+minimumReleaseAgeExclude:
+  - "@next/env@15.5.26"
+  - "@next/eslint-plugin-next@15.5.26"
+  - "@next/swc-darwin-arm64@15.5.26"
+  - "@next/swc-darwin-x64@15.5.26"
+  - "@next/swc-linux-arm64-gnu@15.5.26"
+  - "@next/swc-linux-arm64-musl@15.5.26"
+  - "@next/swc-linux-x64-gnu@15.5.26"
+  - "@next/swc-linux-x64-musl@15.5.26"
+  - "@next/swc-win32-arm64-msvc@15.5.26"
+  - "@next/swc-win32-x64-msvc@15.5.26"
+  - eslint-config-next@15.5.26
+  - next@15.5.26

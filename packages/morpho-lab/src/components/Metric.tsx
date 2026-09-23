@@ -17,7 +17,12 @@ export function Metric({
 }: MetricProps) {
   const [copyStatus, setCopyStatus] = useState("Copy");
   const resetTimer = useRef<ReturnType<typeof setTimeout>>();
-  useEffect(() => () => clearTimeout(resetTimer.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(resetTimer.current);
+    },
+    [],
+  );
   const display =
     href === undefined ? (
       value
@@ -36,7 +41,9 @@ export function Metric({
     } catch {
       setCopyStatus("Copy failed");
     }
-    resetTimer.current = setTimeout(() => setCopyStatus("Copy"), 1_500);
+    resetTimer.current = setTimeout(() => {
+      setCopyStatus("Copy");
+    }, 1_500);
   };
 
   return (

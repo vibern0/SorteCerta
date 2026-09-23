@@ -22,11 +22,11 @@ const solc = process.env.SOLC_MODULE
   : require("solc");
 const reference = resolve(
   process.env.MORPHO_SOURCE ??
-    ".superpowers/sdd/2026-09-17-morpho-lab/morpho-blue-reference"
+    ".superpowers/sdd/2026-09-17-morpho-lab/morpho-blue-reference",
 );
 assert.match(solc.version(), /^0\.8\.19\+/);
 process.env.HARDHAT_CONFIG = fileURLToPath(
-  new URL("./hardhat.config.cjs", import.meta.url)
+  new URL("./hardhat.config.cjs", import.meta.url),
 );
 const { network } = require("hardhat");
 const transport = custom(network.provider);
@@ -57,6 +57,8 @@ const output = JSON.parse(
       language: "Solidity",
       sources: {
         "src/Morpho.sol": {
+          // The source root is a developer-supplied, trusted fixture checkout.
+          // eslint-disable-next-line security/detect-non-literal-fs-filename
           content: readFileSync(resolve(reference, "src/Morpho.sol"), "utf8"),
         },
         "Fixture.sol": { content: fixture },
@@ -68,16 +70,20 @@ const output = JSON.parse(
     }),
     {
       import: (path) => ({
+        // solc supplies paths constrained to imports from the trusted fixture.
+        // eslint-disable-next-line security/detect-non-literal-fs-filename
         contents: readFileSync(resolve(reference, path), "utf8"),
       }),
-    }
-  )
+    },
+  ),
 );
 assert.deepEqual(
   (output.errors ?? []).filter((error) => error.severity === "error"),
-  []
+  [],
 );
 async function deploy(file, name, args = []) {
+  // File and contract names are constants owned by this test harness.
+  // eslint-disable-next-line security/detect-object-injection
   const artifact = output.contracts[file][name];
   const hash = await wallet.deployContract({
     abi: artifact.abi,
@@ -97,7 +103,7 @@ async function write(contract, functionName, args) {
   const hash = await wallet.writeContract(request);
   assert.equal(
     (await client.waitForTransactionReceipt({ hash })).status,
-    "success"
+    "success",
   );
 }
 async function advance(seconds) {
@@ -122,10 +128,10 @@ const params = {
 const marketId = keccak256(
   encodeAbiParameters(
     parseAbiParameters(
-      "(address loanToken,address collateralToken,address oracle,address irm,uint256 lltv)"
+      "(address loanToken,address collateralToken,address oracle,address irm,uint256 lltv)",
     ),
-    [params]
-  )
+    [params],
+  ),
 );
 await write(morpho, "enableIrm", [irm.address]);
 await write(morpho, "enableLltv", [params.lltv]);
@@ -155,10 +161,10 @@ const {
   validateAction,
 } = await loader.ssrLoadModule("/packages/morpho-lab/src/protocol/actions.ts");
 const { loadLabConfig } = await loader.ssrLoadModule(
-  "/packages/morpho-lab/src/config.ts"
+  "/packages/morpho-lab/src/config.ts",
 );
 const { morphoReadAbi } = await loader.ssrLoadModule(
-  "/packages/morpho-lab/src/abis.ts"
+  "/packages/morpho-lab/src/abis.ts",
 );
 await loader.close();
 const config = {
@@ -222,11 +228,11 @@ assert.ok(quote.estimatedAssets > 500_000000n);
 assert.equal(initial.snapshot.market.state.totalBorrowAssets, 500_000000n);
 assert.equal(
   getActionMax(initial, "borrowUsdc"),
-  1440_000000n - quote.estimatedAssets
+  1440_000000n - quote.estimatedAssets,
 );
 assert.throws(
   () => validateAction(initial, "borrowUsdc", 940_000000n),
-  /safety/i
+  /safety/i,
 );
 // Morpho itself accepts this amount: it enforces LLTV, not the lab's 80% ceiling.
 await client.simulateContract({
@@ -238,12 +244,12 @@ const oldCollateralMax =
 assert.ok(getActionMax(initial, "withdrawCollateral") < oldCollateralMax);
 assert.throws(
   () => validateAction(initial, "withdrawCollateral", oldCollateralMax),
-  /healthy/i
+  /healthy/i,
 );
 const checkpoint = await network.provider.request({ method: "evm_snapshot" });
 await write(loan, "approve", [morpho.address, 500_000000n]);
 await assert.rejects(
-  client.simulateContract({ ...buildRepay(initial, account, "all"), account })
+  client.simulateContract({ ...buildRepay(initial, account, "all"), account }),
 );
 await network.provider.request({ method: "evm_revert", params: [checkpoint] });
 const review = {
@@ -265,12 +271,12 @@ await executeAction(
       await write(
         { address: call.address, abi: call.abi },
         call.functionName,
-        call.args
+        call.args,
       );
       if (call.functionName === "approve") await advance(600);
     },
   },
-  review
+  review,
 );
 const final = await refresh();
 assert.equal(final.snapshot.account.position.borrowShares, 0n);
@@ -281,9 +287,9 @@ const spent =
 assert.ok(spent > 500_000000n && spent <= review.approvalAmount);
 assert.equal(
   final.snapshot.account.tokens.morphoUsdcAllowance,
-  review.approvalAmount - spent
+  review.approvalAmount - spent,
 );
 console.log(
-  `PASS: idle interest reduces the lab borrow/collateral limits while Morpho simulation accepts the old borrow limit; real Morpho repayment after 3600s idle + 300s before approval + 600s after approval; stored-amount approval reverts; reviewed limit ${review.approvalAmount}; paid ${spent}; borrowShares=0; no unlimited approval.`
+  `PASS: idle interest reduces the lab borrow/collateral limits while Morpho simulation accepts the old borrow limit; real Morpho repayment after 3600s idle + 300s before approval + 600s after approval; stored-amount approval reverts; reviewed limit ${review.approvalAmount}; paid ${spent}; borrowShares=0; no unlimited approval.`,
 );
 await network.provider.request({ method: "hardhat_reset" });

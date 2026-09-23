@@ -53,27 +53,33 @@ export type MetaMaskContextValue = {
   submitSimulatedWrite: (args: SimulatedWriteArgs) => Promise<Hash>;
 };
 
-const MetaMaskContext = createContext<MetaMaskContextValue | undefined>(undefined);
+const MetaMaskContext = createContext<MetaMaskContextValue | undefined>(
+  undefined,
+);
 
 export function MetaMaskProvider({
   children,
   config,
 }: PropsWithChildren<{ config: LabConfig }>) {
   const provider = selectMetaMaskProvider(
-    typeof window === "undefined" ? undefined : window.ethereum
+    typeof window === "undefined" ? undefined : window.ethereum,
   );
   const publicClient = useMemo(
-    () => createPublicClient({ chain: sepolia, transport: http(config.rpcUrl) }),
-    [config.rpcUrl]
+    () =>
+      createPublicClient({ chain: sepolia, transport: http(config.rpcUrl) }),
+    [config.rpcUrl],
   );
   const [account, setAccount] = useState<Address>();
   const [chainId, setChainId] = useState<number>();
   const [status, setStatus] = useState<MetaMaskContextValue["status"]>(
-    provider === undefined ? "missing" : "disconnected"
+    provider === undefined ? "missing" : "disconnected",
   );
   const [ethBalance, setEthBalance] = useState<bigint>();
   const [error, setError] = useState<string>();
-  const [transactions, dispatchTransaction] = useReducer(transactionReducer, []);
+  const [transactions, dispatchTransaction] = useReducer(
+    transactionReducer,
+    [],
+  );
 
   const walletClient = useMemo(
     () =>
@@ -84,7 +90,7 @@ export function MetaMaskProvider({
             chain: sepolia,
             transport: custom(provider),
           }),
-    [account, provider]
+    [account, provider],
   );
 
   useEffect(() => {
@@ -107,7 +113,9 @@ export function MetaMaskProvider({
     void provider
       .request({ method: "eth_chainId" })
       .then(handleChainChanged)
-      .catch((reason: unknown) => setError(errorMessage(reason)));
+      .catch((reason: unknown) => {
+        setError(errorMessage(reason));
+      });
 
     return () => {
       provider.removeListener("accountsChanged", handleAccountsChanged);
@@ -149,9 +157,10 @@ export function MetaMaskProvider({
         method: "eth_requestAccounts",
       });
       const nextAccount = selectedAccount(requestedAccounts);
-      if (nextAccount === undefined) throw new Error("Select one MetaMask account to use the lab.");
+      if (nextAccount === undefined)
+        throw new Error("Select one MetaMask account to use the lab.");
       const nextChainId = parseChainId(
-        await provider.request({ method: "eth_chainId" })
+        await provider.request({ method: "eth_chainId" }),
       );
       setAccount(nextAccount);
       setChainId(nextChainId);
@@ -191,7 +200,9 @@ export function MetaMaskProvider({
           throw new Error("Connect MetaMask before submitting a transaction.");
         }
         if (chainId !== config.chainId) {
-          throw new Error(`Switch MetaMask to chain ID ${config.chainId} before writing.`);
+          throw new Error(
+            `Switch MetaMask to chain ID ${config.chainId} before writing.`,
+          );
         }
 
         const simulation = await publicClient.simulateContract({
@@ -203,11 +214,20 @@ export function MetaMaskProvider({
           value: args.value,
         } as never);
         const hash = await walletClient.writeContract(simulation.request);
-        dispatchTransaction({ type: "submitted", id, summary: args.summary, hash });
-
-        const receipt = await waitForActionReceipt(publicClient, hash, (hash) => {
-          dispatchTransaction({ type: "repriced", id, hash });
+        dispatchTransaction({
+          type: "submitted",
+          id,
+          summary: args.summary,
+          hash,
         });
+
+        const receipt = await waitForActionReceipt(
+          publicClient,
+          hash,
+          (hash) => {
+            dispatchTransaction({ type: "repriced", id, hash });
+          },
+        );
 
         dispatchTransaction({
           type: "confirmed",
@@ -217,12 +237,17 @@ export function MetaMaskProvider({
         return receipt.transactionHash;
       } catch (reason) {
         const message = errorMessage(reason);
-        dispatchTransaction({ type: "failed", id, summary: args.summary, error: message });
+        dispatchTransaction({
+          type: "failed",
+          id,
+          summary: args.summary,
+          error: message,
+        });
         setError(message);
         throw reason;
       }
     },
-    [account, chainId, config.chainId, publicClient, walletClient]
+    [account, chainId, config.chainId, publicClient, walletClient],
   );
 
   const value = useMemo<MetaMaskContextValue>(
@@ -251,10 +276,14 @@ export function MetaMaskProvider({
       switchToConfiguredChain,
       transactions,
       walletClient,
-    ]
+    ],
   );
 
-  return <MetaMaskContext.Provider value={value}>{children}</MetaMaskContext.Provider>;
+  return (
+    <MetaMaskContext.Provider value={value}>
+      {children}
+    </MetaMaskContext.Provider>
+  );
 }
 
 export function useMetaMask(): MetaMaskContextValue {

@@ -1,11 +1,59 @@
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { formatUnits } from "viem";
+import { ActionParties } from "./ActionParties";
 import {
   getIncreaseBorrowMax,
   parseAmount,
   validateAction,
   type ActionContext,
 } from "../protocol/actions";
+
+function GuidedAmountField({
+  disabled,
+  hint,
+  id,
+  label,
+  maxDisabled,
+  onChange,
+  onMax,
+  value,
+}: {
+  disabled: boolean;
+  hint: ReactNode;
+  id: string;
+  label: string;
+  maxDisabled?: boolean;
+  onChange: (value: string) => void;
+  onMax: () => void;
+  value: string;
+}) {
+  return (
+    <div>
+      <label htmlFor={id}>{label}</label>
+      <div className="amount-input">
+        <input
+          id={id}
+          inputMode="decimal"
+          autoComplete="off"
+          placeholder="0.00"
+          disabled={disabled}
+          value={value}
+          onChange={(event) => {
+            onChange(event.target.value);
+          }}
+        />
+        <button
+          type="button"
+          disabled={disabled || maxDisabled}
+          onClick={onMax}
+        >
+          Max
+        </button>
+      </div>
+      <p className="action-hint">{hint}</p>
+    </div>
+  );
+}
 
 export function IncreaseUtilization({
   context,
@@ -39,7 +87,7 @@ export function IncreaseUtilization({
       if (borrow <= 0n) throw new Error("Enter a positive amount.");
       if (borrow > maxBorrow)
         throw new Error(
-          "Borrow amount exceeds the safety margin or market liquidity."
+          "Borrow amount exceeds the safety margin or market liquidity.",
         );
     }
   } catch (reason) {
@@ -63,103 +111,71 @@ export function IncreaseUtilization({
         }}
       >
         <div className="guided-inputs">
-          <div>
-            <label htmlFor={`${id}-collateral`}>WETH collateral amount</label>
-            <div className="amount-input">
-              <input
-                id={`${id}-collateral`}
-                inputMode="decimal"
-                autoComplete="off"
-                placeholder="0.00"
-                disabled={disabled || reviewed}
-                value={
-                  plan ? formatUnits(plan.collateral, 18) : collateralInput
-                }
-                onChange={(event) => {
-                  setPlan(undefined);
-                  setCollateralInput(event.target.value);
-                  setBorrowInput(undefined);
-                  setReviewed(false);
-                }}
-              />
-              <button
-                type="button"
-                disabled={disabled || reviewed}
-                onClick={() => {
-                  setPlan(undefined);
-                  setCollateralInput(
-                    formatUnits(
-                      context.snapshot.account.tokens.wethBalance,
-                      18
-                    )
-                  );
-                  setBorrowInput(undefined);
-                  setReviewed(false);
-                }}
-              >
-                Max
-              </button>
-            </div>
-            <p className="action-hint">
-              Available:{" "}
-              {formatUnits(context.snapshot.account.tokens.wethBalance, 18)}{" "}
-              WETH
-            </p>
-          </div>
-          <div>
-            <label htmlFor={`${id}-borrow`}>USDC borrow amount</label>
-            <div className="amount-input">
-              <input
-                id={`${id}-borrow`}
-                inputMode="decimal"
-                autoComplete="off"
-                placeholder="0.00"
-                disabled={disabled || reviewed}
-                value={
-                  plan
-                    ? formatUnits(plan.borrow, 6)
-                    : borrowInput ??
-                      (collateral > 0n ? formatUnits(maxBorrow, 6) : "")
-                }
-                onChange={(event) => {
-                  setPlan(undefined);
-                  setBorrowInput(event.target.value);
-                  setReviewed(false);
-                }}
-              />
-              <button
-                type="button"
-                disabled={disabled || reviewed || maxBorrow === 0n}
-                onClick={() => {
-                  setPlan(undefined);
-                  setBorrowInput(formatUnits(maxBorrow, 6));
-                  setReviewed(false);
-                }}
-              >
-                Max
-              </button>
-            </div>
-            <p className="action-hint">
-              {plan ? "Max at review" : "Max"}: {formatUnits(maxBorrow, 6)} USDC
-              at {Number(context.safetyBps) / 100}% of LLTV
-            </p>
-          </div>
+          <GuidedAmountField
+            id={`${id}-collateral`}
+            label="WETH collateral amount"
+            disabled={disabled || reviewed}
+            value={plan ? formatUnits(plan.collateral, 18) : collateralInput}
+            onChange={(value) => {
+              setPlan(undefined);
+              setCollateralInput(value);
+              setBorrowInput(undefined);
+              setReviewed(false);
+            }}
+            onMax={() => {
+              setPlan(undefined);
+              setCollateralInput(
+                formatUnits(context.snapshot.account.tokens.wethBalance, 18),
+              );
+              setBorrowInput(undefined);
+              setReviewed(false);
+            }}
+            hint={
+              <>
+                Available:{" "}
+                {formatUnits(context.snapshot.account.tokens.wethBalance, 18)}{" "}
+                WETH
+              </>
+            }
+          />
+          <GuidedAmountField
+            id={`${id}-borrow`}
+            label="USDC borrow amount"
+            disabled={disabled || reviewed}
+            maxDisabled={maxBorrow === 0n}
+            value={
+              plan
+                ? formatUnits(plan.borrow, 6)
+                : (borrowInput ??
+                  (collateral > 0n ? formatUnits(maxBorrow, 6) : ""))
+            }
+            onChange={(value) => {
+              setPlan(undefined);
+              setBorrowInput(value);
+              setReviewed(false);
+            }}
+            onMax={() => {
+              setPlan(undefined);
+              setBorrowInput(formatUnits(maxBorrow, 6));
+              setReviewed(false);
+            }}
+            hint={
+              <>
+                {plan ? "Max at review" : "Max"}: {formatUnits(maxBorrow, 6)}{" "}
+                USDC at {Number(context.safetyBps) / 100}% of LLTV
+              </>
+            }
+          />
         </div>
         <div className="action-review">
           <p>
             <strong>Confirmation</strong>: supply {formatUnits(collateral, 18)}{" "}
             WETH and borrow {formatUnits(borrow, 6)} USDC
           </p>
-          <p>
-            Account:{" "}
-            <span className="action-address">
-              {context.snapshot.account.address}
-            </span>
-          </p>
-          <p>
-            Destination:{" "}
-            <span className="action-address">{context.morpho}</span>
-          </p>
+          <ActionParties
+            account={context.snapshot.account.address}
+            destination={context.morpho}
+          />
           <p>
             Approval: {formatUnits(allowance, 18)} WETH allowed for Morpho;{" "}
             {needsApproval ? "approval required" : "sufficient"}

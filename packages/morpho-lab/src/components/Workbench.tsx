@@ -1,6 +1,5 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { getAddress } from "viem";
-import type { LabConfig } from "../config";
 import {
   createActionContext,
   executeAction,
@@ -8,27 +7,15 @@ import {
   type ActionContext,
   type ActionRunner,
 } from "../protocol/actions";
-import type { ProtocolSnapshot } from "../types";
-import { useMetaMask } from "../wallet/MetaMaskProvider";
 import { AmountAction } from "./AmountAction";
 import { IncreaseUtilization } from "./IncreaseUtilization";
 import { RepayAllAction } from "./RepayAllAction";
+import type { ProtocolViewProps } from "./protocol-view-props";
+import { useWalletExecution } from "./useWalletExecution";
 
-export function Workbench({
-  config,
-  snapshot,
-  refresh,
-  stale,
-}: {
-  config: LabConfig;
-  snapshot: ProtocolSnapshot;
-  refresh: () => Promise<ProtocolSnapshot>;
-  stale: boolean;
-}) {
-  const wallet = useMetaMask();
-  const walletRef = useRef(wallet);
-  walletRef.current = wallet;
-  const running = useRef(false);
+export function Workbench(props: ProtocolViewProps) {
+  const { config, snapshot, refresh, stale } = props;
+  const { running, wallet, walletRef } = useWalletExecution();
   const [busy, setBusy] = useState(false);
   const [messages, setMessages] = useState<string[]>([]);
   const [error, setError] = useState<string>();
@@ -94,14 +81,16 @@ export function Workbench({
           assertWallet();
           return walletRef.current.submitSimulatedWrite(call);
         },
-        onStep: (message) => setMessages((current) => [...current, message]),
+        onStep: (message) => {
+          setMessages((current) => [...current, message]);
+        },
       });
       setMessages((current) => [...current, "Complete. Balances updated."]);
     } catch (reason) {
       setError(
         `${
           reason instanceof Error ? reason.message : String(reason)
-        } Sequence stopped. Confirmed steps remain completed; review balances and activity before retrying.`
+        } Sequence stopped. Confirmed steps remain completed; review balances and activity before retrying.`,
       );
     } finally {
       running.current = false;
@@ -172,7 +161,7 @@ export function Workbench({
                     disabled={disabled}
                     onRun={(kind, amount) =>
                       run((reviewedContext, runner) =>
-                        executeAction(reviewedContext, kind, amount, runner)
+                        executeAction(reviewedContext, kind, amount, runner),
                       )
                     }
                   />
@@ -195,7 +184,7 @@ export function Workbench({
                       "all",
                       runner,
                       review,
-                    )
+                    ),
                   )
                 }
               />
@@ -207,7 +196,7 @@ export function Workbench({
                 disabled={disabled}
                 onRun={(kind, amount) =>
                   run((reviewedContext, runner) =>
-                    executeAction(reviewedContext, kind, amount, runner)
+                    executeAction(reviewedContext, kind, amount, runner),
                   )
                 }
               />
@@ -224,7 +213,7 @@ export function Workbench({
                   collateral,
                   borrow,
                   runner,
-                )
+                ),
               )
             }
           />

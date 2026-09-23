@@ -89,10 +89,20 @@ export const confidentialUsdcAbi = [
   },
 ] as const;
 
-export const unwrapRequestedEvent = confidentialUsdcAbi.find(
+const unwrapRequestedEventDefinition = confidentialUsdcAbi.find(
   (item) => item.type === "event" && item.name === "UnwrapRequested",
-)!;
+);
 
-export const unwrapFinalizedEvent = confidentialUsdcAbi.find(
+const unwrapFinalizedEventDefinition = confidentialUsdcAbi.find(
   (item) => item.type === "event" && item.name === "UnwrapFinalized",
-)!;
+);
+
+if (
+  unwrapRequestedEventDefinition === undefined ||
+  unwrapFinalizedEventDefinition === undefined
+) {
+  throw new Error("Confidential USDC event definitions are missing");
+}
+
+export const unwrapRequestedEvent = unwrapRequestedEventDefinition;
+export const unwrapFinalizedEvent = unwrapFinalizedEventDefinition;
