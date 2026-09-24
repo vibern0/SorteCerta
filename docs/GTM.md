@@ -7,11 +7,16 @@ generic savings app. The strongest near-term market is crypto-native USDC users
 who understand onchain deposits, like prize-based upside, and care that their
 balances and winnings are not exposed to everyone.
 
-The broader prize-linked savings category has proof of demand from consumer
-fintech and academic research. The crypto version has proof from PoolTogether.
+The broader prize-linked savings category has behavioral evidence from consumer
+finance research. PoolTogether validates that the mechanic can work onchain,
+but it is a competitor and a market reference, not a user-acquisition channel.
 SorteCerta's differentiated angle is private prize-linked stablecoin savings:
 users keep their principal, stay eligible for deposit-weighted prizes, and avoid
 making personal savings activity fully visible onchain.
+
+Before mainnet, the public conversion goal is a qualified waitlist. The current
+Sepolia product is a gated research environment for invited participants, not
+the main destination for broad marketing traffic.
 
 ## Product Positioning
 
@@ -47,28 +52,48 @@ with lower savings and income.
 
 Source: [IZA, "Savings and Prize-Linked Savings Accounts"](https://www.iza.org/publications/dp/6927)
 
-### Consumer fintech products reached meaningful usage
+### Consumer fintech products proved interest, but not durable trust
 
 Yotta showed that a prize-linked savings app can acquire mainstream users. In
 January 2021, Forbes reported that Yotta had raised a $13.2M Series A led by
 Base10 Partners, had roughly $200M deposited, 130,000 signups, 90,000 users with
-a balance, and 60,000 users with tickets that week.
+a balance, and 60,000 users with tickets that week. Its later exposure to the
+Synapse failure and the continuing consumer-redress process make it a warning
+about operational transparency and withdrawal trust, not only a growth example.
 
 Source: [Forbes, Yotta Series A](https://www.forbes.com/sites/igorbosilkovski/2021/01/28/savings-account-app-yotta-raises-13-million-in-series-a/)
+
+Source: [Yotta payment-processing updates](https://www.withyotta.com/payment-processing-updates)
 
 PrizePool also showed investor and user demand. In June 2021, PrizePool
 announced a $10M Series A led by M13, with seed investors including Accomplice,
 Bling Capital, World Innovation Lab, and Coatue. The announcement said PrizePool
 had attracted tens of thousands of savers, tens of millions of dollars saved,
-70% weekly app return behavior, and about 10,000 prize winners.
+70% weekly app return behavior, and about 10,000 prize winners. The consumer app
+was subsequently wound down in 2024. Its historical adoption supports the
+behavioral thesis, but it should not be presented as a current success.
 
 Source: [PrizePool Series A announcement](https://www.globenewswire.com/news-release/2021/06/02/2240464/0/en/prize-linked-savings-startup-prizepool-announces-10m-in-series-a-funding.html)
+
+Source: [PrizePool consumer-app closure](https://www.doctorofcredit.com/prizepool-savings-review-prized-linked-savings-account/)
+
+### Stablecoin adoption supports the initial market
+
+The Federal Reserve reported that the stablecoin market reached $317 billion in
+April 2026 and that retail-sized USDC and USDT wallets grew substantially during
+2025. This validates the choice to start with people who already hold and use
+stablecoins rather than asking mainstream savers to adopt both a new asset and a
+new savings behavior at once.
+
+Source: [Federal Reserve, "Stablecoins in 2025"](https://www.federalreserve.gov/econres/notes/feds-notes/stablecoins-in-2025-developments-and-financial-stability-implications-20260408.html)
 
 ### DeFi users already understand no-loss prize pools
 
 PoolTogether proves that crypto-native users will deposit into a no-loss prize
 savings protocol. DefiLlama tracks PoolTogether V5 as an active yield-lottery
-protocol with current TVL and fee data.
+protocol with current TVL and fee data. Its scale and volatility suggest a real
+but narrow category rather than automatic mass-market demand. SorteCerta should
+learn from that evidence without recruiting from PoolTogether-owned communities.
 
 Source: [DefiLlama, PoolTogether V5](https://enterprise.defillama.com/protocol/pooltogether-v5)
 
@@ -89,6 +114,14 @@ applications.
 
 Source: [Zama Series B announcement](https://www.zama.org/post/announcing-the-zama-confidential-blockchain-protocol)
 
+Zama's 2026 protocol update provides stronger product-timing evidence than
+funding alone: the mainnet stack is live, official confidential wrappers include
+USDC, and Zama now has user-facing portfolio, staking, and bridging products.
+That makes the Zama ecosystem the best initial source of technically capable
+users who already understand the underlying value.
+
+Source: [Zama Protocol update](https://www.zama.org/post/zama-protocol-update-new-sdk-delegated-decryption-developer-tooling-and-protocol-apps)
+
 ## Target Users
 
 ### 1. Crypto-native USDC savers
@@ -105,25 +138,26 @@ Why they might use SorteCerta:
 
 Where to find them:
 
-- PoolTogether community.
-- Zama, privacy, and FHE developer communities.
-- Ethereum and Base-adjacent DeFi communities, while keeping SorteCerta's bounty
-  deployment on Sepolia until the demo is complete.
-- Stablecoin, Morpho, Aave, and yield Discords.
-- ETHGlobal and privacy hackathon circles.
+- Zama's forum, Discord, Developer Program, product users, and community calls.
+- Stablecoin and Ethereum communities where promotional posts are welcome.
+- Complementary Safe, Web3Auth, Pimlico, Morpho, and Circle developer
+  ecosystems.
+- ETHGlobal, FHE, and privacy hackathon alumni.
+- The team's direct network and referrals from qualified early members.
 
-### 2. PoolTogether and no-loss lottery users
+### 2. Zama ecosystem early adopters
 
-These users already understand the mechanic. The message is not "learn a new
-financial behavior"; it is "the prize-savings mechanic you know, with personal
-savings activity protected."
+These users understand confidential assets, tolerate early infrastructure, and
+can evaluate whether SorteCerta turns Zama's technology into a useful consumer
+experience. They are likely to become reviewers and advocates before they
+become large depositors.
 
 What to test:
 
-- Whether privacy is a strong enough differentiator versus existing
-  PoolTogether UX.
+- Whether the savings use case is compelling beyond its technical novelty.
 - Whether users prefer larger pooled prizes or more frequent small prizes.
 - Whether the claim/check-prize flow feels exciting or too much work.
+- Whether a guided preview leads to another voluntary visit or referral.
 
 ### 3. Lottery-adjacent savers
 
@@ -220,7 +254,10 @@ Pitch angle:
 PoolTogether is the most important reference point. It validates the no-loss
 prize savings mechanic in DeFi. SorteCerta should not compete by claiming to be
 "PoolTogether but smaller." It should compete by being the private stablecoin
-prize-savings experience.
+prize-savings experience. PoolTogether's Discord, forum, Reddit, and other
+owned communities are explicitly out of scope as acquisition channels. This
+avoids building distribution on a competitor's audience or presenting
+SorteCerta as a derivative community project.
 
 ### Yotta and PrizePool
 
@@ -240,8 +277,8 @@ discretion.
 
 Start with the smallest group that can understand the full value:
 
-> Crypto-native USDC holders who like PoolTogether-style prize savings and care
-> about wallet privacy.
+> Crypto-native USDC holders who want a more exciting way to save and want their
+> financial activity to remain their business.
 
 Do not start with mass-market savers. That audience is attractive later, but it
 requires stronger compliance, fiat onboarding, education, and trust signals.
@@ -272,14 +309,16 @@ Success metrics:
 
 ### Phase 2: DeFi community pilot
 
-Goal: test whether people will deposit real or test USDC for repeated draws.
+Goal: build a qualified waitlist and test whether invited users return for
+repeated draws before any broad mainnet launch.
 
 Actions:
 
-- Recruit 50-100 crypto-native users from PoolTogether, DeFi, and privacy
-  communities.
-- Run time-boxed prize campaigns.
-- Keep prizes simple and predictable.
+- Recruit the first cohort from Zama and complementary infrastructure
+  ecosystems, the team's direct network, and qualified referrals.
+- Direct broad traffic to a waitlist rather than the live Sepolia application.
+- Invite a small subset into guided previews that require no real funds.
+- Keep preview draws simple and predictable.
 - Track repeat participation, deposits, withdrawals, prize checks, and claims.
 - Interview users who deposit more than once and users who churn immediately.
 
@@ -315,10 +354,14 @@ Save in USDC and get chances to win, while staying in control of your money.
 
 ### For DeFi users
 
-SorteCerta is private prize-linked USDC savings: deposit, stay eligible for
-draws, check whether you won, claim prizes, and withdraw your principal.
+SorteCerta turns USDC saving into a draw: save, stay eligible at the end of each
+draw, check whether you won, claim a prize if eligible, and request your money
+when you need it.
 
-### For privacy/FHE ecosystem
+### Technical positioning for the Zama/FHE ecosystem
+
+This language belongs in technical material and investor conversations, not in
+user-facing product copy:
 
 SorteCerta is a consumer-grade confidential DeFi use case: encrypted balances,
 deposit-weighted FHE draws, private winnings, and user-controlled decryption.
@@ -334,9 +377,11 @@ feed.
 
 ### "Is there enough demand?"
 
-There is demand for the mechanic, proven by Yotta, PrizePool, and PoolTogether.
-The open question is whether privacy creates a strong enough reason to switch or
-try a new product.
+There is historical demand for the mechanic, supported by academic research,
+Yotta, PrizePool, and PoolTogether. The fintech examples also suffered serious
+trust or durability problems, while the onchain category remains relatively
+narrow. The open question is whether SorteCerta's combination of prize-based
+saving, control, and financial discretion earns repeat behavior.
 
 ### "Is this regulated like gambling, banking, or securities?"
 
@@ -363,17 +408,119 @@ participant counts, draw cadence, and operations until the technology matures.
 
 ## Near-Term Validation Plan
 
-1. Recruit 20 crypto-native testers from Zama, PoolTogether, and DeFi circles.
-2. Run a structured demo where every tester completes deposit, draw check, claim
-   if eligible, and withdrawal.
-3. Interview every tester with five questions:
+1. Publish a waitlist with source tracking and questions that identify current
+   USDC users and preview volunteers.
+2. Recruit 20 crypto-native participants from Zama, complementary ecosystems,
+   direct outreach, and qualified referrals.
+3. Run a structured guided preview where every invited participant completes
+   deposit, draw check, claim if eligible, and withdrawal without real funds.
+4. Interview every participant with five questions:
    - What made you trust or distrust it?
    - Would you deposit again?
    - Did the chance to win change your behavior?
    - Did privacy matter to you?
    - What part felt confusing or risky?
-4. Publish a public build log and technical walkthrough.
-5. Turn the results into an investor memo with usage evidence.
+5. Publish a public build log and technical walkthrough.
+6. Turn the results into an investor memo with usage evidence.
+
+## First 30 Days Of Acquisition
+
+### Week 1: Build the funnel
+
+- Make the waitlist the primary public call to action.
+- Ask for email, country, current USDC usage, preferred contact handle, and
+  willingness to join a short preview.
+- Add source and referral attribution.
+- Publish a short video showing the save, draw, check, claim, and withdrawal
+  loop.
+
+### Week 2: Recruit through Zama
+
+- Publish a Zama Developer Program showcase and ask for feedback.
+- Request permission before sharing in community channels.
+- Contact technically capable users directly and run two guided group previews.
+- Record objections, completion failures, and the language participants use to
+  describe the product.
+
+### Week 3: Activate referrals
+
+- Give qualified members a referral link or invite allocation.
+- Offer non-financial benefits such as priority consideration, product sessions,
+  and influence over draw cadence.
+- Do not promise tokens, financial rewards, access, or winnings.
+- Publish genuine feedback and a short build story on X and Farcaster.
+
+### Week 4: Add complementary partners
+
+- Approach Zama first, followed by Safe, Web3Auth, Pimlico, Morpho, Circle, and
+  ETHGlobal communities where there is a genuine integration story.
+- Prefer co-hosted walkthroughs and useful technical content over paid promotion.
+- Give every partner a distinct source link and compare qualified-user rates.
+
+Thirty-day targets:
+
+- 100 total waitlist registrations.
+- 40 qualified current USDC users.
+- 20 user conversations.
+- 10 completed guided previews.
+- 5 participants who voluntarily return for another draw.
+
+The primary metric is qualified repeat interest, not the raw waitlist count.
+
+## Invite-Only Preview Access
+
+### Initial Cloudflare access model
+
+When the web app moves to Cloudflare, keep the public acquisition funnel and
+the invited product experience separate:
+
+- `sortecerta.com` remains public and sends visitors to the waitlist. Protect
+  the signup form with Cloudflare Turnstile and validate its token server-side.
+- `preview.sortecerta.com` hosts the invited product experience behind
+  Cloudflare Access.
+- Add each approved participant's email address to an Access allow policy and
+  use Cloudflare's email one-time PIN login. Removing the address revokes future
+  access.
+
+This controls the exact preview cohort without adding invite-code logic or an
+application database. It is appropriate for the first 20-100 research
+participants. The tradeoff is an extra authentication step before Web3Auth,
+which is acceptable for a guided preview but can distort measurements of the
+eventual consumer onboarding flow.
+
+Sources:
+
+- [Cloudflare Access one-time PIN](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/one-time-pin/)
+- [Cloudflare Access policies](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/)
+- [Cloudflare Turnstile setup](https://developers.cloudflare.com/turnstile/get-started/)
+
+### Later branded invitation flow
+
+Only replace Cloudflare Access when its extra login becomes a measured product
+problem. The next stage should use:
+
+- A Cloudflare Worker to issue and redeem invitations.
+- Cloudflare D1 for approved identities, hashed invitation codes, cohorts,
+  expiration, redemption status, and revocation.
+- Turnstile on public waitlist and invitation-redemption forms.
+- Random invitation codes bound to the approved email address or wallet.
+
+Do not use Workers KV as the source of truth for single-use invitations. KV is
+eventually consistent and is not designed for atomic read-write transactions.
+D1 supports transactional batches and is the simpler fit for invitation state.
+
+Sources:
+
+- [Cloudflare D1 database API](https://developers.cloudflare.com/d1/worker-api/d1-database/)
+- [Workers KV consistency](https://developers.cloudflare.com/kv/concepts/how-kv-works/)
+
+### Mainnet enforcement boundary
+
+Cloudflare controls access to the website, not access to public smart
+contracts. An invite-only real-funds beta must enforce eligible wallets and
+account caps at the contract layer, in addition to the legal, audit, and launch
+gates in [`ROAD_TO_MAINNET.md`](ROAD_TO_MAINNET.md). Cloudflare Access is a
+preview and operations control, not a protocol security boundary.
 
 ## Recommended Next Assets
 
@@ -387,9 +534,10 @@ participant counts, draw cadence, and operations until the technology matures.
 ## Bottom Line
 
 There are likely users for SorteCerta, but the first users are not mainstream
-banking customers. They are crypto-native savers, PoolTogether-style users, and
-privacy-conscious DeFi participants. There are also investors interested in the
-broader space, especially around FHE and confidential blockchain infrastructure.
+banking customers. They are crypto-native USDC savers, Zama ecosystem early
+adopters, and privacy-conscious DeFi participants. There are also investors
+interested in the broader space, especially around FHE and confidential
+blockchain infrastructure.
 
 The go-to-market should start with a narrow credibility wedge: prove that
 private prize-linked USDC savings is useful to people who already understand
