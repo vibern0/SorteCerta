@@ -14,8 +14,8 @@ official PoolTogether protocol.
 > wraps USDC as an ERC-7984 confidential token, and
 > `ConfidentialPrizePool` handles encrypted deposits, encrypted principal,
 > FHE-random weighted draws, confidential winnings, claiming, and encrypted
-> withdrawals. The old plaintext `Vault` / `PrizePool` remains only as prototype
-> history and local comparison scaffolding. See
+> withdrawals. The old plaintext `Vault` / `PrizePool` and the primitive spike
+> have been removed so the repo tracks only the active confidential path. See
 > [Bounty Scope and Architecture Decision](docs/BOUNTY_SCOPE.md) and the
 > [Bounty Roadmap](docs/ROADMAP.md).
 
@@ -39,7 +39,7 @@ official PoolTogether protocol.
 sortecerta/
   packages/
     contracts/   # Hardhat — ConfidentialUSDC, ConfidentialPrizePool, mocks
-    web/         # Next.js 14 PWA — Web3Auth + Safe + Pimlico + Zama relayer
+    web/         # Next.js 14 PWA — Web3Auth + Safe + Pimlico + Zama SDK v3
   package.json   # npm workspaces root
 ```
 
@@ -84,9 +84,9 @@ cd packages/contracts
 npm test
 ```
 
-30 tests covering confidential deposits, encrypted principal decryption,
+Contract tests cover confidential deposits, encrypted principal decryption,
 withdrawal/unwrap, public mocked prize funding, FHE-random draws, confidential
-claims, Morpho yield routing, and the old plaintext prototype.
+claims, and Morpho yield routing.
 
 ## Sepolia deployment
 
@@ -397,14 +397,13 @@ Important current limitations:
   arithmetic, and compares the resulting encrypted ticket against encrypted
   cumulative principal ranges. This removes the old fixed ticket range that
   could bias ordinary USDC-sized deposits.
-- **Zama SDK address handling** must preserve checksum addresses. The Phase 1
-  spike showed lowercase/non-checksum addresses can fail SDK validation with
-  `User address is not a valid address`. Normalize user and contract addresses
-  with `viem.getAddress()` before `createEncryptedInput`, `createEIP712`, and
-  `userDecrypt`.
-- **Zama EIP-712 serialization** needs bigint-safe handling before typed-data
-  signing; plain `JSON.stringify` can throw
-  `Do not know how to serialize a BigInt`.
+- **Zama SDK v3 address handling** must preserve checksum addresses. The app
+  normalizes user and contract addresses with `viem.getAddress()` before they
+  enter `sdk.encrypt()`, `sdk.decryption.decryptValues()`, or public-decryption
+  helpers.
+- **Zama EIP-712 signing** is isolated inside the v3 SDK signer adapters. The
+  Safe smart account signs for its cUSDC balance; the Web3Auth owner signs for
+  pool principal and winnings.
 - **Morpho yield adapter exists but is not the live judge fallback.** Users
   still deposit only `cUSDC` into `ConfidentialPrizePool`; the keeper requests
   timed principal unwraps to `MorphoYieldAdapter`, the adapter supplies USDC to

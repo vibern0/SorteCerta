@@ -19,9 +19,9 @@ export default function HomePage() {
     confidentialBalancesError,
   } = useWallet();
   const { data: poolData } = useCurrentDraw();
-  const draw = poolData?.[0]?.result as
-    | { endTime: bigint; prizeAmount: bigint; id: bigint }
-    | undefined;
+  const lastDrawId = poolData?.[0]?.result as bigint | undefined;
+  const nextDrawAt = poolData?.[1]?.result as bigint | undefined;
+  const prizeReserve = poolData?.[2]?.result as bigint | undefined;
   const { data: usdcData } = useUSDCBalance(session?.address);
   const usdcBalance = usdcData?.[0]?.result as bigint | undefined;
 
@@ -47,14 +47,14 @@ export default function HomePage() {
       </section>
 
       {/* Next draw */}
-      {draw && (
+      {nextDrawAt !== undefined && (
         <section className="card space-y-2">
-          <p className="label">Next draw #{draw.id.toString()}</p>
-          <Countdown target={draw.endTime} />
+          <p className="label">Next draw #{((lastDrawId ?? 0n) + 1n).toString()}</p>
+          <Countdown target={nextDrawAt} />
           <div className="flex items-center justify-between pt-2 text-sm">
             <span className="text-muted">Current prize</span>
             <span className="font-semibold text-text tabular-nums">
-              {formatUSDC(draw.prizeAmount, 6)} USDC
+              {formatUSDC(prizeReserve, 6)} USDC
             </span>
           </div>
         </section>

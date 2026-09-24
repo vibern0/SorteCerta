@@ -11,14 +11,17 @@ import {
 import { Countdown } from "@/components/Countdown";
 import { formatUSDC } from "@/lib/format";
 import { useWallet } from "@/lib/wallet-context";
-import { sendSmartTransaction, signOwnerTypedData, type SmartSession } from "@/lib/web3auth";
-import { getZamaInstance, userDecryptTimestamp } from "@/lib/zama";
+import { sendSmartTransaction, type SmartSession } from "@/lib/web3auth";
+import {
+  asChecksumAddress,
+  createOwnerZamaSDK,
+  decryptUint64,
+  isZeroEncryptedHandle,
+} from "@/lib/zama";
 import { useToast } from "@/components/Toast";
 
 type Status = "idle" | "working" | "success" | "error";
 type WorkingAction = "checkPrize" | "claimPrize" | "addPrizeToSavings" | undefined;
-
-const ZERO_HANDLE = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 const publicClient = createPublicClient({
   chain: sepolia,
@@ -26,8 +29,7 @@ const publicClient = createPublicClient({
 });
 
 function asAddress(value: unknown, label: string) {
-  if (typeof value !== "string" || !isAddress(value)) throw new Error(`${label} is not a valid address.`);
-  return getAddress(value);
+  return asChecksumAddress(value, label);
 }
 
 function getErrorMessage(error: unknown) {
@@ -35,10 +37,6 @@ function getErrorMessage(error: unknown) {
   return /encrypted|confidential|public|private|mock|testnet|sepolia|prototype|faucet|leakage|decrypted/i.test(message)
     ? "Something went wrong. Please try again."
     : message;
-}
-
-function isZeroHandle(handle: unknown) {
-  return typeof handle === "string" && handle.toLowerCase() === ZERO_HANDLE;
 }
 
 function formatDateTime(timestamp: bigint | undefined) {
@@ -154,29 +152,17 @@ export default function DrawPage() {
       args: [user],
     });
 
-    if (isZeroHandle(handle)) {
+    if (isZeroEncryptedHandle(handle)) {
       setWinnings(0n);
       return;
     }
 
-    const zama = await getZamaInstance();
-    const keypair = zama.generateKeypair();
-    const startTimestamp = userDecryptTimestamp();
-    const durationDays = 365;
-    const eip712 = zama.createEIP712(keypair.publicKey, [pool], startTimestamp, durationDays);
-    const signature = await signOwnerTypedData(currentSession, eip712);
-    const result = await zama.userDecrypt(
-      [{ handle: handle as `0x${string}`, contractAddress: pool }],
-      keypair.privateKey,
-      keypair.publicKey,
-      signature,
-      [pool],
-      currentSession.ownerAddress,
-      startTimestamp,
-      durationDays,
-    );
-
-    setWinnings(BigInt(String(result[handle as `0x${string}`])));
+    const sdk = createOwnerZamaSDK(currentSession);
+    try {
+      setWinnings(await decryptUint64(sdk, handle as `0x${string}`, pool));
+    } finally {
+      sdk.terminate();
+    }
   }
 
   async function claimPrize() {

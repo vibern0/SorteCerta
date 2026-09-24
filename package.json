@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "SorteCerta — mobile-first no-loss lottery on PoolTogether architecture, Web3-abstracted for non-crypto users.",
+  "engines": {
+    "node": ">=22"
+  },
   "workspaces": [
     "packages/*"
   ],

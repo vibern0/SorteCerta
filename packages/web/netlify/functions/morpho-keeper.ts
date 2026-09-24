@@ -11,6 +11,7 @@ import {
   type MorphoKeeperAction,
   type MorphoKeeperSnapshot,
 } from "../../src/lib/morpho-keeper";
+import { decryptPublicHandles } from "../../src/lib/zama-node";
 
 declare const Netlify: { env: { get(name: string): string | undefined } } | undefined;
 
@@ -50,7 +51,6 @@ const unwrapFinalizedEvent = parseAbiItem(
   "event UnwrapFinalized(address indexed receiver,bytes32 indexed unwrapRequestId,bytes32 encryptedAmount,uint64 cleartextAmount)",
 );
 const UNWRAP_LOG_CHUNK_BLOCKS = 10_000n;
-const PUBLIC_DECRYPT_TIMEOUT_MS = 8_000;
 
 type MorphoKeeperRuntimeSnapshot = MorphoKeeperSnapshot & {
   token: `0x${string}`;
@@ -152,11 +152,9 @@ async function runAction(
     const requestId = snapshot.pendingUnwrapRequestId;
     if (!requestId) return undefined;
 
-    const { createInstance, SepoliaConfig } = await import("@zama-fhe/relayer-sdk/node");
-    const zama = await createInstance({ ...SepoliaConfig, network: rpcUrl });
     let decrypted;
     try {
-      decrypted = await zama.publicDecrypt([requestId], { timeout: PUBLIC_DECRYPT_TIMEOUT_MS });
+      decrypted = await decryptPublicHandles([requestId], rpcUrl);
     } catch (error) {
       console.log(JSON.stringify({ action, requestId, status: "not-ready", error: sanitizeKeeperError(error) }));
       return undefined;

@@ -13,7 +13,6 @@ const NAV = [
   { href: "/", label: "Home" },
   { href: "/savings", label: "Save" },
   { href: "/draw", label: "Draw" },
-  { href: "/history", label: "History" },
   { href: "/admin", label: "Admin" },
 ];
 
@@ -22,9 +21,7 @@ export function Header() {
   const { session, connect, connecting, disconnect, web3AuthReady } = useWallet();
   const [accountSheetOpen, setAccountSheetOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const navItems = session
-    ? NAV
-    : NAV.filter((item) => item.href !== "/history");
+  const navItems = NAV;
 
   async function copyAddress() {
     if (!session) return;

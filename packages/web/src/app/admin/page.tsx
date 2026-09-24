@@ -9,7 +9,6 @@ import {
   getAddress,
   http,
   isAddress,
-  toHex,
 } from "viem";
 import { sepolia } from "viem/chains";
 import { AmountInput } from "@/components/AmountInput";
@@ -22,7 +21,7 @@ import {
   erc20Abi,
 } from "@/lib/contracts";
 import { formatUSDC, parseUSDC } from "@/lib/format";
-import { getZamaInstance } from "@/lib/zama";
+import { asChecksumAddress, createSmartZamaSDK, encryptUint64 } from "@/lib/zama";
 import { useWallet } from "@/lib/wallet-context";
 import { sendSmartTransaction, sendSmartTransactionBatch, type SmartSession } from "@/lib/web3auth";
 
@@ -35,8 +34,7 @@ const publicClient = createPublicClient({
 });
 
 function asAddress(value: unknown, label: string) {
-  if (typeof value !== "string" || !isAddress(value)) throw new Error(`${label} is not a valid address.`);
-  return getAddress(value);
+  return asChecksumAddress(value, label);
 }
 
 function getErrorMessage(error: unknown) {
@@ -119,7 +117,6 @@ export default function AdminPage() {
     const usdc = asAddress(addresses.usdc, "USDC");
     const token = asAddress(addresses.confidentialUsdc, "Savings token");
     const pool = asAddress(addresses.pool, "Prize pool");
-    const zama = await getZamaInstance();
     const prizeFundingSelector = await publicClient.readContract({
       address: pool,
       abi: confidentialPrizePoolAbi,
@@ -129,7 +126,8 @@ export default function AdminPage() {
       prizeFundingSelector,
       encodeAbiParameters([{ type: "uint64" }], [value]),
     ]);
-    const encrypted = await zama.createEncryptedInput(token, user).add64(value).encrypt();
+    const sdk = createSmartZamaSDK(currentSession);
+    const encrypted = await encryptUint64(sdk, token, user, value).finally(() => sdk.terminate());
     const wrapCall = encodeFunctionData({
       abi: confidentialUsdcAbi,
       functionName: "wrap",
@@ -138,7 +136,7 @@ export default function AdminPage() {
     const fundCall = encodeFunctionData({
       abi: confidentialUsdcAbi,
       functionName: "confidentialTransferAndCall",
-      args: [pool, toHex(encrypted.handles[0]) as `0x${string}`, toHex(encrypted.inputProof), prizeData],
+      args: [pool, encrypted.handle, encrypted.inputProof, prizeData],
     });
     const calls = [];
     if ((allowance ?? 0n) < value) {

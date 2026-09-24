@@ -3,6 +3,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import type { PrivateKeyAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { sanitizeKeeperError } from "../../src/lib/morpho-keeper";
+import { decryptPublicHandles } from "../../src/lib/zama-node";
 import {
   chooseWithdrawalKeeperAction,
   type WithdrawalBatchStatus,
@@ -31,13 +32,10 @@ const wrapperAbi = parseAbi([
   "function finalizeUnwrap(bytes32 requestId,uint64 amount,bytes proof)",
 ]);
 
-const PUBLIC_DECRYPT_TIMEOUT_MS = 8_000;
 const STATUS_NAMES = ["open", "closed", "funded"] as const satisfies readonly WithdrawalBatchStatus[];
 
 async function decryptHandles(handles: Hex[], rpcUrl: string) {
-  const { createInstance, SepoliaConfig } = await import("@zama-fhe/relayer-sdk/node");
-  const zama = await createInstance({ ...SepoliaConfig, network: rpcUrl });
-  return zama.publicDecrypt(handles, { timeout: PUBLIC_DECRYPT_TIMEOUT_MS });
+  return decryptPublicHandles(handles, rpcUrl);
 }
 
 function env(name: string): string | undefined {

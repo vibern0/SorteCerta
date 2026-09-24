@@ -1,0 +1,41 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import test from "node:test";
+
+const runtimeFiles = [
+  "src/lib/zama.ts",
+  "src/lib/confidential-balances.ts",
+  "src/app/draw/page.tsx",
+  "src/app/admin/page.tsx",
+  "src/app/savings/page.tsx",
+  "netlify/functions/withdrawal-keeper.ts",
+  "netlify/functions/morpho-keeper.ts",
+];
+
+async function readRuntimeSources() {
+  return Promise.all(
+    runtimeFiles.map(async (file) => ({
+      file,
+      source: await readFile(path.join(import.meta.dirname, "..", file), "utf8"),
+    })),
+  );
+}
+
+test("runtime code uses the v3 Zama SDK instead of legacy relayer imports", async () => {
+  const sources = await readRuntimeSources();
+  const offenders = sources
+    .filter(({ source }) => source.includes("@zama-fhe/relayer-sdk"))
+    .map(({ file }) => file);
+
+  assert.deepEqual(offenders, []);
+});
+
+test("runtime code delegates decryption instead of raw EIP-712 userDecrypt orchestration", async () => {
+  const forbidden = /\b(createEIP712|userDecrypt|eth_signTypedData_v4|stringifyTypedData|userDecryptTimestamp)\b/;
+  const offenders = (await readRuntimeSources())
+    .filter(({ source }) => forbidden.test(source))
+    .map(({ file }) => file);
+
+  assert.deepEqual(offenders, []);
+});
