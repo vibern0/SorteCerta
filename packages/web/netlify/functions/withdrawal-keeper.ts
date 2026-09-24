@@ -2,13 +2,13 @@ import { createPublicClient, createWalletClient, getAddress, http, parseAbi, zer
 import { privateKeyToAccount } from "viem/accounts";
 import type { PrivateKeyAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
-import { sanitizeKeeperError } from "../../src/lib/morpho-keeper";
-import { decryptPublicHandles } from "../../src/lib/zama-node";
+import { sanitizeKeeperError } from "../../src/lib/morpho-keeper.ts";
+import { decryptPublicHandles } from "../../src/lib/zama-node.ts";
 import {
   chooseWithdrawalKeeperAction,
   type WithdrawalBatchStatus,
   type WithdrawalKeeperAction,
-} from "../../src/lib/withdrawal-keeper";
+} from "../../src/lib/withdrawal-keeper.ts";
 
 declare const Netlify: { env: { get(name: string): string | undefined } } | undefined;
 

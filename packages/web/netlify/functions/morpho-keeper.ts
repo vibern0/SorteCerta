@@ -10,8 +10,8 @@ import {
   sanitizeKeeperError,
   type MorphoKeeperAction,
   type MorphoKeeperSnapshot,
-} from "../../src/lib/morpho-keeper";
-import { decryptPublicHandles } from "../../src/lib/zama-node";
+} from "../../src/lib/morpho-keeper.ts";
+import { decryptPublicHandles } from "../../src/lib/zama-node.ts";
 
 declare const Netlify: { env: { get(name: string): string | undefined } } | undefined;
 

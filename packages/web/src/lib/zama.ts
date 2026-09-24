@@ -19,7 +19,6 @@ import {
   getAddress,
   http,
   isAddress,
-  type Abi,
   type Address,
   type Hex,
 } from "viem";
@@ -60,7 +59,7 @@ class SmartAccountZamaSigner implements GenericSigner {
     return this.session.smartAccountClient.signTypedData(typedData as any) as Promise<ZamaHex>;
   }
 
-  writeContract(config: { address: Address; abi: Abi; functionName: string; args?: readonly unknown[]; value?: bigint }) {
+  writeContract(config: any) {
     return this.session.smartAccountClient.sendTransaction({
       calls: [{
         to: getAddress(config.address),
@@ -86,7 +85,7 @@ class OwnerZamaSigner implements GenericSigner {
     return this.session.signOwnerTypedData(typedDataPayload(typedData)) as Promise<ZamaHex>;
   }
 
-  async writeContract() {
+  async writeContract(): Promise<ZamaHex> {
     throw new Error("The owner signer is only used for SorteCerta reveal permissions.");
   }
 }
