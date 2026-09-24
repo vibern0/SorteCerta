@@ -220,7 +220,6 @@ export default function DrawPage() {
   useEffect(() => {
     if (!session?.address) return;
     void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.address]);
 
   function activeSession() {
