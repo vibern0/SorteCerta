@@ -334,12 +334,6 @@ export default function DrawPage() {
   return (
     <div className="space-y-5 animate-fade-in">
       <section className="space-y-3">
-        <div className="inline-flex">
-          <span className="pill">
-            <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-            Prize draw
-          </span>
-        </div>
         <h1 className="font-display text-3xl font-bold leading-tight">
           Global state.
           <br />

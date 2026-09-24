@@ -13,7 +13,6 @@ import { balanceBucketLabels } from "@/lib/withdrawal-state";
 export default function HomePage() {
   const {
     session,
-    confidentialBalance,
     principal,
     confidentialBalancesLoading,
     confidentialBalancesError,
@@ -29,12 +28,6 @@ export default function HomePage() {
     <div className="space-y-6 animate-fade-in">
       {/* Hero */}
       <section className="space-y-3">
-        <div className="inline-flex">
-          <span className="pill">
-            <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-            Prize savings
-          </span>
-        </div>
         <h1 className="font-display text-4xl font-bold leading-tight tracking-tight">
           Your savings,
           <br />
@@ -66,14 +59,8 @@ export default function HomePage() {
           <p className="label">Your account</p>
           <div className="flex items-baseline justify-between">
             <span className="text-muted">{balanceBucketLabels.walletUsdc}</span>
-            <span className="font-display text-2xl font-bold tabular-nums">
-              {formatUSDC(usdcBalance)} <span className="text-muted text-base">USDC</span>
-            </span>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-muted">{balanceBucketLabels.prizeTokens}</span>
             <span className="font-semibold tabular-nums">
-              {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(confidentialBalance)} USDC`}
+              {formatUSDC(usdcBalance)} <span className="text-muted">USDC</span>
             </span>
           </div>
           <div className="flex items-baseline justify-between">
