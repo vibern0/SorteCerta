@@ -59,13 +59,13 @@ export default function HomePage() {
           <p className="label">Your account</p>
           <div className="flex items-baseline justify-between">
             <span className="text-muted">{balanceBucketLabels.walletUsdc}</span>
-            <span className="font-semibold tabular-nums">
-              {formatUSDC(usdcBalance)} <span className="text-muted">USDC</span>
+            <span className="font-semibold tabular-nums text-text">
+              {formatUSDC(usdcBalance)} USDC
             </span>
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-muted">{balanceBucketLabels.savingsBalance}</span>
-            <span className="font-semibold tabular-nums text-brand">
+            <span className="font-semibold tabular-nums text-text">
               {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(principal)} USDC`}
             </span>
           </div>
