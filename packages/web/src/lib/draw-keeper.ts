@@ -5,12 +5,13 @@ export type DrawKeeperSnapshot = {
   nextDrawAt: bigint;
   participantCount: bigint;
   publicPrizeReserve: bigint;
+  morphoAccruedYieldAssets: bigint;
   minimumPrize: bigint;
 };
 
 export function chooseDrawKeeperAction(snapshot: DrawKeeperSnapshot): DrawKeeperAction | undefined {
   if (snapshot.now < snapshot.nextDrawAt) return undefined;
   if (snapshot.participantCount <= 0n) return undefined;
-  if (snapshot.publicPrizeReserve < snapshot.minimumPrize) return undefined;
+  if (snapshot.publicPrizeReserve + snapshot.morphoAccruedYieldAssets < snapshot.minimumPrize) return undefined;
   return "close";
 }

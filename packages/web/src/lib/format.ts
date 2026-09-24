@@ -4,18 +4,16 @@ export function formatUSDC(amount: bigint | undefined, maxDecimals = 2): string 
   const whole = amount / 1_000_000n;
   const frac = amount % 1_000_000n;
   const fracStr = frac.toString().padStart(6, "0").slice(0, maxDecimals);
-  return `${whole.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${fracStr}`;
+  return `${groupDigits(whole.toString())}.${fracStr}`;
 }
 
-/** Parse a USDC string ("10.5") into 6-decimal bigint. */
-export function parseUSDC(input: string): bigint {
-  const cleaned = input.replace(/,/g, "").trim();
-  if (!/^\d+(\.\d{1,6})?$/.test(cleaned)) {
-    throw new Error("Invalid USDC amount");
+function groupDigits(value: string): string {
+  let grouped = "";
+  for (let index = 0; index < value.length; index += 1) {
+    if (index > 0 && (value.length - index) % 3 === 0) grouped += ",";
+    grouped += value.charAt(index);
   }
-  const [whole, frac = ""] = cleaned.split(".");
-  const fracPadded = (frac + "000000").slice(0, 6);
-  return BigInt(whole) * 1_000_000n + BigInt(fracPadded);
+  return grouped;
 }
 
 /** Seconds-remaining → "2d 4h 13m 02s". */

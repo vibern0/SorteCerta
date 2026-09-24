@@ -39,6 +39,7 @@ official PoolTogether protocol.
 sortecerta/
   packages/
     contracts/   # Hardhat — ConfidentialUSDC, ConfidentialPrizePool, mocks
+    morpho-lab/  # Vite — local technical Morpho operator playground
     web/         # Next.js 14 PWA — Web3Auth + Safe + Pimlico + Zama relayer
   package.json   # npm workspaces root
 ```
@@ -94,39 +95,45 @@ Frontend:
 
 - **Live app:** https://sortecerta.netlify.app
 - **Host:** Netlify
-- **Status:** fresh safe-withdrawals contracts deployed; run a new app
-  end-to-end exercise before judging from the live URL.
+- **Status:** fresh draw-close yield-attribution contracts deployed. Local
+  configuration is updated; the hosted app and keeper configuration still need
+  a coordinated rollout and a new end-to-end exercise.
 
 Current confidential deployment:
 
-The addresses below use automatic withdrawal delivery, deployed September 16,
-2026. This is a fresh Sepolia test deployment, replacing the previous pool without
-migrating its disposable test balances or pending claims. Local frontend and
-keeper configuration must point to the same pool.
+The addresses below use automatic withdrawal delivery and atomic draw-close
+Morpho accrual and harvesting, deployed September 18, 2026. Each ready draw
+refreshes interest before sizing its harvest. The existing USDC wrapper is reused.
+No token balances or pending claims were migrated; the original pool's 92-unit
+public prize reserve remains there. Local frontend and keeper configuration
+must point to the same pool.
 
 - **USDC underlying:** `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`
 - **ConfidentialUSDC:** `0x3B4F71c77e288d92871Cda495891Cd42f543A3f5`
-- **ConfidentialPrizePool:** `0x3d974cEF83CaC5BfD970CA95E121774eb8C9f233`
-- **MorphoYieldAdapter:** `0x84B120Db8b600DE01A49143cf515246B79afcfef`
+- **ConfidentialPrizePool:** `0x9c23E5f7143612dc1232FC643A57300291e0d719`
+- **MorphoYieldAdapter:** `0x784C2020a2fbf4a106881E37B673A93604A9559D`
 - **Chain:** Ethereum Sepolia (`11155111`)
 - **Draw interval:** `900` seconds for Morpho-yield demo testing
 - **Withdrawal batch interval:** `300` seconds; delivery continues automatically
   after settlement, subject to proof availability and market liquidity.
-- **Pool deployment transaction:** `0x2f4bd61e8879daf74a709c9bda2acea4c63b37d85a35aaf1c65c3b002153d904`
-- **Keeper scan start block:** `11719086`
+- **Morpho unwrap interval:** `300` seconds
+- **Pool deployment transaction:** `0x6e1074b16ded2788d0a901556b6fbca0d76a7988a0b334be883884d8380edc87` (block `11730808`)
+- **Adapter deployment transaction:** `0x944683f7ae6ff4d05d557a673d64c5567794f7934bdff86642e1e66727474cf4` (block `11730811`)
+- **Adapter configuration transaction:** `0x053072df89925764a6e14630a4e7ae699741747ba7a3b3b65c4ba629134ea9fa` (block `11730813`)
+- **Keeper scan start block:** `11730807` (before both deployments)
 
 Frontend env values:
 
 ```bash
 NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS=0x3B4F71c77e288d92871Cda495891Cd42f543A3f5
-NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x3d974cEF83CaC5BfD970CA95E121774eb8C9f233
+NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x9c23E5f7143612dc1232FC643A57300291e0d719
 NEXT_PUBLIC_CHAIN_ID=11155111
 ```
 
 ### Example Sepolia run
 
-The deployed pool has been exercised end to end on Sepolia with real wrapped
+A previous pool was exercised end to end on Sepolia with real wrapped
 USDC deposits, sponsor-funded prizes, round closes, prize claims, and a USDC
 withdrawal request. As of August 26, 2026, the pool had closed 8 rounds, started
 round 9, and registered 1 participant:
@@ -156,20 +163,13 @@ Useful example transactions:
 Explorer links use the Sepolia Etherscan transaction URL format:
 `https://sepolia.etherscan.io/tx/<hash>`.
 
-## How to test the live app
+## Local Morpho lab
 
-Use the hosted app at https://sortecerta.netlify.app.
-
-1. Create an account in the app.
-2. Fund that account with Circle's faucet: https://faucet.circle.com.
-3. Deposit some funds for saving. To test weighted winner selection, repeat
-   this with more than one account.
-4. Go to the admin tab and close the current round. A new round starts
-   automatically.
-5. Fund the new round from the admin tab.
-6. Wait for the round to end, close it, then check and claim any prize.
-7. Fund each new round before testing it. This sponsor-funded amount stands in
-   for the yield that would fund prizes in a production PoolTogether-style pool.
+The repository includes a separate, local-only technical playground for
+inspecting the configured Morpho deployment and preparing operator actions
+through MetaMask. It is not part of the hosted consumer experience. See
+[packages/morpho-lab/README.md](packages/morpho-lab/README.md) for its fixed
+deployment scope, safety boundaries, setup, and verification commands.
 
 ## Architecture
 
@@ -185,9 +185,8 @@ Use the hosted app at https://sortecerta.netlify.app.
   Zama FHE randomness. No offchain RNG and no plaintext balance calculation.
 - **Claim/decryption:** winner-only confidential prize flow plus Zama EIP-712
   user decryption.
-- **Prize/yield:** the global prize amount is public for UX. It is currently
-  mocked by sponsor/admin funding on Sepolia; Aave/Morpho/Superlend-style yield
-  can replace that funding source later.
+- **Prize/yield:** the global prize amount is public for UX. Morpho yield is
+  harvested atomically when a draw closes; sponsor/admin funding is also supported.
 - **PoolTogether:** mechanic reference only; no official protocol dependency.
 
 ### Morpho Yield Flow
@@ -206,19 +205,23 @@ receiver. That request reveals only the finalized window amount, not each
 depositor's amount. On the next ready run, the keeper obtains Zama's public
 decryption proof, finalizes the unwrap, and calls
 `supplyAvailableMorphoPrincipal()` so the adapter supplies all available USDC
-to Morpho Blue. Idle runs accrue Morpho's lazy interest accounting before
-harvesting any observable surplus into the prize reserve. The keeper still
-checks routing work every five minutes, but it waits at least one hour between
-explicit Morpho accruals so sub-base-unit interest is not repeatedly rounded
-away in this small test market.
+to Morpho Blue. Idle runs update Morpho's recorded interest accounting without
+harvesting. The keeper checks routing work every five minutes, but it waits at
+least one hour between idle accruals to reduce extra sub-base-unit rounding in
+this small test market. Draw closes and other market operations still accrue
+interest independently of that idle cadence.
 
 The adapter tracks pool principal separately from market value. The prize is the
 surplus reported by `accruedYieldAssets()`: current Morpho supplied assets minus
-tracked principal. When the keeper calls `harvestMorphoYield(maxAssets)`,
-the pool instructs the adapter to withdraw only that surplus, wrap it back into
-`cUSDC`, and send it to `ConfidentialPrizePool` using the existing
-`PRIZE_FUNDING_DATA` callback. The pool then holds the harvested yield as the
-active prize reserve. The smallest harvestable prize is one USDC base unit:
+tracked principal. When `closeDraw()` runs for a ready draw, the adapter first
+calls Morpho's `accrueInterest` and recomputes the surplus, even if the previously
+recorded yield was zero. The pool instructs the adapter to withdraw only that
+fresh surplus, wrap it back into `cUSDC`, and send it to `ConfidentialPrizePool`
+using the existing
+`PRIZE_FUNDING_DATA` callback. The pool includes that yield in the closing draw's
+prize snapshot in the same transaction. There is no standalone pool harvest
+entry point or keeper harvest action. Zero-yield closes do not withdraw or emit
+a harvest event. The smallest harvestable prize is one USDC base unit:
 `0.000001 USDC`.
 
 If the pool needs more withdrawal liquidity, the owner/keeper calls
@@ -226,6 +229,8 @@ If the pool needs more withdrawal liquidity, the owner/keeper calls
 wraps the returned USDC as `cUSDC`, and transfers it back to the pool. User
 withdrawals still reduce encrypted principal and pay from the pool's `cUSDC`
 balance, so keep enough restored liquidity available before large withdrawals.
+Restoring all supplied principal withdraws the full share position and routes
+any realized surplus into the prize reserve for the next draw that closes.
 
 Sepolia defaults:
 
@@ -240,7 +245,7 @@ Netlify keeper env values:
 ```bash
 SEPOLIA_RPC_URL=https://...
 KEEPER_PRIVATE_KEY=0x...
-MORPHO_KEEPER_START_BLOCK=11711000
+MORPHO_KEEPER_START_BLOCK=11730807
 MORPHO_KEEPER_MAX_TXS=1
 ```
 

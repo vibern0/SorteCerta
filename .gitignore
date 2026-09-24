@@ -9,6 +9,7 @@ build/
 .next/
 out/
 .worktrees/
+.superpowers/
 artifacts/
 cache/
 typechain-types/

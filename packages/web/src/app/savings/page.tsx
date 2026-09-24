@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { createPublicClient, encodeAbiParameters, encodeEventTopics, encodeFunctionData, getAddress, http, isAddress, parseEventLogs, toHex, zeroAddress, zeroHash } from "viem";
+import { buildFinalizeUnwrapRequest, parseAmount } from "@sortecerta/protocol";
 import { sepolia } from "viem/chains";
 import {
   CONTRACTS,
@@ -11,7 +12,7 @@ import {
   confidentialUsdcAbi,
   erc20Abi,
 } from "@/lib/contracts";
-import { formatUSDC, parseUSDC } from "@/lib/format";
+import { formatUSDC } from "@/lib/format";
 import { useWallet } from "@/lib/wallet-context";
 import { sendSmartTransaction, sendSmartTransactionBatch, type SmartSession } from "@/lib/web3auth";
 import { getZamaInstance } from "@/lib/zama";
@@ -209,26 +210,22 @@ export default function SavingsPage() {
     void refreshBalances(session.address);
     void refreshPendingUnwraps(session.address);
     void refreshPendingWithdrawals(session.address);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.address, poolReady]);
 
   useEffect(() => {
     if (!session?.address || !poolReady) return;
+    const address = session.address;
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
-    async function poll() {
-      try {
-        await refreshPendingWithdrawals(session!.address);
-        await refreshBalances(session!.address);
-        if (!stopped) setWithdrawalRefreshError(false);
-      } catch {
-        if (!stopped) setWithdrawalRefreshError(true);
-      }
-      if (!stopped) timer = setTimeout(() => void poll(), 15_000);
+    function poll() {
+      refreshPendingWithdrawals(address)
+        .then(() => refreshBalances(address))
+        .then(() => { if (!stopped) setWithdrawalRefreshError(false); })
+        .catch(() => { if (!stopped) setWithdrawalRefreshError(true); })
+        .finally(() => { if (!stopped) timer = setTimeout(poll, 15_000); });
     }
-    timer = setTimeout(() => void poll(), 15_000);
+    timer = setTimeout(poll, 15_000);
     return () => { stopped = true; clearTimeout(timer); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.address, poolReady]);
 
   const sheetOpen = Boolean(depositSheetStep || withdrawSheetStep);
@@ -443,15 +440,16 @@ export default function SavingsPage() {
     const token = asAddress(addresses.confidentialUsdc, "Savings token");
     const zama = await getZamaInstance();
     const decrypted = await zama.publicDecrypt([requestId]);
-    const clearValue = decrypted.clearValues[requestId];
+    const clearValue = clearValueFor(decrypted.clearValues, requestId);
     if (typeof clearValue !== "bigint") throw new Error("Withdrawal is not ready yet.");
     if (finalizationOutcome(clearValue) === "invariant-error") throw new Error("Withdrawal needs support. Please contact us.");
+    const request = buildFinalizeUnwrapRequest(token, requestId, clearValue, decrypted.decryptionProof);
     const data = encodeFunctionData({
-      abi: confidentialUsdcAbi,
-      functionName: "finalizeUnwrap",
-      args: [requestId, clearValue, decrypted.decryptionProof],
+      abi: request.abi,
+      functionName: request.functionName,
+      args: request.args,
     });
-    await sendTx(currentSession, token, data);
+    await sendTx(currentSession, request.address, data);
     await refreshBalances(user);
     await refreshPendingUnwraps(user);
     await refreshPendingWithdrawals(user);
@@ -725,7 +723,7 @@ export default function SavingsPage() {
 
   function parsedAmount(value: string) {
     try {
-      return parseUSDC(value);
+      return parseAmount(value, 6);
     } catch {
       return 0n;
     }
@@ -1276,4 +1274,11 @@ export default function SavingsPage() {
 
     </div>
   );
+}
+
+function clearValueFor(values: Readonly<Record<string, unknown>>, handle: `0x${string}`): unknown {
+  for (const [key, value] of Object.entries(values)) {
+    if (key === handle) return value;
+  }
+  return undefined;
 }

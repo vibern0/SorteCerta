@@ -1,7 +1,16 @@
-import { createPublicClient, createWalletClient, getAddress, http, parseAbi, parseAbiItem, type Hex } from "viem";
+import { createPublicClient, createWalletClient, getAddress, http, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { PrivateKeyAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
+import {
+  buildFinalizeUnwrapRequest,
+  confidentialPrizePoolAbi,
+  decodeMarketParams,
+  morphoBlueAbi,
+  morphoYieldAdapterAbi,
+  unwrapFinalizedEvent,
+  unwrapRequestedEvent,
+} from "@sortecerta/protocol";
 import {
   buildInclusiveBlockRanges,
   chooseMorphoKeeperActions,
@@ -10,45 +19,10 @@ import {
   sanitizeKeeperError,
   type MorphoKeeperAction,
   type MorphoKeeperSnapshot,
-} from "../../src/lib/morpho-keeper";
+} from "../../src/lib/morpho-keeper.ts";
 
 declare const Netlify: { env: { get(name: string): string | undefined } } | undefined;
 
-const prizePoolAbi = parseAbi([
-  "function token() view returns (address)",
-  "function morphoYieldAdapter() view returns (address)",
-  "function morphoAvailablePrincipalAssets() view returns (uint256)",
-  "function morphoAccruedYieldAssets() view returns (uint256)",
-  "function morphoPendingDepositCount() view returns (uint256)",
-  "function lastMorphoUnwrapAt() view returns (uint256)",
-  "function morphoUnwrapInterval() view returns (uint256)",
-  "function supplyAvailableMorphoPrincipal() returns (uint256 assetsSupplied,uint256 sharesSupplied)",
-  "function harvestMorphoYield(uint256 maxAssets) returns (uint256 harvestedAssets)",
-  "function requestMorphoPrincipalUnwrap() returns (bytes32 unwrapRequestId)",
-]);
-
-const morphoAdapterAbi = parseAbi([
-  "function suppliedPrincipal() view returns (uint256)",
-  "function morpho() view returns (address)",
-  "function marketId() view returns (bytes32)",
-  "function marketParams() view returns (address loanToken,address collateralToken,address oracle,address irm,uint256 lltv)",
-]);
-
-const confidentialUsdcAbi = parseAbi([
-  "function finalizeUnwrap(bytes32 unwrapRequestId,uint64 unwrapAmountCleartext,bytes decryptionProof)",
-]);
-
-const morphoAbi = parseAbi([
-  "function market(bytes32 marketId) view returns (uint128 totalSupplyAssets,uint128 totalSupplyShares,uint128 totalBorrowAssets,uint128 totalBorrowShares,uint128 lastUpdate,uint128 fee)",
-  "function accrueInterest((address loanToken,address collateralToken,address oracle,address irm,uint256 lltv) marketParams)",
-]);
-
-const unwrapRequestedEvent = parseAbiItem(
-  "event UnwrapRequested(address indexed receiver,bytes32 indexed unwrapRequestId,bytes32 amount)",
-);
-const unwrapFinalizedEvent = parseAbiItem(
-  "event UnwrapFinalized(address indexed receiver,bytes32 indexed unwrapRequestId,bytes32 encryptedAmount,uint64 cleartextAmount)",
-);
 const UNWRAP_LOG_CHUNK_BLOCKS = 10_000n;
 const PUBLIC_DECRYPT_TIMEOUT_MS = 8_000;
 
@@ -57,17 +31,35 @@ type MorphoKeeperRuntimeSnapshot = MorphoKeeperSnapshot & {
   adapter: `0x${string}`;
 };
 
-function env(name: string): string | undefined {
-  return typeof Netlify !== "undefined" ? Netlify.env.get(name) : process.env[name];
+type EnvName =
+  | "SEPOLIA_RPC_URL"
+  | "NEXT_PUBLIC_RPC_URL"
+  | "CONFIDENTIAL_PRIZE_POOL_ADDRESS"
+  | "NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS"
+  | "KEEPER_PRIVATE_KEY"
+  | "MORPHO_KEEPER_MAX_TXS"
+  | "MORPHO_KEEPER_START_BLOCK";
+
+function env(name: EnvName): string | undefined {
+  if (typeof Netlify !== "undefined") return Netlify.env.get(name);
+  switch (name) {
+    case "SEPOLIA_RPC_URL": return process.env.SEPOLIA_RPC_URL;
+    case "NEXT_PUBLIC_RPC_URL": return process.env.NEXT_PUBLIC_RPC_URL;
+    case "CONFIDENTIAL_PRIZE_POOL_ADDRESS": return process.env.CONFIDENTIAL_PRIZE_POOL_ADDRESS;
+    case "NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS": return process.env.NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS;
+    case "KEEPER_PRIVATE_KEY": return process.env.KEEPER_PRIVATE_KEY;
+    case "MORPHO_KEEPER_MAX_TXS": return process.env.MORPHO_KEEPER_MAX_TXS;
+    case "MORPHO_KEEPER_START_BLOCK": return process.env.MORPHO_KEEPER_START_BLOCK;
+  }
 }
 
-function requiredEnv(name: string): string {
+function requiredEnv(name: EnvName): string {
   const value = env(name);
   if (!value) throw new Error(`${name} is required`);
   return value;
 }
 
-function privateKeyEnv(name: string): Hex {
+function privateKeyEnv(name: EnvName): Hex {
   const value = requiredEnv(name);
   return (value.startsWith("0x") ? value : `0x${value}`) as Hex;
 }
@@ -99,27 +91,27 @@ async function findPendingUnwrap(
 async function readSnapshot(publicClient: ReturnType<typeof createPublicClient>, pool: `0x${string}`, startBlock: bigint) {
   const [availablePrincipalAssets, accruedYieldAssets, morphoPendingDepositCount, lastMorphoUnwrapAt, morphoUnwrapInterval, tokenAddress, adapterAddress, block] =
     await Promise.all([
-      publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "morphoAvailablePrincipalAssets" }),
-      publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "morphoAccruedYieldAssets" }),
-      publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "morphoPendingDepositCount" }),
-      publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "lastMorphoUnwrapAt" }),
-      publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "morphoUnwrapInterval" }),
-      publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "token" }),
-      publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "morphoYieldAdapter" }),
+      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoAvailablePrincipalAssets" }),
+      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoAccruedYieldAssets" }),
+      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoPendingDepositCount" }),
+      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "lastMorphoUnwrapAt" }),
+      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoUnwrapInterval" }),
+      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "token" }),
+      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoYieldAdapter" }),
       publicClient.getBlock(),
     ]);
 
   const token = getAddress(tokenAddress);
   const adapter = getAddress(adapterAddress);
   const [suppliedPrincipalAssets, pendingUnwrapRequestId, morphoAddress, marketId] = await Promise.all([
-    publicClient.readContract({ address: adapter, abi: morphoAdapterAbi, functionName: "suppliedPrincipal" }),
+    publicClient.readContract({ address: adapter, abi: morphoYieldAdapterAbi, functionName: "suppliedPrincipal" }),
     findPendingUnwrap(publicClient, token, adapter, startBlock, block.number),
-    publicClient.readContract({ address: adapter, abi: morphoAdapterAbi, functionName: "morpho" }),
-    publicClient.readContract({ address: adapter, abi: morphoAdapterAbi, functionName: "marketId" }),
+    publicClient.readContract({ address: adapter, abi: morphoYieldAdapterAbi, functionName: "morpho" }),
+    publicClient.readContract({ address: adapter, abi: morphoYieldAdapterAbi, functionName: "marketId" }),
   ]);
   const market = await publicClient.readContract({
     address: getAddress(morphoAddress),
-    abi: morphoAbi,
+    abi: morphoBlueAbi,
     functionName: "market",
     args: [marketId],
   });
@@ -139,7 +131,7 @@ async function readSnapshot(publicClient: ReturnType<typeof createPublicClient>,
   } satisfies MorphoKeeperRuntimeSnapshot;
 }
 
-async function runAction(
+export async function runMorphoAction(
   action: MorphoKeeperAction,
   publicClient: ReturnType<typeof createPublicClient>,
   walletClient: ReturnType<typeof createWalletClient>,
@@ -147,55 +139,62 @@ async function runAction(
   pool: `0x${string}`,
   snapshot: Awaited<ReturnType<typeof readSnapshot>>,
   rpcUrl: string,
+  decryptUnwrap?: (requestId: Hex, rpcUrl: string) => Promise<{ clearValue: bigint; decryptionProof: Hex }>,
 ) {
   if (action === "finalize") {
     const requestId = snapshot.pendingUnwrapRequestId;
     if (!requestId) return undefined;
 
-    const { createInstance, SepoliaConfig } = await import("@zama-fhe/relayer-sdk/node");
-    const zama = await createInstance({ ...SepoliaConfig, network: rpcUrl });
-    let decrypted;
+    let clearValue: unknown;
+    let decryptionProof: Hex;
     try {
-      decrypted = await zama.publicDecrypt([requestId], { timeout: PUBLIC_DECRYPT_TIMEOUT_MS });
+      if (decryptUnwrap) {
+        const result = await decryptUnwrap(requestId, rpcUrl);
+        clearValue = result.clearValue;
+        decryptionProof = result.decryptionProof;
+      } else {
+        const { createInstance, SepoliaConfig } = await import("@zama-fhe/relayer-sdk/node");
+        const zama = await createInstance({ ...SepoliaConfig, network: rpcUrl });
+        const decrypted = await zama.publicDecrypt([requestId], { timeout: PUBLIC_DECRYPT_TIMEOUT_MS });
+        clearValue = clearValueFor(decrypted.clearValues, requestId);
+        decryptionProof = decrypted.decryptionProof;
+      }
     } catch (error) {
       console.log(JSON.stringify({ action, requestId, status: "not-ready", error: sanitizeKeeperError(error) }));
       return undefined;
     }
 
-    const clearValue = decrypted.clearValues[requestId];
     if (typeof clearValue !== "bigint") {
       console.log(JSON.stringify({ action, requestId, status: "invalid-decryption-response" }));
       return undefined;
     }
 
     const hash = await walletClient.writeContract({
-      address: snapshot.token,
-      abi: confidentialUsdcAbi,
+      ...buildFinalizeUnwrapRequest(snapshot.token, requestId, clearValue, decryptionProof),
       account,
       chain: sepolia,
-      functionName: "finalizeUnwrap",
-      args: [requestId, clearValue, decrypted.decryptionProof],
     });
     return hash;
   }
 
   if (action === "accrue") {
     const [morphoAddress, marketParams] = await Promise.all([
-      publicClient.readContract({ address: snapshot.adapter, abi: morphoAdapterAbi, functionName: "morpho" }),
-      publicClient.readContract({ address: snapshot.adapter, abi: morphoAdapterAbi, functionName: "marketParams" }),
+      publicClient.readContract({ address: snapshot.adapter, abi: morphoYieldAdapterAbi, functionName: "morpho" }),
+      publicClient.readContract({ address: snapshot.adapter, abi: morphoYieldAdapterAbi, functionName: "marketParams" }),
     ]);
+    const params = decodeMarketParams(marketParams);
     const hash = await walletClient.writeContract({
       address: getAddress(morphoAddress),
-      abi: morphoAbi,
+      abi: morphoBlueAbi,
       account,
       chain: sepolia,
       functionName: "accrueInterest",
       args: [{
-        loanToken: marketParams[0],
-        collateralToken: marketParams[1],
-        oracle: marketParams[2],
-        irm: marketParams[3],
-        lltv: marketParams[4],
+        loanToken: params.loanToken,
+        collateralToken: params.collateralToken,
+        oracle: params.oracle,
+        irm: params.irm,
+        lltv: params.lltv,
       }],
     });
     return hash;
@@ -204,19 +203,23 @@ async function runAction(
   const functionName =
     action === "supply"
       ? "supplyAvailableMorphoPrincipal"
-      : action === "harvest"
-        ? "harvestMorphoYield"
-        : "requestMorphoPrincipalUnwrap";
-  const args = action === "harvest" ? [0n] as const : [] as const;
+      : "requestMorphoPrincipalUnwrap";
   const hash = await walletClient.writeContract({
     address: pool,
-    abi: prizePoolAbi,
+    abi: confidentialPrizePoolAbi,
     account,
     chain: sepolia,
     functionName,
-    args,
+    args: [],
   });
   return hash;
+}
+
+function clearValueFor(values: Readonly<Record<string, unknown>>, handle: Hex): unknown {
+  for (const [key, value] of Object.entries(values)) {
+    if (key === handle) return value;
+  }
+  return undefined;
 }
 
 export default async () => {
@@ -236,7 +239,7 @@ export default async () => {
     const [action] = chooseMorphoKeeperActions(snapshot, 1);
     if (!action) break;
 
-    const hash = await runAction(action, publicClient, walletClient, account, pool, snapshot, rpcUrl);
+    const hash = await runMorphoAction(action, publicClient, walletClient, account, pool, snapshot, rpcUrl);
     if (!hash) break;
     transactions.push({ action, hash });
   }

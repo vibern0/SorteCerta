@@ -14,7 +14,6 @@ const NAV = [
   { href: "/savings", label: "Save" },
   { href: "/draw", label: "Draw" },
   { href: "/history", label: "History" },
-  { href: "/admin", label: "Admin" },
 ];
 
 export function Header() {
