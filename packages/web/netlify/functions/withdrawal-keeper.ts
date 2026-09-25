@@ -13,15 +13,12 @@ import {
   type WithdrawalBatchStatus,
   type WithdrawalKeeperAction,
 } from "../../src/lib/withdrawal-keeper.ts";
+import { decryptPublicHandles } from "../../src/lib/zama-node.ts";
 
 declare const Netlify: { env: { get(name: string): string | undefined } } | undefined;
 
-const PUBLIC_DECRYPT_TIMEOUT_MS = 8_000;
-
 async function decryptHandles(handles: Hex[], rpcUrl: string) {
-  const { createInstance, SepoliaConfig } = await import("@zama-fhe/relayer-sdk/node");
-  const zama = await createInstance({ ...SepoliaConfig, network: rpcUrl });
-  return zama.publicDecrypt(handles, { timeout: PUBLIC_DECRYPT_TIMEOUT_MS });
+  return decryptPublicHandles(handles, rpcUrl);
 }
 
 type EnvName =

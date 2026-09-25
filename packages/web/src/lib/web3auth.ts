@@ -14,7 +14,6 @@
 import {
   createPublicClient,
   http,
-  encodeFunctionData,
   getAddress,
   type Address,
   type Hex,
@@ -31,9 +30,7 @@ import {
   type Web3AuthOptions,
 } from "@web3auth/modal";
 
-import { CONTRACTS, PIMLICO_API_KEY, PIMLICO_URL, RPC_URL, WEB3AUTH_CLIENT_ID, prizePoolAbi } from "./contracts";
-import { stringifyTypedData } from "./zama";
-import { buildCloseDrawRequest } from "@sortecerta/protocol";
+import { PIMLICO_API_KEY, PIMLICO_URL, RPC_URL, WEB3AUTH_CLIENT_ID } from "./contracts";
 
 // ─── Web3Auth lifecycle (browser-only) ─────────────────────────────────────
 
@@ -100,7 +97,7 @@ export type SmartSession = {
   address: Address;
   ownerAddress: Address;
   smartAccountClient: ReturnType<typeof createSmartAccountClient>;
-  signOwnerTypedData: (typedData: unknown) => Promise<Hex>;
+  signOwnerTypedData: (typedData: string) => Promise<Hex>;
   logout: () => Promise<void>;
 };
 
@@ -156,7 +153,7 @@ async function createSmartSession(
     signOwnerTypedData: async (typedData) =>
       (await provider.request({
         method: "eth_signTypedData_v4",
-        params: [ownerAddress, stringifyTypedData(typedData)],
+        params: [ownerAddress, typedData],
       })) as Hex,
     logout: async () => {
       await w3a.logout();
@@ -204,134 +201,11 @@ export async function sendSmartTransactionBatch(
   return session.smartAccountClient.sendTransaction({ calls });
 }
 
-export async function signSmartTypedData(
-  session: SmartSession,
-  typedData: unknown
-): Promise<Hex> {
-  return session.smartAccountClient.signTypedData(typedData as any);
-}
-
 export async function signOwnerTypedData(
   session: SmartSession,
-  typedData: unknown
+  typedData: string
 ): Promise<Hex> {
   return session.signOwnerTypedData(typedData);
-}
-
-/** Approve USDC to the PrizePool. One-time setup per session. */
-export async function approveUSDC(
-  session: SmartSession,
-  amount: bigint
-): Promise<Hex> {
-  return session.smartAccountClient.sendTransaction({
-    calls: [
-      {
-        to: CONTRACTS.usdc,
-        data: encodeFunctionData({
-          abi: [
-            {
-              type: "function",
-              name: "approve",
-              stateMutability: "nonpayable",
-              inputs: [
-                { name: "spender", type: "address" },
-                { name: "amount", type: "uint256" },
-              ],
-              outputs: [{ name: "", type: "bool" }],
-            },
-          ],
-          functionName: "approve",
-          args: [CONTRACTS.prizePool, amount],
-        }),
-      },
-    ],
-  });
-}
-
-/** Deposit USDC and buy tickets for the active draw. */
-export async function depositAndBuyTickets(
-  session: SmartSession,
-  amount: bigint
-): Promise<Hex> {
-  return session.smartAccountClient.sendTransaction({
-    calls: [
-      {
-        to: CONTRACTS.prizePool,
-        data: encodeFunctionData({
-          abi: prizePoolAbi,
-          functionName: "depositAndBuyTickets",
-          args: [amount],
-        }),
-      },
-    ],
-  });
-}
-
-/** Add USDC to the active draw's prize pool (sponsor stand-in for yield). */
-export async function fundPrizePool(
-  session: SmartSession,
-  amount: bigint
-): Promise<Hex> {
-  return session.smartAccountClient.sendTransaction({
-    calls: [
-      {
-        to: CONTRACTS.prizePool,
-        data: encodeFunctionData({
-          abi: prizePoolAbi,
-          functionName: "fundPrizePool",
-          args: [amount],
-        }),
-      },
-    ],
-  });
-}
-
-/** Close the current draw (anyone can call after the period ends). */
-export async function closeDraw(session: SmartSession): Promise<Hex> {
-  const request = buildCloseDrawRequest(CONTRACTS.prizePool);
-  return session.smartAccountClient.sendTransaction({
-    calls: [
-      {
-        to: request.address,
-        data: encodeFunctionData({
-          abi: request.abi,
-          functionName: request.functionName,
-          args: request.args,
-        }),
-      },
-    ],
-  });
-}
-
-/** Redeem vault shares for USDC. */
-export async function redeemShares(
-  session: SmartSession,
-  shares: bigint
-): Promise<Hex> {
-  return session.smartAccountClient.sendTransaction({
-    calls: [
-      {
-        to: CONTRACTS.vault,
-        data: encodeFunctionData({
-          abi: [
-            {
-              type: "function",
-              name: "redeem",
-              stateMutability: "nonpayable",
-              inputs: [
-                { name: "shares", type: "uint256" },
-                { name: "receiver", type: "address" },
-                { name: "owner", type: "address" },
-              ],
-              outputs: [{ name: "", type: "uint256" }],
-            },
-          ],
-          functionName: "redeem",
-          args: [shares, session.address, session.address],
-        }),
-      },
-    ],
-  });
 }
 
 export function isWeb3AuthConfigured(): boolean {

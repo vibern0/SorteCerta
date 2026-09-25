@@ -2,62 +2,29 @@
 
 import { useReadContracts, useBlockNumber } from "wagmi";
 import { useEffect, useState } from "react";
-import { erc20Abi, formatEther } from "viem";
-import { CONTRACTS, prizePoolAbi } from "./contracts";
+import { erc20Abi } from "viem";
+import { CONTRACTS, confidentialPrizePoolAbi } from "./contracts";
 
 export function useCurrentDraw() {
   return useReadContracts({
     contracts: [
       {
-        address: CONTRACTS.prizePool,
-        abi: prizePoolAbi,
-        functionName: "currentDraw",
+        address: CONTRACTS.confidentialPrizePool,
+        abi: confidentialPrizePoolAbi,
+        functionName: "drawId",
       },
       {
-        address: CONTRACTS.prizePool,
-        abi: prizePoolAbi,
-        functionName: "drawInterval",
+        address: CONTRACTS.confidentialPrizePool,
+        abi: confidentialPrizePoolAbi,
+        functionName: "nextDrawAt",
+      },
+      {
+        address: CONTRACTS.confidentialPrizePool,
+        abi: confidentialPrizePoolAbi,
+        functionName: "publicPrizeReserve",
       },
     ],
-    query: { refetchInterval: 30_000 },
-  });
-}
-
-export function useDraw(drawId: bigint | undefined) {
-  return useReadContracts({
-    contracts: [
-      {
-        address: CONTRACTS.prizePool,
-        abi: prizePoolAbi,
-        functionName: "draws",
-        args: drawId !== undefined ? [drawId] : undefined,
-      },
-    ],
-    query: { enabled: drawId !== undefined, refetchInterval: 30_000 },
-  });
-}
-
-export function useTickets(drawId: bigint | undefined, user: `0x${string}` | undefined) {
-  return useReadContracts({
-    contracts: [
-      {
-        address: CONTRACTS.prizePool,
-        abi: prizePoolAbi,
-        functionName: "getTickets",
-        args:
-          drawId !== undefined && user ? [drawId, user] : undefined,
-      },
-      {
-        address: CONTRACTS.vault,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: user ? [user] : undefined,
-      },
-    ],
-    query: {
-      enabled: drawId !== undefined && Boolean(user),
-      refetchInterval: 15_000,
-    },
+    query: { enabled: Boolean(CONTRACTS.confidentialPrizePool), refetchInterval: 30_000 },
   });
 }
 
@@ -75,8 +42,8 @@ export function useUSDCBalance(user: `0x${string}` | undefined) {
         abi: erc20Abi,
         functionName: "allowance",
         args:
-          user && CONTRACTS.prizePool
-            ? [user, CONTRACTS.prizePool]
+          user && CONTRACTS.confidentialUsdc
+            ? [user, CONTRACTS.confidentialUsdc]
             : undefined,
       },
     ],

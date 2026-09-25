@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { createPublicClient, encodeAbiParameters, encodeEventTopics, encodeFunctionData, getAddress, http, isAddress, parseEventLogs, toHex, zeroAddress, zeroHash } from "viem";
-import { buildFinalizeUnwrapRequest, parseAmount } from "@sortecerta/protocol";
 import { sepolia } from "viem/chains";
 import {
   CONTRACTS,
@@ -12,10 +11,16 @@ import {
   confidentialUsdcAbi,
   erc20Abi,
 } from "@/lib/contracts";
-import { formatUSDC } from "@/lib/format";
+import { formatUSDC, parseUSDC } from "@/lib/format";
 import { useWallet } from "@/lib/wallet-context";
 import { sendSmartTransaction, sendSmartTransactionBatch, type SmartSession } from "@/lib/web3auth";
-import { getZamaInstance } from "@/lib/zama";
+import {
+  asChecksumAddress,
+  createPublicZamaSDK,
+  createSmartZamaSDK,
+  decryptPublicUint64,
+  encryptUint64,
+} from "@/lib/zama";
 import { afterNextPaint } from "@/lib/paint";
 import { useToast } from "@/components/Toast";
 import { AmountInput } from "@/components/AmountInput";
@@ -52,11 +57,7 @@ const publicClient = createPublicClient({
 });
 
 function asAddress(value: unknown, label: string) {
-  if (typeof value !== "string" || !isAddress(value)) {
-    throw new Error(`${label} is not a valid address.`);
-  }
-
-  return getAddress(value);
+  return asChecksumAddress(value, label);
 }
 
 function getErrorMessage(error: unknown) {
@@ -210,22 +211,26 @@ export default function SavingsPage() {
     void refreshBalances(session.address);
     void refreshPendingUnwraps(session.address);
     void refreshPendingWithdrawals(session.address);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.address, poolReady]);
 
   useEffect(() => {
     if (!session?.address || !poolReady) return;
-    const address = session.address;
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
-    function poll() {
-      refreshPendingWithdrawals(address)
-        .then(() => refreshBalances(address))
-        .then(() => { if (!stopped) setWithdrawalRefreshError(false); })
-        .catch(() => { if (!stopped) setWithdrawalRefreshError(true); })
-        .finally(() => { if (!stopped) timer = setTimeout(poll, 15_000); });
+    async function poll() {
+      try {
+        await refreshPendingWithdrawals(session!.address);
+        await refreshBalances(session!.address);
+        if (!stopped) setWithdrawalRefreshError(false);
+      } catch {
+        if (!stopped) setWithdrawalRefreshError(true);
+      }
+      if (!stopped) timer = setTimeout(() => void poll(), 15_000);
     }
-    timer = setTimeout(poll, 15_000);
+    timer = setTimeout(() => void poll(), 15_000);
     return () => { stopped = true; clearTimeout(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.address, poolReady]);
 
   const sheetOpen = Boolean(depositSheetStep || withdrawSheetStep);
@@ -438,18 +443,16 @@ export default function SavingsPage() {
     if (!wrapperReady) throw new Error("Withdrawals are unavailable right now.");
 
     const token = asAddress(addresses.confidentialUsdc, "Savings token");
-    const zama = await getZamaInstance();
-    const decrypted = await zama.publicDecrypt([requestId]);
-    const clearValue = clearValueFor(decrypted.clearValues, requestId);
-    if (typeof clearValue !== "bigint") throw new Error("Withdrawal is not ready yet.");
+    const sdk = createPublicZamaSDK();
+    const decrypted = await decryptPublicUint64(sdk, requestId).finally(() => sdk.terminate());
+    const clearValue = decrypted.clearValue;
     if (finalizationOutcome(clearValue) === "invariant-error") throw new Error("Withdrawal needs support. Please contact us.");
-    const request = buildFinalizeUnwrapRequest(token, requestId, clearValue, decrypted.decryptionProof);
     const data = encodeFunctionData({
-      abi: request.abi,
-      functionName: request.functionName,
-      args: request.args,
+      abi: confidentialUsdcAbi,
+      functionName: "finalizeUnwrap",
+      args: [requestId, clearValue, decrypted.decryptionProof],
     });
-    await sendTx(currentSession, request.address, data);
+    await sendTx(currentSession, token, data);
     await refreshBalances(user);
     await refreshPendingUnwraps(user);
     await refreshPendingWithdrawals(user);
@@ -466,8 +469,8 @@ export default function SavingsPage() {
     const usdc = asAddress(addresses.usdc, "USDC");
     const token = asAddress(addresses.confidentialUsdc, "Savings token");
     const pool = asAddress(addresses.pool, "Prize pool");
-    const zama = await getZamaInstance();
-    const encrypted = await zama.createEncryptedInput(token, user).add64(value).encrypt();
+    const sdk = createSmartZamaSDK(currentSession);
+    const encrypted = await encryptUint64(sdk, token, user, value).finally(() => sdk.terminate());
     const wrapCall = encodeFunctionData({
       abi: confidentialUsdcAbi,
       functionName: "wrap",
@@ -478,8 +481,8 @@ export default function SavingsPage() {
       functionName: "confidentialTransferAndCall",
       args: [
         pool,
-        toHex(encrypted.handles[0]) as `0x${string}`,
-        toHex(encrypted.inputProof),
+        encrypted.handle,
+        encrypted.inputProof,
         encodeAbiParameters([{ type: "address" }], [currentSession.ownerAddress]),
       ],
     });
@@ -519,12 +522,12 @@ export default function SavingsPage() {
     if (!poolReady) throw new Error("Withdrawals are unavailable right now.");
 
     const pool = asAddress(addresses.pool, "Prize pool");
-    const zama = await getZamaInstance();
-    const encrypted = await zama.createEncryptedInput(pool, user).add64(value).encrypt();
+    const sdk = createSmartZamaSDK(currentSession);
+    const encrypted = await encryptUint64(sdk, pool, user, value).finally(() => sdk.terminate());
     const data = encodeFunctionData({
       abi: confidentialPrizePoolAbi,
       functionName: "requestWithdrawal",
-      args: [toHex(encrypted.handles[0]) as `0x${string}`, toHex(encrypted.inputProof)],
+      args: [encrypted.handle, encrypted.inputProof],
     });
     update({ status: "waiting-wallet" });
     const tx = await sendSmartTransaction(currentSession, pool, data);
@@ -723,7 +726,7 @@ export default function SavingsPage() {
 
   function parsedAmount(value: string) {
     try {
-      return parseAmount(value, 6);
+      return parseUSDC(value);
     } catch {
       return 0n;
     }
@@ -1274,11 +1277,4 @@ export default function SavingsPage() {
 
     </div>
   );
-}
-
-function clearValueFor(values: Readonly<Record<string, unknown>>, handle: `0x${string}`): unknown {
-  for (const [key, value] of Object.entries(values)) {
-    if (key === handle) return value;
-  }
-  return undefined;
 }

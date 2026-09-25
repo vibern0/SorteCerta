@@ -1,3 +1,5 @@
+import { parseAmount } from "@sortecerta/protocol";
+
 /** Format USDC (6 decimals) to a human string. */
 export function formatUSDC(amount: bigint | undefined, maxDecimals = 2): string {
   if (amount === undefined) return "—";
@@ -5,6 +7,10 @@ export function formatUSDC(amount: bigint | undefined, maxDecimals = 2): string 
   const frac = amount % 1_000_000n;
   const fracStr = frac.toString().padStart(6, "0").slice(0, maxDecimals);
   return `${groupDigits(whole.toString())}.${fracStr}`;
+}
+
+export function parseUSDC(input: string): bigint {
+  return parseAmount(input, 6);
 }
 
 function groupDigits(value: string): string {

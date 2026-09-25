@@ -20,12 +20,11 @@ import {
   type MorphoKeeperAction,
   type MorphoKeeperSnapshot,
 } from "../../src/lib/morpho-keeper.ts";
+import { decryptPublicHandles } from "../../src/lib/zama-node.ts";
 
 declare const Netlify: { env: { get(name: string): string | undefined } } | undefined;
 
 const UNWRAP_LOG_CHUNK_BLOCKS = 10_000n;
-const PUBLIC_DECRYPT_TIMEOUT_MS = 8_000;
-
 type MorphoKeeperRuntimeSnapshot = MorphoKeeperSnapshot & {
   token: `0x${string}`;
   adapter: `0x${string}`;
@@ -153,9 +152,7 @@ export async function runMorphoAction(
         clearValue = result.clearValue;
         decryptionProof = result.decryptionProof;
       } else {
-        const { createInstance, SepoliaConfig } = await import("@zama-fhe/relayer-sdk/node");
-        const zama = await createInstance({ ...SepoliaConfig, network: rpcUrl });
-        const decrypted = await zama.publicDecrypt([requestId], { timeout: PUBLIC_DECRYPT_TIMEOUT_MS });
+        const decrypted = await decryptPublicHandles([requestId], rpcUrl);
         clearValue = clearValueFor(decrypted.clearValues, requestId);
         decryptionProof = decrypted.decryptionProof;
       }

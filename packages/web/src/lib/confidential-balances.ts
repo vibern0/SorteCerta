@@ -1,6 +1,6 @@
 "use client";
 
-import { createPublicClient, getAddress, http, isAddress } from "viem";
+import { createPublicClient, http } from "viem";
 import { sepolia } from "viem/chains";
 import {
   CONTRACTS,
@@ -8,14 +8,14 @@ import {
   confidentialPrizePoolAbi,
   confidentialUsdcAbi,
 } from "./contracts";
+import type { SmartSession } from "./web3auth";
 import {
-  signOwnerTypedData,
-  signSmartTypedData,
-  type SmartSession,
-} from "./web3auth";
-import { getZamaInstance, userDecryptTimestamp } from "./zama";
-
-const ZERO_HANDLE = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  asChecksumAddress,
+  clearValueToBigInt,
+  createOwnerZamaSDK,
+  createSmartZamaSDK,
+  isZeroEncryptedHandle,
+} from "./zama";
 
 const publicClient = createPublicClient({
   chain: sepolia,
@@ -33,18 +33,6 @@ type DecryptedBalances = {
   principal?: bigint;
 };
 
-function asAddress(value: unknown, label: string) {
-  if (typeof value !== "string" || !isAddress(value)) {
-    throw new Error(`${label} is not a valid address.`);
-  }
-
-  return getAddress(value);
-}
-
-function isZeroHandle(handle: unknown) {
-  return typeof handle === "string" && handle.toLowerCase() === ZERO_HANDLE;
-}
-
 async function decryptHandles(
   requests: DecryptRequest[],
   currentSession: SmartSession,
@@ -52,38 +40,27 @@ async function decryptHandles(
 ) {
   if (requests.length === 0) return {};
 
-  const zama = await getZamaInstance();
-  const keypair = zama.generateKeypair();
-  const startTimestamp = userDecryptTimestamp();
-  const durationDays = 365;
-  const contracts = Array.from(new Set(requests.map((request) => request.contract)));
-  const eip712 = zama.createEIP712(keypair.publicKey, contracts, startTimestamp, durationDays);
-  const signature =
-    signer === "owner"
-      ? await signOwnerTypedData(currentSession, eip712)
-      : await signSmartTypedData(currentSession, eip712);
-  const userAddress = signer === "owner" ? currentSession.ownerAddress : currentSession.address;
+  const sdk = signer === "owner" ? createOwnerZamaSDK(currentSession) : createSmartZamaSDK(currentSession);
+  try {
+    const results = await sdk.decryption.decryptValues(
+      requests.map((request) => ({
+        encryptedValue: request.handle,
+        contractAddress: request.contract,
+      })),
+    );
 
-  const results = await zama.userDecrypt(
-    requests.map((request) => ({ handle: request.handle, contractAddress: request.contract })),
-    keypair.privateKey,
-    keypair.publicKey,
-    signature,
-    contracts,
-    userAddress,
-    startTimestamp,
-    durationDays,
-  );
-
-  return Object.fromEntries(requests.map((request) => [request.key, results[request.handle]]));
+    return Object.fromEntries(requests.map((request) => [request.key, results[request.handle]]));
+  } finally {
+    sdk.terminate();
+  }
 }
 
 export async function decryptConfidentialBalances(
   currentSession: SmartSession,
 ): Promise<DecryptedBalances> {
   const user = currentSession.address;
-  const token = asAddress(CONTRACTS.confidentialUsdc, "Savings token");
-  const pool = asAddress(CONTRACTS.confidentialPrizePool, "Prize pool");
+  const token = asChecksumAddress(CONTRACTS.confidentialUsdc, "Savings token");
+  const pool = asChecksumAddress(CONTRACTS.confidentialPrizePool, "Prize pool");
 
   const [balanceHandle, principalHandle] = await Promise.all([
     publicClient.readContract({
@@ -104,7 +81,7 @@ export async function decryptConfidentialBalances(
   const smartRequests: DecryptRequest[] = [];
   const ownerRequests: DecryptRequest[] = [];
 
-  if (isZeroHandle(balanceHandle)) {
+  if (isZeroEncryptedHandle(balanceHandle)) {
     balances.confidentialBalance = 0n;
   } else {
     smartRequests.push({
@@ -114,7 +91,7 @@ export async function decryptConfidentialBalances(
     });
   }
 
-  if (isZeroHandle(principalHandle)) {
+  if (isZeroEncryptedHandle(principalHandle)) {
     balances.principal = 0n;
   } else {
     ownerRequests.push({
@@ -132,10 +109,10 @@ export async function decryptConfidentialBalances(
   for (const decrypted of [smartDecrypted, ownerDecrypted]) {
     if (decrypted.status !== "fulfilled") continue;
     if (decrypted.value.confidentialBalance !== undefined) {
-      balances.confidentialBalance = BigInt(String(decrypted.value.confidentialBalance));
+      balances.confidentialBalance = clearValueToBigInt(decrypted.value.confidentialBalance);
     }
     if (decrypted.value.principal !== undefined) {
-      balances.principal = BigInt(String(decrypted.value.principal));
+      balances.principal = clearValueToBigInt(decrypted.value.principal);
     }
   }
 
