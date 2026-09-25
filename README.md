@@ -39,6 +39,7 @@ official PoolTogether protocol.
 sortecerta/
   packages/
     contracts/   # Hardhat — ConfidentialUSDC, ConfidentialPrizePool, mocks
+    landing/     # Vite + Cloudflare Worker — see [Landing site operations](packages/landing/README.md)
     morpho-lab/  # Vite — local technical Morpho operator playground
     web/         # Next.js 14 PWA — Web3Auth + Safe + Pimlico + Zama SDK v3
   package.json   # npm workspaces root

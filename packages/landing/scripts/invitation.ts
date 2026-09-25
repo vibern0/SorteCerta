@@ -2,7 +2,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { spawn } from "node:child_process";
-import { normalizeEmail, normalizeInvitationCode } from "../worker/validation";
+import { normalizeEmail, normalizeInvitationCode } from "../worker/validation.ts";
 
 export type WranglerArgsInput = {
   email: string;
