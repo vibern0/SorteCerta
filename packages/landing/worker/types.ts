@@ -26,7 +26,7 @@ export type WaitlistResponse =
     };
 
 export type Env = {
-  DB: unknown;
+  DB: D1Database;
   ASSETS: { fetch(request: Request): Promise<Response> };
   TURNSTILE_SECRET_KEY: string;
 };

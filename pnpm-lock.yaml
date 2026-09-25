@@ -97,7 +97,10 @@ importers:
     devDependencies:
       '@cloudflare/vitest-plugin':
         specifier: ^1.2.7
-        version: 1.2.7(@types/node@22.20.4)(@vitest/runner@4.1.11)(@vitest/snapshot@4.1.11)(bufferutil@4.1.0)(utf-8-validate@6.0.6)(vitest@4.1.11(@types/node@22.20.4)(jsdom@30.1.1(@noble/hashes@2.4.0))(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.1)(jiti@1.21.7)))
+        version: 1.2.7(@cloudflare/workers-types@5.20260924.1)(@types/node@22.20.4)(@vitest/runner@4.1.11)(@vitest/snapshot@4.1.11)(bufferutil@4.1.0)(utf-8-validate@6.0.6)(vitest@4.1.11(@types/node@22.20.4)(jsdom@30.1.1(@noble/hashes@2.4.0))(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.1)(jiti@1.21.7)))
+      '@cloudflare/workers-types':
+        specifier: ^5.20260924.1
+        version: 5.20260924.1
       '@testing-library/jest-dom':
         specifier: ^7.0.1
         version: 7.0.1(@testing-library/dom@10.4.2)(vitest@4.1.11(@types/node@22.20.4)(jsdom@30.1.1(@noble/hashes@2.4.0))(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.1)(jiti@1.21.7)))
@@ -133,7 +136,7 @@ importers:
         version: 4.1.11(@types/node@22.20.4)(jsdom@30.1.1(@noble/hashes@2.4.0))(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.1)(jiti@1.21.7))
       wrangler:
         specifier: ^4.140.0
-        version: 4.140.0(@types/node@22.20.4)(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+        version: 4.140.0(@cloudflare/workers-types@5.20260924.1)(@types/node@22.20.4)(bufferutil@4.1.0)(utf-8-validate@6.0.6)
 
   packages/morpho-lab:
     dependencies:
@@ -430,6 +433,9 @@ packages:
     engines: {node: '>=16'}
     cpu: [x64]
     os: [win32]
+
+  '@cloudflare/workers-types@5.20260924.1':
+    resolution: {integrity: sha512-puvr63PrfAFIkdh3FInGEgS0VTQ49WYNYDC2Eupd+qvwWwGpSRjxJD5Iz22oNHCmV1UEcsDz+OtGF++01vUloA==}
 
   '@coinbase/cdp-sdk@1.56.0':
     resolution: {integrity: sha512-Fwq77OUHRfSihdi/IB3sp2eVplv9UQjiXoZfpU0mYmxD42CRbVINQT9PVrBbn6fxqS9Vlc4XdaB166IPBVfXkA==}
@@ -7852,7 +7858,7 @@ snapshots:
     optionalDependencies:
       workerd: 1.20260923.1
 
-  '@cloudflare/vitest-plugin@1.2.7(@types/node@22.20.4)(@vitest/runner@4.1.11)(@vitest/snapshot@4.1.11)(bufferutil@4.1.0)(utf-8-validate@6.0.6)(vitest@4.1.11(@types/node@22.20.4)(jsdom@30.1.1(@noble/hashes@2.4.0))(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.1)(jiti@1.21.7)))':
+  '@cloudflare/vitest-plugin@1.2.7(@cloudflare/workers-types@5.20260924.1)(@types/node@22.20.4)(@vitest/runner@4.1.11)(@vitest/snapshot@4.1.11)(bufferutil@4.1.0)(utf-8-validate@6.0.6)(vitest@4.1.11(@types/node@22.20.4)(jsdom@30.1.1(@noble/hashes@2.4.0))(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.1)(jiti@1.21.7)))':
     dependencies:
       '@vitest/runner': 4.1.11
       '@vitest/snapshot': 4.1.11
@@ -7860,7 +7866,7 @@ snapshots:
       esbuild: 0.28.1
       miniflare: 5.20260923.0-alpha(@types/node@22.20.4)(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       vitest: 4.1.11(@types/node@22.20.4)(jsdom@30.1.1(@noble/hashes@2.4.0))(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.1)(jiti@1.21.7))
-      wrangler: 4.140.0(@types/node@22.20.4)(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      wrangler: 4.140.0(@cloudflare/workers-types@5.20260924.1)(@types/node@22.20.4)(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       zod: 4.4.3
     transitivePeerDependencies:
       - '@cloudflare/workers-types'
@@ -7882,6 +7888,8 @@ snapshots:
 
   '@cloudflare/workerd-windows-64@1.20260923.1':
     optional: true
+
+  '@cloudflare/workers-types@5.20260924.1': {}
 
   '@coinbase/cdp-sdk@1.56.0(bufferutil@4.1.0)(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)(utf-8-validate@6.0.6)':
     dependencies:
@@ -16878,7 +16886,7 @@ snapshots:
 
   workerpool@9.3.4: {}
 
-  wrangler@4.140.0(@types/node@22.20.4)(bufferutil@4.1.0)(utf-8-validate@6.0.6):
+  wrangler@4.140.0(@cloudflare/workers-types@5.20260924.1)(@types/node@22.20.4)(bufferutil@4.1.0)(utf-8-validate@6.0.6):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.5.0
       '@cloudflare/unenv-preset': 2.16.2(unenv@2.0.0-rc.24)(workerd@1.20260923.1)
@@ -16889,6 +16897,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       workerd: 1.20260923.1
     optionalDependencies:
+      '@cloudflare/workers-types': 5.20260924.1
       fsevents: 2.3.3
     transitivePeerDependencies:
       - '@types/node'
