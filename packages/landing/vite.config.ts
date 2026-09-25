@@ -6,7 +6,12 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
-    exclude: ["tests/**/*.worker.test.ts", "tests/**/*-worker.test.ts"],
+    exclude: [
+      "tests/**/*.worker.test.ts",
+      "tests/**/*-worker.test.ts",
+      "tests/worker-routing.test.ts",
+      "tests/security-privacy.test.ts",
+    ],
     setupFiles: ["@testing-library/jest-dom/vitest"],
   },
 });

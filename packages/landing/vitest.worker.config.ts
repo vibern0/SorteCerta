@@ -26,9 +26,14 @@ export default defineConfig({
   resolve: {
     alias: vitestWorkerAliases,
   },
-  plugins: [cloudflareTest({ main: "./worker/turnstile.ts", wrangler: { configPath: "./wrangler.jsonc" } })],
+  plugins: [cloudflareTest({ wrangler: { configPath: "./wrangler.jsonc" } })],
   test: {
-    include: ["tests/**/*.worker.test.ts", "tests/**/*-worker.test.ts"],
+    include: [
+      "tests/**/*.worker.test.ts",
+      "tests/**/*-worker.test.ts",
+      "tests/worker-routing.test.ts",
+      "tests/security-privacy.test.ts",
+    ],
     passWithNoTests: true,
     deps: {
       optimizer: {
