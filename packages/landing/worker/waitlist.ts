@@ -73,7 +73,19 @@ export async function registerWaitlist(
       return jsonResponse(INVALID_INVITATION, 403);
     }
 
-    await redeemInvitation(env.DB, invitation.id, payload.email, now, entryId, payload.attribution);
+    try {
+      await redeemInvitation(env.DB, invitation.id, payload.email, now, entryId, payload.attribution);
+    } catch (error) {
+      if (!isExpectedD1Conflict(error)) {
+        throw error;
+      }
+      const completed = await findInvitation(env.DB, codeHash);
+      if (completed?.entry_email === payload.email) {
+        return jsonResponse({ ok: true, status: "already_joined" }, 200);
+      }
+      return jsonResponse(INVALID_INVITATION, 403);
+    }
+
     const inserted = await findCompletedEntry(env.DB, entryId, codeHash, payload.email);
     if (inserted) {
       return jsonResponse({ ok: true, status: "joined" }, 201);
@@ -182,4 +194,8 @@ function jsonResponse(body: WaitlistResponse, status: number): Response {
       "cache-control": "no-store",
     },
   });
+}
+
+function isExpectedD1Conflict(error: unknown): boolean {
+  return error instanceof Error && /constraint|unique|changes\(\)/i.test(error.message);
 }

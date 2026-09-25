@@ -84,6 +84,25 @@ describe("waitlist registration", () => {
     expect(await response.json()).toEqual(INVALID_INVITATION);
   });
 
+  it("uses the invalid invitation response when the email already joined with another invitation", async () => {
+    await seed("person@example.com", INVITATION_CODE);
+    await seed("person@example.com", "SC-1111-2222-3333-4444");
+    const dependencies = fixedDependencies("verified");
+    expect((await registerWaitlist(makeRequest("person@example.com", INVITATION_CODE), env, dependencies)).status).toBe(
+      201,
+    );
+
+    const response = await registerWaitlist(
+      makeRequest("person@example.com", "SC-1111-2222-3333-4444"),
+      env,
+      dependencies,
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual(INVALID_INVITATION);
+    expect((await tableCounts()).entries).toBe(1);
+  });
+
   it("verifies Turnstile before mutating D1", async () => {
     await seed("person@example.com", INVITATION_CODE);
     const dependencies = fixedDependencies("rejected");
