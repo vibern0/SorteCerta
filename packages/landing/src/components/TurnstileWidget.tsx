@@ -7,6 +7,7 @@ declare global {
         container: HTMLElement,
         options: {
           sitekey: string;
+          size: "flexible";
           callback(token: string): void;
           "expired-callback"(): void;
           "error-callback"(): void;
@@ -66,6 +67,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
 
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
+          size: "flexible",
           callback: (token) => onToken(token),
           "expired-callback": () => onToken(null),
           "error-callback": () => onToken(null),

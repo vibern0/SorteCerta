@@ -88,6 +88,7 @@ export function WaitlistForm({
       setEmail("");
       setInvitationCode("");
       setStatus(SUCCESS_MESSAGES[result.status]);
+      resetVerification();
       return;
     }
 

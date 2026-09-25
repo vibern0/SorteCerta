@@ -9,8 +9,16 @@ afterEach(() => {
 
 describe("waitlist form", () => {
   it("submits once, announces success, and clears sensitive form state", async () => {
+    const reset = vi.fn();
     const submit = vi.fn(async () => ({ ok: true, status: "joined" as const }) as const);
-    render(<WaitlistForm submit={submit} initialAttribution={{ source: "zama" }} turnstileToken="verified-token" />);
+    render(
+      <WaitlistForm
+        submit={submit}
+        initialAttribution={{ source: "zama" }}
+        resetTurnstile={reset}
+        turnstileToken="verified-token"
+      />,
+    );
 
     await userEvent.type(screen.getByLabelText(/approved email/i), "person@example.com");
     await userEvent.type(screen.getByLabelText(/invitation code/i), "SC-ABCD-EFGH-IJKL-MNOP");
@@ -24,6 +32,7 @@ describe("waitlist form", () => {
       attribution: { source: "zama" },
     });
     expect(await screen.findByRole("status")).toHaveTextContent(/you.re on the list/i);
+    expect(reset).toHaveBeenCalledOnce();
     expect(screen.queryByDisplayValue("SC-ABCD-EFGH-IJKL-MNOP")).toBeNull();
   });
 
