@@ -1,11 +1,8 @@
 [build]
   base = "packages/web"
   command = "pnpm build"
-  publish = ".next"
+  publish = "out"
 
 [build.environment]
   NODE_VERSION = "22"
   PNPM_VERSION = "9"
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"

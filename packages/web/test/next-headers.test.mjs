@@ -1,17 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
-import nextConfig from "../next.config.js";
+test("allows OAuth popups to keep opener access on Cloudflare", async () => {
+  const headers = await readFile(new URL("../public/_headers", import.meta.url), "utf8");
 
-test("allows OAuth popups to keep opener access", async () => {
-  const headers = await nextConfig.headers();
-  const globalHeaders = headers.find((entry) => entry.source === "/(.*)");
-
-  assert.ok(globalHeaders);
-  assert.deepEqual(globalHeaders.headers, [
-    {
-      key: "Cross-Origin-Opener-Policy",
-      value: "same-origin-allow-popups",
-    },
-  ]);
+  assert.match(headers, /^\/\*/m);
+  assert.match(
+    headers,
+    /^\s+Cross-Origin-Opener-Policy:\s*same-origin-allow-popups$/m,
+  );
 });

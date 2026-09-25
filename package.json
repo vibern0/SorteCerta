@@ -17,6 +17,7 @@
     "ws": "8.21.3"
   },
   "scripts": {
+    "cf:build": "pnpm --filter @sortecerta/web build",
     "contracts:compile": "npm run compile -w packages/contracts",
     "contracts:test": "npm run test -w packages/contracts",
     "contracts:deploy:sepolia": "npm run deploy:sepolia -w packages/contracts",
