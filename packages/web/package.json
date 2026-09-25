@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sortecerta/protocol": "^0.1.0",
+    "@sortecerta/protocol": "workspace:*",
     "@tanstack/react-query": "^5.59.0",
     "@web3auth/modal": "^10.0.0",
     "@zama-fhe/sdk": "3.6.0",

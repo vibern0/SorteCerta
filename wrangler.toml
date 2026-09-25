@@ -1,0 +1,10 @@
+name = "sortecerta"
+compatibility_date = "2026-09-24"
+main = "packages/web/worker.ts"
+workers_dev = true
+preview_urls = true
+previews = { }
+
+[assets]
+binding = "ASSETS"
+directory = "packages/web/out"

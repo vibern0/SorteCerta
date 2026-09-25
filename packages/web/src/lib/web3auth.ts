@@ -30,7 +30,7 @@ import {
   type Web3AuthOptions,
 } from "@web3auth/modal";
 
-import { PIMLICO_URL, RPC_URL } from "./contracts";
+import { PIMLICO_API_KEY, PIMLICO_URL, RPC_URL, WEB3AUTH_CLIENT_ID } from "./contracts";
 
 // ─── Web3Auth lifecycle (browser-only) ─────────────────────────────────────
 
@@ -42,7 +42,7 @@ async function getWeb3Auth(): Promise<Web3Auth> {
     throw new Error("Web3Auth can only be initialized in the browser");
   }
   const options: Web3AuthOptions = {
-    clientId: process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID ?? "",
+    clientId: WEB3AUTH_CLIENT_ID,
     web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
     disableAnalytics: true,
     sessionTime: 60 * 60 * 24 * 7,
@@ -209,9 +209,9 @@ export async function signOwnerTypedData(
 }
 
 export function isWeb3AuthConfigured(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID);
+  return Boolean(WEB3AUTH_CLIENT_ID);
 }
 
 export function isPimlicoConfigured(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_PIMLICO_API_KEY);
+  return Boolean(PIMLICO_API_KEY);
 }
