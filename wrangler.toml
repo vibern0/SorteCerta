@@ -1,5 +1,6 @@
 name = "sortecerta"
 compatibility_date = "2026-09-24"
+previews = { }
 
 [assets]
 directory = "packages/web/out"
