@@ -1,62 +1,62 @@
-import { createPublicClient, createWalletClient, getAddress, http, parseAbi, zeroAddress, zeroHash, type Hex } from "viem";
+import { createPublicClient, createWalletClient, getAddress, http, zeroAddress, zeroHash, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { PrivateKeyAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
+import {
+  buildFinalizeUnwrapRequest,
+  confidentialPrizePoolAbi as prizePoolAbi,
+  confidentialUsdcAbi as wrapperAbi,
+} from "@sortecerta/protocol";
 import { sanitizeKeeperError } from "../../src/lib/morpho-keeper.ts";
-import { decryptPublicHandles } from "../../src/lib/zama-node.ts";
 import {
   chooseWithdrawalKeeperAction,
   type WithdrawalBatchStatus,
   type WithdrawalKeeperAction,
 } from "../../src/lib/withdrawal-keeper.ts";
+import { decryptPublicHandles } from "../../src/lib/zama-node.ts";
 
 declare const Netlify: { env: { get(name: string): string | undefined } } | undefined;
-
-const prizePoolAbi = parseAbi([
-  "function currentWithdrawalBatchId() view returns (uint256)",
-  "function withdrawalBatchStatus(uint256 batchId) view returns (uint8)",
-  "function withdrawalBatchClosesAt(uint256 batchId) view returns (uint256)",
-  "function withdrawalBatchRequestCount(uint256 batchId) view returns (uint256)",
-  "function encryptedWithdrawalBatchTotal(uint256 batchId) view returns (bytes32)",
-  "function encryptedWithdrawalBatchMorphoRestore(uint256 batchId) view returns (bytes32)",
-  "function closeWithdrawalBatch(uint256 batchId)",
-  "function settleWithdrawalBatch(uint256 batchId,uint64 cleartextTotal,uint64 cleartextMorphoRestore,bytes decryptionProof)",
-  "function token() view returns (address)",
-  "function withdrawalAccounts(uint256 batchId) view returns (address[])",
-  "function hasWithdrawalClaim(uint256 batchId,address account) view returns (bool)",
-  "function withdrawalUnwrapRequest(uint256 batchId,address account) view returns (bytes32)",
-  "function processWithdrawal(uint256 batchId,address account) returns (bytes32)",
-]);
-const wrapperAbi = parseAbi([
-  "function unwrapRequester(bytes32 requestId) view returns (address)",
-  "function finalizeUnwrap(bytes32 requestId,uint64 amount,bytes proof)",
-]);
-
-const STATUS_NAMES = ["open", "closed", "funded"] as const satisfies readonly WithdrawalBatchStatus[];
 
 async function decryptHandles(handles: Hex[], rpcUrl: string) {
   return decryptPublicHandles(handles, rpcUrl);
 }
 
-function env(name: string): string | undefined {
-  return typeof Netlify !== "undefined" ? Netlify.env.get(name) : process.env[name];
+type EnvName =
+  | "SEPOLIA_RPC_URL"
+  | "NEXT_PUBLIC_RPC_URL"
+  | "CONFIDENTIAL_PRIZE_POOL_ADDRESS"
+  | "NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS"
+  | "KEEPER_PRIVATE_KEY";
+
+function env(name: EnvName): string | undefined {
+  if (typeof Netlify !== "undefined") return Netlify.env.get(name);
+  switch (name) {
+    case "SEPOLIA_RPC_URL": return process.env.SEPOLIA_RPC_URL;
+    case "NEXT_PUBLIC_RPC_URL": return process.env.NEXT_PUBLIC_RPC_URL;
+    case "CONFIDENTIAL_PRIZE_POOL_ADDRESS": return process.env.CONFIDENTIAL_PRIZE_POOL_ADDRESS;
+    case "NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS": return process.env.NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS;
+    case "KEEPER_PRIVATE_KEY": return process.env.KEEPER_PRIVATE_KEY;
+  }
 }
 
-function requiredEnv(name: string): string {
+function requiredEnv(name: EnvName): string {
   const value = env(name);
   if (!value) throw new Error(`${name} is required`);
   return value;
 }
 
-function privateKeyEnv(name: string): Hex {
+function privateKeyEnv(name: EnvName): Hex {
   const value = requiredEnv(name);
   return (value.startsWith("0x") ? value : `0x${value}`) as Hex;
 }
 
 function statusName(status: number): WithdrawalBatchStatus {
-  const name = STATUS_NAMES[status];
-  if (!name) throw new Error(`Unknown withdrawal batch status: ${status}`);
-  return name;
+  switch (status) {
+    case 0: return "open";
+    case 1: return "closed";
+    case 2: return "funded";
+    default: throw new Error(`Unknown withdrawal batch status: ${status}`);
+  }
 }
 
 async function readSnapshot(
@@ -112,8 +112,8 @@ async function runAction(
     return undefined;
   }
 
-  const clearTotal = decrypted.clearValues[totalHandle];
-  const clearRestore = decrypted.clearValues[restoreHandle];
+  const clearTotal = clearValueFor(decrypted.clearValues, totalHandle);
+  const clearRestore = clearValueFor(decrypted.clearValues, restoreHandle);
   if (typeof clearTotal !== "bigint" || typeof clearRestore !== "bigint") {
     console.log(JSON.stringify({ action, batchId: batchId.toString(), status: "invalid-decryption-response" }));
     return undefined;
@@ -127,6 +127,13 @@ async function runAction(
     functionName: "settleWithdrawalBatch",
     args: [batchId, clearTotal, clearRestore, decrypted.decryptionProof],
   });
+}
+
+function clearValueFor(values: Readonly<Record<string, unknown>>, handle: Hex): unknown {
+  for (const [key, value] of Object.entries(values)) {
+    if (key === handle) return value;
+  }
+  return undefined;
 }
 
 export default async () => {
@@ -190,9 +197,13 @@ export async function runWithdrawalKeeper({ rpcUrl, pool, account, publicClient,
           const receiver = await publicClient.readContract({ address: token, abi: wrapperAbi, functionName: "unwrapRequester", args: [requestId] });
           if (receiver === zeroAddress) continue;
           const decrypted = await decrypt([requestId], rpcUrl);
-          const amount = decrypted.clearValues[requestId];
+          const amount = clearValueFor(decrypted.clearValues, requestId);
           if (typeof amount !== "bigint") throw new Error("Invalid payout proof response");
-          await confirmed(await walletClient.writeContract({ account, chain: sepolia, address: token, abi: wrapperAbi, functionName: "finalizeUnwrap", args: [requestId, amount, decrypted.decryptionProof] }), "deliver", batchId);
+          await confirmed(await walletClient.writeContract({
+            ...buildFinalizeUnwrapRequest(token, requestId, amount, decrypted.decryptionProof),
+            account,
+            chain: sepolia,
+          }), "deliver", batchId);
         } catch (error) {
           pending.push({ batchId: batchId.toString(), account: claimant, status: "retrying-delivery", error: sanitizeKeeperError(error) });
         }

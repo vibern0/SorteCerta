@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPublicClient, encodeFunctionData, getAddress, http, isAddress } from "viem";
 import { sepolia } from "viem/chains";
 import {
@@ -19,9 +19,25 @@ import {
   isZeroEncryptedHandle,
 } from "@/lib/zama";
 import { useToast } from "@/components/Toast";
+import { getPrizeActions, type PrizeActionId } from "@/lib/prize-actions";
+import {
+  createLatestBlockRefresher,
+  readProjectedMorphoYield,
+} from "@/lib/morpho-yield";
 
 type Status = "idle" | "working" | "success" | "error";
-type WorkingAction = "checkPrize" | "claimPrize" | "addPrizeToSavings" | undefined;
+type WorkingAction = PrizeActionId | undefined;
+
+type DrawSnapshot = {
+  blockNumber: bigint;
+  source: "projected" | "stored";
+  drawId: bigint;
+  drawInterval: bigint;
+  nextDrawAt: bigint;
+  participantCount: bigint;
+  publicPrizeReserve: bigint;
+  accruedYieldAssets: bigint;
+};
 
 const publicClient = createPublicClient({
   chain: sepolia,
@@ -73,6 +89,64 @@ function formatInterval(seconds: bigint | undefined) {
   return unit(value, "second", "seconds");
 }
 
+async function readDrawSnapshot(
+  pool: `0x${string}`,
+  requestedBlockNumber?: bigint,
+): Promise<DrawSnapshot> {
+  const blockNumber = requestedBlockNumber ?? await publicClient.getBlockNumber();
+  const [
+    drawId,
+    drawInterval,
+    nextDrawAt,
+    participantCount,
+    publicPrizeReserve,
+    projectedYield,
+  ] = await Promise.all([
+    publicClient.readContract({
+      address: pool,
+      abi: confidentialPrizePoolAbi,
+      functionName: "drawId",
+      blockNumber,
+    }),
+    publicClient.readContract({
+      address: pool,
+      abi: confidentialPrizePoolAbi,
+      functionName: "drawInterval",
+      blockNumber,
+    }),
+    publicClient.readContract({
+      address: pool,
+      abi: confidentialPrizePoolAbi,
+      functionName: "nextDrawAt",
+      blockNumber,
+    }),
+    publicClient.readContract({
+      address: pool,
+      abi: confidentialPrizePoolAbi,
+      functionName: "participantCount",
+      blockNumber,
+    }),
+    publicClient.readContract({
+      address: pool,
+      abi: confidentialPrizePoolAbi,
+      functionName: "publicPrizeReserve",
+      blockNumber,
+    }),
+    readProjectedMorphoYield(publicClient, pool, blockNumber),
+  ]);
+
+  return {
+    blockNumber,
+    source: projectedYield.source,
+    drawId,
+    drawInterval,
+    nextDrawAt,
+    participantCount,
+    publicPrizeReserve,
+    accruedYieldAssets: projectedYield.accruedYieldAssets,
+  };
+}
+
 // Draw page for checking prizes, claiming winnings, and viewing round timing.
 export default function DrawPage() {
   const { session, refreshConfidentialBalances } = useWallet();
@@ -84,7 +158,9 @@ export default function DrawPage() {
   const [nextDrawAt, setNextDrawAt] = useState<bigint | undefined>();
   const [participantCount, setParticipantCount] = useState<bigint | undefined>();
   const [publicPrizeReserve, setPublicPrizeReserve] = useState<bigint | undefined>();
+  const [accruedYieldAssets, setAccruedYieldAssets] = useState<bigint | undefined>();
   const [winnings, setWinnings] = useState<bigint | undefined>();
+  const refreshRef = useRef<(blockNumber?: bigint) => Promise<void>>(async () => undefined);
   const addresses = useMemo(
     () => ({
       pool: isAddress(CONTRACTS.confidentialPrizePool)
@@ -98,16 +174,50 @@ export default function DrawPage() {
   const activeDrawId = drawId === undefined ? undefined : drawId + 1n;
   const roundsClosed = drawId ?? 0n;
   const hasPrizeToClaim = winnings !== undefined && winnings > 0n;
+  const prizeAssets =
+    publicPrizeReserve === undefined || accruedYieldAssets === undefined
+      ? undefined
+      : publicPrizeReserve + accruedYieldAssets;
+  const prizeActions = getPrizeActions({
+    connected: Boolean(session),
+    ready,
+    busy: status === "working",
+    hasPrizeToClaim,
+    workingAction,
+  });
 
   useEffect(() => {
-    void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+    if (!ready) return;
+
+    const pool = asAddress(addresses.pool, "Prize pool");
+    const refresher = createLatestBlockRefresher(
+      (blockNumber) => readDrawSnapshot(pool, blockNumber),
+      (snapshot) => {
+        setDrawId(snapshot.drawId);
+        setDrawInterval(snapshot.drawInterval);
+        setNextDrawAt(snapshot.nextDrawAt);
+        setParticipantCount(snapshot.participantCount);
+        setPublicPrizeReserve(snapshot.publicPrizeReserve);
+        setAccruedYieldAssets(snapshot.accruedYieldAssets);
+      },
+    );
+    refreshRef.current = refresher.refresh;
+    void refresher.refresh();
+    const unwatch = publicClient.watchBlockNumber({
+      emitOnBegin: false,
+      onBlockNumber: (blockNumber) => void refresher.refresh(blockNumber),
+    });
+
+    return () => {
+      refreshRef.current = async () => undefined;
+      refresher.dispose();
+      unwatch();
+    };
+  }, [addresses.pool, ready]);
 
   useEffect(() => {
     if (!session?.address) return;
     void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.address]);
 
   function activeSession() {
@@ -121,22 +231,7 @@ export default function DrawPage() {
   }
 
   async function refresh() {
-    if (!ready) return;
-
-    const pool = asAddress(addresses.pool, "Prize pool");
-    const [currentDrawId, interval, nextAt, participants, prizeReserve] = await Promise.all([
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "drawId" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "drawInterval" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "nextDrawAt" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "participantCount" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "publicPrizeReserve" }),
-    ]);
-
-    setDrawId(currentDrawId);
-    setDrawInterval(interval);
-    setNextDrawAt(nextAt);
-    setParticipantCount(participants);
-    setPublicPrizeReserve(prizeReserve);
+    await refreshRef.current();
   }
 
   async function decryptWinnings() {
@@ -195,10 +290,14 @@ export default function DrawPage() {
     await refreshConfidentialBalances();
   }
 
-  function handlePrizeAction() {
-    return hasPrizeToClaim
-      ? run(claimPrizeToSavings, "Prize added to savings.", "addPrizeToSavings")
-      : run(decryptWinnings, "Winnings revealed.", "checkPrize");
+  function runPrizeAction(action: PrizeActionId) {
+    if (action === "addPrizeToSavings") {
+      return run(claimPrizeToSavings, "Prize added to savings.", "addPrizeToSavings");
+    }
+    if (action === "claimPrize") {
+      return run(claimPrize, "Prize claimed.", "claimPrize");
+    }
+    return run(decryptWinnings, "Winnings revealed.", "checkPrize");
   }
 
   async function run(action: () => Promise<void>, ok: string, currentAction?: WorkingAction) {
@@ -220,12 +319,6 @@ export default function DrawPage() {
   return (
     <div className="space-y-5 animate-fade-in">
       <section className="space-y-3">
-        <div className="inline-flex">
-          <span className="pill">
-            <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-            Prize draw
-          </span>
-        </div>
         <h1 className="font-display text-3xl font-bold leading-tight">
           Global state.
           <br />
@@ -276,7 +369,7 @@ export default function DrawPage() {
           <div className="rounded-2xl bg-white/35 border border-white/50 p-3 min-h-24">
             <p className="text-xs text-muted">Prize</p>
             <p className="font-display text-xl font-bold tabular-nums">
-              {formatUSDC(publicPrizeReserve, 6)} USDC
+              {formatUSDC(prizeAssets, 6)} USDC
             </p>
           </div>
         </div>
@@ -293,33 +386,19 @@ export default function DrawPage() {
         <div className="flex min-h-20 items-center justify-between gap-3 rounded-2xl border border-white/50 bg-white/35 px-4 py-3">
           <span className="text-xs font-semibold text-muted">Prize ready</span>
           <span className="min-w-32 max-w-[68%] text-right font-display text-2xl font-bold leading-none tabular-nums text-brand break-words">
-            {formatUSDC(winnings, 6)} tokens
+            {formatUSDC(winnings, 6)} USDC
           </span>
         </div>
-        <button
-          className="btn-primary w-full"
-          disabled={!session || !ready || status === "working"}
-          onClick={() => void handlePrizeAction()}
-        >
-          {workingAction === "claimPrize"
-            ? "Claiming..."
-            : workingAction === "addPrizeToSavings"
-              ? "Adding..."
-            : workingAction === "checkPrize"
-              ? "Checking..."
-              : hasPrizeToClaim
-                ? "Add prize to savings"
-                : "Check prize"}
-        </button>
-        {hasPrizeToClaim && (
+        {prizeActions.map((action) => (
           <button
-            className="btn-secondary w-full"
-            disabled={!session || !ready || status === "working"}
-            onClick={() => void run(claimPrize, "Prize tokens claimed.", "claimPrize")}
+            key={action.id}
+            className={`${action.variant === "primary" ? "btn-primary" : "btn-secondary"} w-full`}
+            disabled={action.disabled}
+            onClick={() => void runPrizeAction(action.id)}
           >
-            {workingAction === "claimPrize" ? "Claiming..." : "Claim prize tokens"}
+            {action.label}
           </button>
-        )}
+        ))}
       </div>
 
     </div>

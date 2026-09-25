@@ -9,6 +9,7 @@ const handle = `0x${"2".repeat(64)}`;
 function fixture({ stalled = false, reverted = false } = {}) {
   const states = new Map([[1n, { status: 0, claim: true, delivered: false }], [2n, { status: 2, claim: true, delivered: false }]]);
   const writes = [];
+  const writeCalls = [];
   let last;
   const options = {
     rpcUrl: "unused", pool: address, account: { address },
@@ -44,20 +45,27 @@ function fixture({ stalled = false, reverted = false } = {}) {
       if (stalled && call.functionName === "settleWithdrawalBatch") throw new Error("Insufficient backing");
       last = call;
       writes.push(call.functionName);
+      writeCalls.push(call);
       return handle;
     } },
     async decrypt(handles) { return { clearValues: Object.fromEntries(handles.map((h) => [h, 1n])), decryptionProof: "0x" }; },
   };
-  return { states, writes, options };
+  return { states, writes, writeCalls, options };
 }
 
 test("keeper confirms every step through wallet delivery and does not repay on rerun", async () => {
-  const { states, writes, options } = fixture();
+  const { states, writes, writeCalls, options } = fixture();
   const result = await (await runWithdrawalKeeper(options)).json();
   assert.equal(result.pending.length, 0);
   assert.equal(states.get(1n).delivered, true);
   assert.equal(states.get(2n).delivered, true);
   assert.deepEqual(writes.slice(0, 4), ["closeWithdrawalBatch", "settleWithdrawalBatch", "processWithdrawal", "finalizeUnwrap"]);
+  assert.deepEqual(writeCalls.slice(0, 4).map(({ functionName, args }) => ({ functionName, args })), [
+    { functionName: "closeWithdrawalBatch", args: [1n] },
+    { functionName: "settleWithdrawalBatch", args: [1n, 1n, 1n, "0x"] },
+    { functionName: "processWithdrawal", args: [1n, address] },
+    { functionName: "finalizeUnwrap", args: [`0x${"1".padStart(64, "0")}`, 1n, "0x"] },
+  ]);
   const count = writes.length;
   await runWithdrawalKeeper(options);
   assert.equal(writes.length, count);

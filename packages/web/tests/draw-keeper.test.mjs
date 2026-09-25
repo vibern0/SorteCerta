@@ -8,6 +8,7 @@ const baseSnapshot = {
   nextDrawAt: 1_000n,
   participantCount: 1n,
   publicPrizeReserve: 1_000_000n,
+  morphoAccruedYieldAssets: 0n,
   minimumPrize: 1_000_000n,
 };
 
@@ -22,4 +23,15 @@ test("does not close before the deadline", () => {
 test("does not close empty or underfunded rounds", () => {
   assert.equal(chooseDrawKeeperAction({ ...baseSnapshot, participantCount: 0n }), undefined);
   assert.equal(chooseDrawKeeperAction({ ...baseSnapshot, publicPrizeReserve: 999_999n }), undefined);
+});
+
+test("counts accrued Morpho yield toward the closing prize threshold", () => {
+  assert.equal(
+    chooseDrawKeeperAction({
+      ...baseSnapshot,
+      publicPrizeReserve: 0n,
+      morphoAccruedYieldAssets: 1_000_000n,
+    }),
+    "close",
+  );
 });

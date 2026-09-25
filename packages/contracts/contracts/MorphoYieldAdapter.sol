@@ -53,6 +53,7 @@ interface IMorphoBlue {
     ) external returns (uint256 withdrawnAssets, uint256 withdrawnShares);
 
     function idToMarketParams(bytes32 id) external view returns (MarketParams memory);
+    function accrueInterest(MarketParams calldata marketParams) external;
     function market(bytes32 id) external view returns (Market memory);
     function position(bytes32 id, address user) external view returns (Position memory);
 }
@@ -86,7 +87,6 @@ contract MorphoYieldAdapter is Ownable, ReentrancyGuard {
 
     error InvalidLoanToken(address expected, address actual);
     error InvalidReceiver();
-    error NoAccruedYield();
     error AmountTooLargeForConfidentialToken(uint256 amount);
     error PrincipalWithdrawalExceedsSupply(uint256 requested, uint256 suppliedPrincipal);
     error InsufficientAvailablePrincipal(uint256 requested, uint256 available);
@@ -176,8 +176,9 @@ contract MorphoYieldAdapter is Ownable, ReentrancyGuard {
     }
 
     function harvestYieldToPrizePool(uint256 maxAssets) external onlyPrizePool nonReentrant returns (uint256 harvestedAssets) {
+        morpho.accrueInterest(_marketParams);
         uint256 accrued = accruedYieldAssets();
-        if (accrued == 0) revert NoAccruedYield();
+        if (accrued == 0) return 0;
 
         harvestedAssets = maxAssets == 0 || maxAssets > accrued ? accrued : maxAssets;
         if (harvestedAssets > type(uint64).max) revert AmountTooLargeForConfidentialToken(harvestedAssets);

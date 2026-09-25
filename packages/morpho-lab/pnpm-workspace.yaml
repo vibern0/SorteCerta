@@ -1,0 +1,17 @@
+packages:
+  - .
+  - ../protocol
+
+overrides:
+  axios: 1.20.0
+  decode-uri-component: 0.5.0
+  hono: 4.13.8
+  lodash: 4.18.1
+  postcss: 8.5.28
+  stream-json: 3.7.0
+  uuid: 14.0.2
+  ws: 8.21.3
+
+allowBuilds:
+  esbuild: true
+  keccak: true

@@ -7,7 +7,6 @@ const runtimeFiles = [
   "src/lib/zama.ts",
   "src/lib/confidential-balances.ts",
   "src/app/draw/page.tsx",
-  "src/app/admin/page.tsx",
   "src/app/savings/page.tsx",
   "netlify/functions/withdrawal-keeper.ts",
   "netlify/functions/morpho-keeper.ts",

@@ -9,10 +9,24 @@
   "workspaces": [
     "packages/*"
   ],
+  "overrides": {
+    "axios": "1.20.0",
+    "decode-uri-component": "0.5.0",
+    "hono": "4.13.8",
+    "lodash": "4.18.1",
+    "postcss": "8.5.28",
+    "stream-json": "3.7.0",
+    "uuid": "14.0.2",
+    "ws": "8.21.3"
+  },
   "scripts": {
     "contracts:compile": "npm run compile -w packages/contracts",
     "contracts:test": "npm run test -w packages/contracts",
     "contracts:deploy:sepolia": "npm run deploy:sepolia -w packages/contracts",
+    "lab:dev": "npm run dev -w @sortecerta/morpho-lab",
+    "lab:build": "npm run build -w @sortecerta/morpho-lab",
+    "lab:typecheck": "npm run typecheck -w @sortecerta/morpho-lab",
+    "lab:test": "npm run test --workspace @sortecerta/morpho-lab --",
     "web:dev": "npm run dev -w packages/web",
     "web:build": "npm run build -w packages/web",
     "keeper:morpho": "node --no-warnings --experimental-strip-types --import ./packages/keeper/src/register-ts-loader.mjs packages/keeper/src/run-web-keeper.mjs morpho",
