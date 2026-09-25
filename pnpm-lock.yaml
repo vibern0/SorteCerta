@@ -56,9 +56,9 @@ importers:
       '@types/node':
         specifier: ^22.5.0
         version: 22.20.4
-      '@zama-fhe/relayer-sdk':
-        specifier: 0.4.1
-        version: 0.4.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      '@zama-fhe/sdk':
+        specifier: 3.6.0
+        version: 3.6.0(@tanstack/query-core@5.103.2)(ethers@6.17.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(typescript@5.9.3)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.5))
       chai:
         specifier: ^4.5.0
         version: 4.5.0
@@ -153,9 +153,9 @@ importers:
       '@web3auth/modal':
         specifier: ^10.0.0
         version: 10.16.0(@babel/runtime@7.29.7)(@coinbase/wallet-sdk@4.3.6(@types/react@18.3.31)(bufferutil@4.1.0)(immer@10.0.2)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@18.3.1))(utf-8-validate@6.0.6)(zod@4.6.5))(@sentry/core@9.47.1)(@solana/web3.js@1.99.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))(bufferutil@4.1.0)(ox@0.8.9(typescript@5.9.3)(zod@4.6.5))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@8.1.1)(typescript@5.9.3)(utf-8-validate@6.0.6)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.6.5))(zod@4.6.5)
-      '@zama-fhe/relayer-sdk':
-        specifier: 0.4.1
-        version: 0.4.1(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      '@zama-fhe/sdk':
+        specifier: 3.6.0
+        version: 3.6.0(@tanstack/query-core@5.103.2)(ethers@6.17.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(typescript@5.9.3)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.6.5))
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -681,6 +681,21 @@ packages:
       typescript:
         optional: true
 
+  '@fhevm/sdk@0.13.2':
+    resolution: {integrity: sha512-M1ZUKdRJedxRa57bVeQ7jrzVP6hKAXjS8WabvMNJKBui7C2ZXDsvoyb7qpLqYib85obA+OQTwcPZV/oxWfciWA==}
+    engines: {node: '>=22.0'}
+    peerDependencies:
+      ethers: '>=6.8.0'
+      typescript: '>=5.0.4'
+      viem: '>=2'
+    peerDependenciesMeta:
+      ethers:
+        optional: true
+      typescript:
+        optional: true
+      viem:
+        optional: true
+
   '@fhevm/solidity@0.11.1':
     resolution: {integrity: sha512-KBHCF0an1sOqoABJ30p5foldSHy14F3jaQmYX+BKogpUJ1OFhNMzYfRkmPkJkwetyDcYg/euXcYQncYgHRT9aQ==}
     engines: {node: '>=20.0.0'}
@@ -1156,6 +1171,10 @@ packages:
     resolution: {integrity: sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==}
     engines: {node: ^14.21.3 || >=16}
 
+  '@noble/curves@2.0.1':
+    resolution: {integrity: sha512-vs1Az2OOTBiP4q0pwjW5aF0xp9n4MxVrmkFBxc6EKZc6ddYx5gaZiAsZoq0uRRXWbi3AT/sBqn05eRPtn1JCPw==}
+    engines: {node: '>= 20.19.0'}
+
   '@noble/curves@2.4.0':
     resolution: {integrity: sha512-P4/62zrgfH33CneE3Dn4WhJVA22YUU0eR51wKIan4NVRvwsA0YnPTwWGpNbpuacSujmSFLvyzpyuR30+fbq2Ew==}
     engines: {node: '>= 20.19.0'}
@@ -1190,6 +1209,10 @@ packages:
   '@noble/hashes@1.8.0':
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
     engines: {node: ^14.21.3 || >=16}
+
+  '@noble/hashes@2.0.1':
+    resolution: {integrity: sha512-XlOlEbQcE9fmuXxrVTXCTlG2nlRXa9Rj3rr5Ue/+tX+nmkgbX720YHh0VR3hBF9xDvwnb8D2shVGOwNx+ulArw==}
+    engines: {node: '>= 20.19.0'}
 
   '@noble/hashes@2.4.0':
     resolution: {integrity: sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==}
@@ -2721,6 +2744,21 @@ packages:
     resolution: {integrity: sha512-bS7tVQbXnsPFgiqm5R4pJ8hbPMYZuRh/Pv89S+jxO60y0mD296F4qIKEO7dgiHjC87V5GFM9DqCLNejjCNVw2Q==}
     engines: {node: '>=22'}
     hasBin: true
+
+  '@zama-fhe/sdk@3.6.0':
+    resolution: {integrity: sha512-z7EiQQBdffJvPD04S0AK9u4B1FOOzFhXTOe8bvibXbC0z7M+oi3nfhntNKUw8Z+HouD8EIuEDlqQ/wXMIYwxCA==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@tanstack/query-core': '>=5'
+      ethers: '>=6'
+      viem: '>=2'
+    peerDependenciesMeta:
+      '@tanstack/query-core':
+        optional: true
+      ethers:
+        optional: true
+      viem:
+        optional: true
 
   abbrev@1.0.9:
     resolution: {integrity: sha512-LEyx4aLEC3x6T0UguF6YILf+ntvmOaWsVfENmIW0E9H09vKlLDGelMjjSm0jkDHALj8A8quZ/HapKNigzwge+Q==}
@@ -7400,6 +7438,26 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
+  '@fhevm/sdk@0.13.2(ethers@6.17.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(typescript@5.9.3)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.5))':
+    dependencies:
+      '@noble/curves': 2.0.1
+      '@noble/hashes': 2.0.1
+      wasm-feature-detect: 1.9.0
+    optionalDependencies:
+      ethers: 6.17.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      typescript: 5.9.3
+      viem: 2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.5)
+
+  '@fhevm/sdk@0.13.2(ethers@6.17.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(typescript@5.9.3)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.6.5))':
+    dependencies:
+      '@noble/curves': 2.0.1
+      '@noble/hashes': 2.0.1
+      wasm-feature-detect: 1.9.0
+    optionalDependencies:
+      ethers: 6.17.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      typescript: 5.9.3
+      viem: 2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.6.5)
+
   '@fhevm/solidity@0.11.1':
     dependencies:
       encrypted-types: 0.0.4
@@ -7926,6 +7984,10 @@ snapshots:
     dependencies:
       '@noble/hashes': 1.8.0
 
+  '@noble/curves@2.0.1':
+    dependencies:
+      '@noble/hashes': 2.0.1
+
   '@noble/curves@2.4.0':
     dependencies:
       '@noble/hashes': 2.4.0
@@ -7945,6 +8007,8 @@ snapshots:
   '@noble/hashes@1.7.2': {}
 
   '@noble/hashes@1.8.0': {}
+
+  '@noble/hashes@2.0.1': {}
 
   '@noble/hashes@2.4.0': {}
 
@@ -10711,6 +10775,28 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
+  '@zama-fhe/sdk@3.6.0(@tanstack/query-core@5.103.2)(ethers@6.17.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(typescript@5.9.3)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.5))':
+    dependencies:
+      '@fhevm/sdk': 0.13.2(ethers@6.17.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(typescript@5.9.3)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.5))
+      zod: 4.6.5
+    optionalDependencies:
+      '@tanstack/query-core': 5.103.2
+      ethers: 6.17.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      viem: 2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.5)
+    transitivePeerDependencies:
+      - typescript
+
+  '@zama-fhe/sdk@3.6.0(@tanstack/query-core@5.103.2)(ethers@6.17.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(typescript@5.9.3)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.6.5))':
+    dependencies:
+      '@fhevm/sdk': 0.13.2(ethers@6.17.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(typescript@5.9.3)(viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.6.5))
+      zod: 4.6.5
+    optionalDependencies:
+      '@tanstack/query-core': 5.103.2
+      ethers: 6.17.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      viem: 2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@4.6.5)
+    transitivePeerDependencies:
+      - typescript
+
   abbrev@1.0.9: {}
 
   abitype@1.0.6(typescript@5.9.3)(zod@3.25.76):
@@ -12845,6 +12931,11 @@ snapshots:
     dependencies:
       ws: 8.18.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
 
+  isows@1.0.7(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)):
+    dependencies:
+      ws: 8.21.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+    optional: true
+
   isows@1.0.7(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)):
     dependencies:
       ws: 8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
@@ -14937,6 +15028,24 @@ snapshots:
       - bufferutil
       - utf-8-validate
       - zod
+
+  viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.6.5):
+    dependencies:
+      '@noble/curves': 1.9.1
+      '@noble/hashes': 1.8.0
+      '@scure/bip32': 1.7.0
+      '@scure/bip39': 1.6.0
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.6.5)
+      isows: 1.0.7(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))
+      ox: 0.14.34(typescript@5.9.3)(zod@4.6.5)
+      ws: 8.21.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+    optionalDependencies:
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+      - zod
+    optional: true
 
   viem@2.55.19(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)(zod@3.22.4):
     dependencies:
