@@ -1,0 +1,5 @@
+name = "sortecerta"
+compatibility_date = "2026-09-24"
+
+[assets]
+directory = "packages/web/out"
