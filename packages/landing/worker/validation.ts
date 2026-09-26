@@ -30,7 +30,7 @@ export function normalizeInvitationCode(value: string): string {
     .trim()
     .replace(/[\s-]+/g, "")
     .toUpperCase()
-    .replace(/^SC/, "SC-");
+    .replace(/^(SC)?/, "SC-");
 }
 
 export async function hashInvitationCode(code: string): Promise<string> {

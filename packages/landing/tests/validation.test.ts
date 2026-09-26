@@ -10,6 +10,7 @@ describe("waitlist validation", () => {
   it("normalizes email and invitation separators", async () => {
     expect(normalizeEmail("  Person@Example.COM ")).toBe("person@example.com");
     expect(normalizeInvitationCode(" sc-abcd efgh-ijkl ")).toBe("SC-ABCDEFGHIJKL");
+    expect(normalizeInvitationCode("abcdefghijkl")).toBe("SC-ABCDEFGHIJKL");
     expect(await hashInvitationCode("sc-abcd efgh-ijkl")).toMatch(/^[a-f0-9]{64}$/);
   });
 

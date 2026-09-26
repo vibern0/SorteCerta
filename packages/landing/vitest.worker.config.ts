@@ -13,8 +13,8 @@ const vitestWorkerAliases = vitestWorkerPackages.flatMap((packageName) => {
     const name = packageName.replace("@vitest/", "");
     const packageRoot = dirname(requireFromVitest.resolve(`@vitest/${name}/package.json`));
     return [
-      { find: new RegExp(`^@vitest/${name}/(.+)$`), replacement: `${packageRoot}/dist/$1.js` },
-      { find: new RegExp(`^@vitest/${name}$`), replacement: `${packageRoot}/dist/index.js` },
+      { find: `${packageName}/`, replacement: `${packageRoot}/dist/` },
+      { find: packageName, replacement: `${packageRoot}/dist/index.js` },
     ];
   },
 );
