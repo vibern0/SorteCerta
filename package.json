@@ -2,6 +2,7 @@
   "name": "sortecerta",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.11.1",
   "description": "SorteCerta — mobile-first no-loss lottery on PoolTogether architecture, Web3-abstracted for non-crypto users.",
   "engines": {
     "node": ">=22"

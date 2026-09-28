@@ -1,13 +1,20 @@
 packages:
   - "packages/*"
 overrides:
+  axios: 1.20.0
+  decode-uri-component: 0.5.0
+  hono: 4.13.8
+  lodash: 4.18.1
+  postcss: 8.5.28
+  stream-json: 3.7.0
+  uuid: 14.0.2
   ws: 8.21.3
-allowBuilds:
-  bufferutil: true
-  esbuild: true
-  keccak: true
-  secp256k1: true
-  tiny-secp256k1: true
-  unrs-resolver: true
-  utf-8-validate: true
-  workerd: true
+onlyBuiltDependencies:
+  - bufferutil
+  - esbuild
+  - keccak
+  - secp256k1
+  - tiny-secp256k1
+  - unrs-resolver
+  - utf-8-validate
+  - workerd
