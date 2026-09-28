@@ -1,0 +1,29 @@
+:root {
+  color-scheme: dark;
+  --color-graphite-950: #111215;
+  --color-graphite-900: #17181d;
+  --color-graphite-800: #1d1e23;
+  --color-graphite-700: #292a31;
+  --color-text: #f0eee9;
+  --color-muted: #aaa7a6;
+  --color-soft: #d8d2ca;
+  --color-teal: #24d6bd;
+  --color-teal-deep: #0f766e;
+  --color-plum: #8f5cff;
+  --color-warm: #f3ba62;
+  --color-rose: #df6f86;
+  --shadow-soft: 0 24px 80px rgb(0 0 0 / 0.38);
+  --radius: 8px;
+  --radius-small: 6px;
+  --content: 1180px;
+  --space-1: 0.5rem;
+  --space-2: 0.75rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --space-6: 3rem;
+  --space-7: 4.5rem;
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}

@@ -2,6 +2,7 @@
   "name": "sortecerta",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.11.1",
   "description": "SorteCerta — mobile-first no-loss lottery on PoolTogether architecture, Web3-abstracted for non-crypto users.",
   "engines": {
     "node": ">=22"
@@ -28,11 +29,18 @@
     "lab:build": "npm run build -w @sortecerta/morpho-lab",
     "lab:typecheck": "npm run typecheck -w @sortecerta/morpho-lab",
     "lab:test": "npm run test --workspace @sortecerta/morpho-lab --",
+    "landing:dev": "npm run dev -w @sortecerta/landing",
+    "landing:build": "npm run build -w @sortecerta/landing",
+    "landing:typecheck": "npm run typecheck -w @sortecerta/landing",
+    "landing:test": "npm run test -w @sortecerta/landing",
     "web:dev": "npm run dev -w packages/web",
     "web:build": "npm run build -w packages/web",
     "keeper:morpho": "node --no-warnings --experimental-strip-types --import ./packages/keeper/src/register-ts-loader.mjs packages/keeper/src/run-web-keeper.mjs morpho",
     "keeper:withdrawal": "node --no-warnings --experimental-strip-types --import ./packages/keeper/src/register-ts-loader.mjs packages/keeper/src/run-web-keeper.mjs withdrawal",
     "keeper:all": "npm run keeper:morpho && npm run keeper:withdrawal",
     "keeper:watch": "node packages/keeper/src/watch-keepers.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.140.0"
   }
 }
