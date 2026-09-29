@@ -40,6 +40,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const [widgetSize, setWidgetSize] = useState<"compact" | "flexible">(() => getTurnstileSize());
 
   useImperativeHandle(ref, () => ({
     reset() {
@@ -49,6 +50,19 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
       }
     },
   }));
+
+  useEffect(() => {
+    const handleResize = () => {
+      const nextSize = getTurnstileSize();
+      if (nextSize !== widgetSize) {
+        onToken(null);
+        setWidgetSize(nextSize);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [onToken, widgetSize]);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,7 +81,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
 
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
-          size: window.innerWidth < 360 ? "compact" : "flexible",
+          size: widgetSize,
           callback: (token) => onToken(token),
           "expired-callback": () => onToken(null),
           "error-callback": () => onToken(null),
@@ -87,7 +101,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
         widgetIdRef.current = null;
       }
     };
-  }, [onToken, siteKey]);
+  }, [onToken, siteKey, widgetSize]);
 
   return (
     <div className="turnstile-field" aria-live="polite">
@@ -96,6 +110,10 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
     </div>
   );
 });
+
+function getTurnstileSize(): "compact" | "flexible" {
+  return window.innerWidth < 365 ? "compact" : "flexible";
+}
 
 function loadTurnstileScript(): Promise<void> {
   if (window.turnstile) {
