@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">SorteCerta landing page wireframe B — Product first</title>
+  <desc id="desc">A centered landing page led by a product dashboard preview and a simple three-stage savings flow.</desc>
+  <rect width="1440" height="900" fill="#f6f6f3"/>
+  <rect x="28" y="28" width="1384" height="844" rx="18" fill="#ffffff" stroke="#242424" stroke-width="2"/>
+  <rect x="28" y="28" width="1384" height="40" rx="18" fill="#e8e8e4"/>
+  <path d="M28 68H1412" stroke="#242424" stroke-width="2"/>
+  <circle cx="50" cy="48" r="5" fill="#a8a8a2"/><circle cx="68" cy="48" r="5" fill="#a8a8a2"/><circle cx="86" cy="48" r="5" fill="#a8a8a2"/>
+
+  <g font-family="Arial, Helvetica, sans-serif" fill="#181818">
+    <text x="88" y="112" font-size="22" font-weight="700">SorteCerta</text>
+    <text x="568" y="112" font-size="16" fill="#686864">How it works</text>
+    <text x="706" y="112" font-size="16" fill="#686864">Why us</text>
+    <text x="790" y="112" font-size="16" fill="#686864">Questions</text>
+    <rect x="1210" y="85" width="146" height="42" rx="6" fill="#242424"/>
+    <text x="1283" y="111" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Get invited</text>
+  </g>
+  <path d="M28 146H1412" stroke="#b8b8b2"/>
+
+  <g font-family="Arial, Helvetica, sans-serif" text-anchor="middle">
+    <text x="720" y="198" font-size="15" font-weight="700" letter-spacing="2" fill="#686864">YOUR SAVINGS CAN DO MORE THAN SIT STILL</text>
+    <text x="720" y="263" font-family="Georgia, serif" font-size="56" font-weight="700" letter-spacing="-2.5" fill="#181818">A weekly chance to win.</text>
+    <text x="720" y="322" font-family="Georgia, serif" font-size="56" font-weight="700" letter-spacing="-2.5" fill="#181818">Your savings stay yours.</text>
+    <text x="720" y="370" font-size="19" fill="#62625e">A simple savings experience where every USDC helps set your chances.</text>
+    <rect x="554" y="399" width="166" height="48" rx="6" fill="#242424"/>
+    <text x="637" y="429" font-size="16" font-weight="700" fill="#ffffff">Join the waitlist</text>
+    <rect x="732" y="399" width="154" height="48" rx="6" fill="#ffffff" stroke="#242424" stroke-width="2"/>
+    <text x="809" y="429" font-size="16" font-weight="700" fill="#181818">How it works</text>
+  </g>
+
+  <g transform="translate(240 478)">
+    <rect x="0" y="0" width="960" height="294" rx="12" fill="#ffffff" stroke="#242424" stroke-width="2"/>
+    <rect x="0" y="0" width="188" height="294" rx="12" fill="#e7e7e2"/>
+    <path d="M188 0V294" stroke="#242424" stroke-width="2"/>
+    <text x="26" y="40" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#181818">SC</text>
+    <rect x="24" y="70" width="140" height="34" rx="4" fill="#bcbcb5"/>
+    <rect x="24" y="116" width="140" height="34" rx="4" fill="#bcbcb5"/>
+    <rect x="24" y="162" width="140" height="34" rx="4" fill="#bcbcb5"/>
+    <text x="218" y="41" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" letter-spacing="2" fill="#686864">YOUR SAVINGS</text>
+    <g font-family="Arial, Helvetica, sans-serif">
+      <rect x="218" y="65" width="218" height="104" rx="7" fill="#ffffff" stroke="#a9a9a3"/>
+      <text x="238" y="94" font-size="12" font-weight="700" letter-spacing="1.5" fill="#666661">BALANCE</text>
+      <text x="238" y="140" font-size="27" font-weight="700" fill="#181818">1,250 USDC</text>
+      <rect x="450" y="65" width="218" height="104" rx="7" fill="#ffffff" stroke="#a9a9a3"/>
+      <text x="470" y="94" font-size="12" font-weight="700" letter-spacing="1.5" fill="#666661">NEXT DRAW</text>
+      <text x="470" y="140" font-size="27" font-weight="700" fill="#181818">04d 12h</text>
+      <rect x="682" y="65" width="250" height="104" rx="7" fill="#ffffff" stroke="#a9a9a3"/>
+      <text x="702" y="94" font-size="12" font-weight="700" letter-spacing="1.5" fill="#666661">STATUS</text>
+      <text x="702" y="140" font-size="27" font-weight="700" fill="#181818">Eligible</text>
+      <rect x="218" y="184" width="714" height="82" rx="7" fill="#f0f0ed" stroke="#a9a9a3"/>
+      <text x="238" y="214" font-size="12" font-weight="700" letter-spacing="1.5" fill="#666661">SAVINGS ACTIVITY</text>
+      <path d="M250 247 C335 206 390 250 462 221 S596 205 654 234 S770 245 900 204" fill="none" stroke="#777772" stroke-width="2"/>
+    </g>
+  </g>
+
+  <rect x="28" y="803" width="1384" height="69" fill="#e8e8e4"/>
+  <path d="M28 803H1412" stroke="#242424" stroke-width="2"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#181818">
+    <rect x="340" y="817" width="210" height="41" rx="22" fill="#ffffff" stroke="#999993"/>
+    <text x="445" y="843" text-anchor="middle">1 · Add savings</text>
+    <text x="584" y="843" text-anchor="middle" fill="#777772">→</text>
+    <rect x="620" y="817" width="210" height="41" rx="22" fill="#ffffff" stroke="#999993"/>
+    <text x="725" y="843" text-anchor="middle">2 · Stay eligible</text>
+    <text x="864" y="843" text-anchor="middle" fill="#777772">→</text>
+    <rect x="900" y="817" width="210" height="41" rx="22" fill="#ffffff" stroke="#999993"/>
+    <text x="1005" y="843" text-anchor="middle">3 · Check the draw</text>
+  </g>
+</svg>
