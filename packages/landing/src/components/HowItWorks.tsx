@@ -2,7 +2,7 @@ const steps = [
   {
     icon: "wallet",
     title: "Save",
-    body: "Add USDC at your pace.",
+    body: "Add USDC. Withdraw when you need it.",
   },
   {
     icon: "bars",
@@ -12,7 +12,7 @@ const steps = [
   {
     icon: "calendar",
     title: "Check",
-    body: "See the result when the draw ends.",
+    body: "After each draw, check for a prize to claim.",
   },
 ];
 

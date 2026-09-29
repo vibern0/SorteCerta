@@ -22,6 +22,8 @@ describe("marketing page", () => {
     ).toBe(true);
     expect(screen.getByText("Built with Zama")).toBeInTheDocument();
     expect(screen.getByText("Yield powered by Morpho")).toBeInTheDocument();
+    expect(screen.getByText("Add USDC. Withdraw when you need it.")).toBeInTheDocument();
+    expect(screen.getByText("After each draw, check for a prize to claim.")).toBeInTheDocument();
     expect(document.querySelector("#how-it-works")).not.toBeNull();
     expect(document.querySelector("#the-idea")).not.toBeNull();
   });

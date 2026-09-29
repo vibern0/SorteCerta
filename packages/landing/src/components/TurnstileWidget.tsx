@@ -7,7 +7,7 @@ declare global {
         container: HTMLElement,
         options: {
           sitekey: string;
-          size: "flexible";
+          size: "compact" | "flexible";
           callback(token: string): void;
           "expired-callback"(): void;
           "error-callback"(): void;
@@ -67,7 +67,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
 
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
-          size: "flexible",
+          size: window.innerWidth < 360 ? "compact" : "flexible",
           callback: (token) => onToken(token),
           "expired-callback": () => onToken(null),
           "error-callback": () => onToken(null),
@@ -92,7 +92,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
   return (
     <div className="turnstile-field" aria-live="polite">
       <div ref={containerRef} />
-      {failed ? <p className="form-hint">Verification is unavailable right now.</p> : null}
+      {failed ? <p className="verification-error">Verification is unavailable right now.</p> : null}
     </div>
   );
 });
@@ -106,10 +106,11 @@ function loadTurnstileScript(): Promise<void> {
   }
 
   scriptPromise = new Promise((resolve, reject) => {
-    const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
-    if (existing) {
-      existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", () => reject(new Error("turnstile unavailable")), { once: true });
+    if (document.getElementById(SCRIPT_ID)) {
+      document.getElementById(SCRIPT_ID)?.addEventListener("load", () => resolve(), { once: true });
+      document
+        .getElementById(SCRIPT_ID)
+        ?.addEventListener("error", () => reject(new Error("turnstile unavailable")), { once: true });
       return;
     }
 

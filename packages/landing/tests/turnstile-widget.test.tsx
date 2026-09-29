@@ -5,6 +5,7 @@ import { TurnstileWidget } from "../src/components/TurnstileWidget";
 afterEach(() => {
   cleanup();
   delete window.turnstile;
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
 });
 
 describe("TurnstileWidget", () => {
@@ -22,6 +23,24 @@ describe("TurnstileWidget", () => {
     expect(renderWidget.mock.calls[0][1]).toMatchObject({
       sitekey: "site-key",
       size: "flexible",
+    });
+  });
+
+  it("uses compact sizing when the smallest supported viewport cannot fit a flexible widget", async () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 320 });
+    const renderWidget = vi.fn<NonNullable<typeof window.turnstile>["render"]>(() => "widget-id");
+    window.turnstile = {
+      render: renderWidget,
+      reset: vi.fn(),
+      remove: vi.fn(),
+    };
+
+    render(<TurnstileWidget siteKey="site-key" onToken={vi.fn()} />);
+
+    await waitFor(() => expect(renderWidget).toHaveBeenCalledOnce());
+    expect(renderWidget.mock.calls[0][1]).toMatchObject({
+      sitekey: "site-key",
+      size: "compact",
     });
   });
 });
