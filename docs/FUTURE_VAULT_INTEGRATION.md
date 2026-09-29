@@ -3,6 +3,10 @@
 Status: deferred. Finish and verify automatic USDC withdrawals on the current
 architecture first. Research snapshot: September 16, 2026.
 
+For the September 29 comparison of Ethereum, Polygon PoS and HyperEVM gas costs
+and available yield infrastructure, see
+[Chain Pricing and Infrastructure](CHAIN_PRICING_AND_INFRASTRUCTURE.md).
+
 ## Goal
 
 Reduce custom yield and settlement code by evaluating a curated Morpho ERC-4626
