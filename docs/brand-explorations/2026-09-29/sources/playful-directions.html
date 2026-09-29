@@ -1,0 +1,151 @@
+<div id="sc-playful" aria-label="Playful SorteCerta brand comparison">
+  <div class="p-caption"><span>Direction 02 · Playful & expressive</span><span id="p-color-name">Cobalt, peach & citron</span></div>
+  <div class="p-composition">
+    <section class="p-campaign" aria-label="Playful marketing concept">
+      <div class="p-brand">SorteCerta<span class="p-brand-dot" aria-hidden="true"></span></div>
+      <div class="p-kicker">Savings with a twist.</div>
+      <h2>Your<br>savings.<br>Your chance<br>to <span class="p-win">win.</span></h2>
+      <div class="p-flower" aria-hidden="true"><i data-lucide="sparkles"></i></div>
+      <p class="p-description">Save in USDC. Your balance at the end of each draw determines your chances.</p>
+      <button class="p-primary cursor-interaction" type="button" id="p-join">Join the waitlist <span aria-hidden="true">↗</span></button>
+      <div class="p-bottom"><span>Something to look forward to.</span><div class="p-pebbles" aria-hidden="true"><i></i><i></i><i></i></div></div>
+      <span class="p-confetti p-confetti-one" aria-hidden="true"></span><span class="p-confetti p-confetti-two" aria-hidden="true"></span>
+    </section>
+    <section class="p-app" aria-label="Playful app concept">
+      <div class="p-app-top"><div class="p-brand">SorteCerta<span class="p-brand-dot" aria-hidden="true"></span></div><span class="p-avatar" aria-hidden="true">S</span></div>
+      <div class="p-navigation"><span>Save</span><span class="p-nav-active" id="p-nav">Draw</span></div>
+      <div class="p-app-main">
+        <div class="p-app-kicker" id="p-state-label">Draw complete</div>
+        <h3 id="p-title">Time to<br>check.</h3>
+        <div class="p-illustration" aria-hidden="true">
+          <span class="p-lilac-pill"></span><span class="p-yellow-dot"></span><span class="p-blue-loop"></span>
+          <div class="p-sticker"><i data-lucide="sparkles"></i><span id="p-sticker-copy">Oh, the<br>possibility.</span></div>
+          <span class="p-tiny-dash"></span>
+        </div>
+        <p class="p-app-copy" id="p-copy">The draw has ended. Check whether you have a prize to claim.</p>
+        <button class="p-app-button cursor-interaction" type="button" id="p-action">Check for a prize <span aria-hidden="true">↗</span></button>
+        <p class="p-note" id="p-note">Prizes depend on the draw result.</p>
+      </div>
+      <div class="p-app-footer"><span>Save.</span><span>Anticipate.</span><span>Check.</span></div>
+    </section>
+  </div>
+  <div class="p-palette" aria-label="Palette"><span><i id="p-swatch-blue"></i><span id="p-hex-blue">#2548F4</span></span><span><i id="p-swatch-peach"></i><span id="p-hex-peach">#FFB69D</span></span><span><i id="p-swatch-yellow"></i><span id="p-hex-yellow">#E4F66A</span></span><span><i id="p-swatch-paper"></i><span id="p-hex-paper">#FFF9EF</span></span></div>
+  <div class="p-feedback" id="p-feedback" aria-live="polite"></div>
+</div>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fredoka:wght@500;600;700&display=swap');
+#sc-playful{--p-blue:#2548F4;--p-peach:#FFB69D;--p-yellow:#E4F66A;--p-lilac:#D5C5FF;--p-dark:#17213B;--p-paper:light-dark(#FFF9EF,#181D2B);--p-text:light-dark(#17213B,#F9F3E9);--p-muted:light-dark(#5C6170,#BFC3D1);--p-border:light-dark(#D8D8DC,#474C5B);--p-display:"Fredoka",ui-rounded,system-ui,sans-serif;--p-tilt:-5deg;--p-radius:30px;font-family:"DM Sans",system-ui,sans-serif;color:var(--p-text)}
+#sc-playful *{box-sizing:border-box}
+#sc-playful .p-caption{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 12px;font-size:12px;line-height:1.5;font-weight:500}
+#sc-playful .p-composition{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:14px;align-items:stretch}
+#sc-playful .p-campaign{background:var(--p-peach);color:var(--p-dark);border-radius:var(--p-radius);padding:26px 25px 22px;position:relative;isolation:isolate;overflow:hidden;min-width:0}
+#sc-playful .p-brand{display:flex;align-items:center;gap:5px;font-family:var(--p-display);font-size:25px;line-height:1.1;font-weight:600;letter-spacing:-1px;position:relative;z-index:1}
+#sc-playful .p-brand-dot{width:9px;height:9px;display:block;background:var(--p-blue);border-radius:50%}
+#sc-playful .p-kicker{display:table;background:var(--p-yellow);border:1.5px solid var(--p-dark);padding:6px 12px;border-radius:50px;font-size:12px;line-height:1.4;font-weight:700;margin:29px 0 19px;transform:rotate(var(--p-tilt));position:relative;z-index:1}
+#sc-playful h2{font-family:var(--p-display);font-size:clamp(44px,7.5vw,61px);font-weight:600;letter-spacing:-1.9px;line-height:.98;color:var(--p-blue);margin:0 0 26px;position:relative;z-index:1}
+#sc-playful .p-win{display:inline-block;background:var(--p-blue);color:#FFFFFF;border-radius:18px 22px 15px 24px;padding:0 13px 9px;transform:rotate(var(--p-tilt));margin:5px 0 0 3px}
+#sc-playful .p-flower{width:74px;height:74px;background:var(--p-yellow);position:absolute;right:14px;top:107px;clip-path:polygon(50% 0%,61% 17%,79% 9%,81% 29%,100% 34%,87% 50%,100% 66%,81% 71%,79% 91%,61% 83%,50% 100%,39% 83%,21% 91%,19% 71%,0% 66%,13% 50%,0% 34%,19% 29%,21% 9%,39% 17%);display:grid;place-items:center;transform:rotate(13deg)}
+#sc-playful .p-description{font-size:14px;line-height:1.6;max-width:270px;margin:0 0 22px;position:relative;z-index:1}
+#sc-playful button{font-family:inherit;min-height:46px;font-size:14px;font-weight:700;border:1.5px solid var(--p-dark);border-radius:17px;transition:transform .18s ease,box-shadow .18s ease}
+#sc-playful .p-primary{display:flex;align-items:center;justify-content:space-between;gap:25px;padding:12px 18px;color:#FFFFFF;background:var(--p-blue);box-shadow:4px 4px 0 var(--p-dark);position:relative;z-index:1}
+#sc-playful .p-primary:hover,#sc-playful .p-app-button:hover{transform:translateY(-2px)}
+#sc-playful .p-primary:active,#sc-playful .p-app-button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--p-dark)}
+#sc-playful .p-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:30px;font-size:11px;line-height:1.4;position:relative;z-index:1}
+#sc-playful .p-pebbles{display:flex;align-items:center;flex-shrink:0}
+#sc-playful .p-pebbles i{display:block;width:20px;height:20px;border:1.5px solid var(--p-dark);border-radius:50%;background:var(--p-yellow);margin-left:-7px}
+#sc-playful .p-pebbles i:nth-child(2){background:var(--p-blue)}
+#sc-playful .p-pebbles i:nth-child(3){background:var(--p-lilac)}
+#sc-playful .p-confetti{position:absolute;display:block;z-index:0;right:20px}
+#sc-playful .p-confetti-one{width:9px;height:27px;border-radius:8px;background:var(--p-blue);top:63px;transform:rotate(32deg)}
+#sc-playful .p-confetti-two{width:15px;height:15px;border:3px solid var(--p-blue);border-radius:50%;top:211px;right:28px}
+#sc-playful .p-app{min-width:0;background:var(--p-paper);color:var(--p-text);border:1px solid var(--p-border);border-radius:var(--p-radius);display:flex;flex-direction:column;overflow:hidden}
+#sc-playful .p-app-top{display:flex;justify-content:space-between;align-items:center;padding:25px 20px 20px;gap:8px}
+#sc-playful .p-app-top .p-brand{font-size:23px}
+#sc-playful .p-avatar{width:29px;height:29px;display:grid;place-items:center;background:var(--p-lilac);color:var(--p-dark);border:1px solid var(--p-dark);border-radius:11px;transform:rotate(7deg);font-size:12px;font-weight:700}
+#sc-playful .p-navigation{display:flex;gap:8px;padding:0 20px 17px;border-bottom:1px solid var(--p-border);font-size:12px;font-weight:600}
+#sc-playful .p-navigation span{padding:6px 15px;border-radius:99px}
+#sc-playful .p-nav-active{background:var(--p-yellow);color:var(--p-dark);border:1px solid var(--p-dark)}
+#sc-playful .p-app-main{padding:24px 20px 26px;flex:1}
+#sc-playful .p-app-kicker{font-size:11px;line-height:1.4;text-transform:uppercase;letter-spacing:1.2px;color:var(--p-muted);font-weight:700;margin-bottom:8px}
+#sc-playful h3{font-family:var(--p-display);font-size:44px;line-height:1;font-weight:600;letter-spacing:-1px;margin:0;color:var(--p-text)}
+#sc-playful .p-illustration{position:relative;height:124px;margin:10px 0 8px;isolation:isolate;display:grid;place-items:center}
+#sc-playful .p-sticker{position:relative;z-index:1;max-width:calc(100% - 16px);background:var(--p-yellow);color:var(--p-dark);border:1.5px solid var(--p-dark);box-shadow:4px 4px 0 var(--p-dark);padding:18px 19px;border-radius:23px 25px 19px 24px;display:flex;gap:10px;align-items:center;transform:rotate(calc(var(--p-tilt) * -1));font-family:var(--p-display);font-size:22px;line-height:1.08;font-weight:500}
+#sc-playful .p-lilac-pill{position:absolute;width:110px;height:39px;background:var(--p-lilac);border-radius:99px;left:1px;top:21px;transform:rotate(-32deg)}
+#sc-playful .p-yellow-dot{position:absolute;width:28px;height:28px;background:var(--p-peach);border-radius:50%;right:5px;top:13px}
+#sc-playful .p-blue-loop{position:absolute;width:52px;height:52px;border:7px solid var(--p-blue);border-radius:50%;right:3px;bottom:6px}
+#sc-playful .p-tiny-dash{position:absolute;width:23px;height:8px;border-radius:9px;background:var(--p-blue);left:13px;bottom:8px;transform:rotate(23deg)}
+#sc-playful .p-app-copy{font-size:14px;line-height:1.6;margin:8px 0 20px}
+#sc-playful .p-app-button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:calc(100% - 4px);padding:12px 16px;background:var(--p-blue);color:#FFFFFF;box-shadow:4px 4px 0 var(--p-dark)}
+#sc-playful .p-note{font-size:11px;line-height:1.5;color:var(--p-muted);margin:15px 0 0}
+#sc-playful .p-app-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:17px 20px;border-top:1px solid var(--p-border);font-size:11px;color:var(--p-muted)}
+#sc-playful .p-palette{display:flex;gap:16px;flex-wrap:wrap;margin:15px 0 0;font-size:11px}
+#sc-playful .p-palette>span{display:flex;align-items:center;gap:6px}
+#sc-playful .p-palette i{width:16px;height:16px;display:block;border-radius:5px;border:1px solid light-dark(#969CAB,#747C8E);transform:rotate(-7deg)}
+#sc-playful #p-swatch-blue{background:var(--p-blue)}#sc-playful #p-swatch-peach{background:var(--p-peach)}#sc-playful #p-swatch-yellow{background:var(--p-yellow)}#sc-playful #p-swatch-paper{background:#FFF9EF}
+#sc-playful .p-feedback{font-size:12px;line-height:1.5;margin-top:12px;color:var(--p-muted)}
+#sc-playful[data-decoration="false"] .p-flower,#sc-playful[data-decoration="false"] .p-confetti,#sc-playful[data-decoration="false"] .p-lilac-pill,#sc-playful[data-decoration="false"] .p-yellow-dot,#sc-playful[data-decoration="false"] .p-blue-loop,#sc-playful[data-decoration="false"] .p-tiny-dash{display:none}
+#sc-playful[data-scene="withdrawal"] .p-app .p-lilac-pill,#sc-playful[data-scene="withdrawal"] .p-app .p-yellow-dot,#sc-playful[data-scene="withdrawal"] .p-app .p-blue-loop,#sc-playful[data-scene="withdrawal"] .p-app .p-tiny-dash{display:none}
+#sc-playful[data-scene="withdrawal"] .p-app .p-sticker{transform:none;box-shadow:none}
+@media(max-width:580px){#sc-playful .p-composition{grid-template-columns:1fr}#sc-playful .p-campaign{padding:24px}#sc-playful h2{font-size:58px}#sc-playful .p-app-main{padding:25px 24px}#sc-playful .p-flower{right:19px;top:101px}#sc-playful .p-description{max-width:290px}#sc-playful .p-illustration{max-width:290px;margin-left:auto;margin-right:auto}}
+@media(max-width:360px){#sc-playful h2{font-size:50px}#sc-playful .p-flower{width:54px;height:54px;top:123px;right:15px}#sc-playful .p-caption{font-size:11px}#sc-playful .p-bottom{font-size:11px}}
+@media(prefers-reduced-motion:reduce){#sc-playful button{transition:none}}
+</style>
+<script>
+(() => {
+  const root = document.getElementById('sc-playful');
+  const state = { palette: 'cobalt', decoration: true, tilt: 5, scene: 'draw' };
+  const palettes = {
+    cobalt: { name: 'Cobalt, peach & citron', blue: '#2548F4', peach: '#FFB69D', yellow: '#E4F66A', lilac: '#D5C5FF' },
+    berry: { name: 'Berry, pink & butter', blue: '#8B285D', peach: '#FFD0E4', yellow: '#F6E785', lilac: '#C6D8FF' },
+    teal: { name: 'Teal, apricot & sky', blue: '#075E61', peach: '#FFD19B', yellow: '#DDF488', lilac: '#B9DCFF' }
+  };
+  const scenes = {
+    draw: { label: 'Draw complete', title: 'Time to check.', sticker: 'Oh, the possibility.', copy: 'The draw has ended. Check whether you have a prize to claim.', action: 'Check for a prize', note: 'Prizes depend on the draw result.', nav: 'Draw' },
+    withdrawal: { label: 'Your savings', title: 'Withdrawal requested.', sticker: 'Step by step.', copy: 'Your request is being processed. Follow its progress here.', action: 'View withdrawal', note: 'We’ll show when your next step is ready.', nav: 'Withdraw' },
+    prize: { label: 'Prize confirmed', title: 'A little celebration.', sticker: 'You have a prize!', copy: 'You have a prize to claim. Claim it when you’re ready.', action: 'Claim prize', note: 'Shown only after a prize is confirmed.', nav: 'Draw' }
+  };
+  function readSaved(saved) {
+    const values = saved && saved.modelContent;
+    if (!values || values.concept !== 'playful') return;
+    if (palettes[values.palette]) state.palette = values.palette;
+    if (scenes[values.scene]) state.scene = values.scene;
+    if (typeof values.decoration === 'boolean') state.decoration = values.decoration;
+    if (Number.isFinite(values.tilt)) state.tilt = Math.max(0, Math.min(9, values.tilt));
+  }
+  function render() {
+    const palette = palettes[state.palette];
+    const scene = scenes[state.scene];
+    for (const token of ['blue','peach','yellow','lilac']) root.style.setProperty(`--p-${token}`, palette[token]);
+    root.style.setProperty('--p-tilt', `${-state.tilt}deg`);
+    root.dataset.decoration = String(state.decoration);
+    root.dataset.scene = state.scene;
+    root.querySelector('#p-color-name').textContent = palette.name;
+    for (const token of ['blue','peach','yellow']) root.querySelector(`#p-hex-${token}`).textContent = palette[token];
+    root.querySelector('#p-state-label').textContent = scene.label;
+    root.querySelector('#p-title').textContent = scene.title;
+    root.querySelector('#p-sticker-copy').textContent = scene.sticker;
+    root.querySelector('#p-copy').textContent = scene.copy;
+    root.querySelector('#p-action').textContent = `${scene.action} ↗`;
+    root.querySelector('#p-note').textContent = scene.note;
+    root.querySelector('#p-nav').textContent = scene.nav;
+    root.querySelector('#p-feedback').textContent = '';
+  }
+  function remember() {
+    if (window.openai && typeof window.openai.setWidgetState === 'function') window.openai.setWidgetState({modelContent:{concept:'playful', ...state},privateContent:null}).catch(() => {});
+  }
+  readSaved(window.openai && window.openai.widgetState);
+  render();
+  window.addEventListener('openai:set_globals', event => {
+    if (event.detail && event.detail.globals && event.detail.globals.widgetState) { readSaved(event.detail.globals.widgetState); render(); }
+  });
+  if (globalThis.Tweak) {
+    const tweak = new Tweak({ container: root, onChange: () => { render(); remember(); } });
+    tweak.addSelect(state,'palette',{label:'Playful palette',options:[{label:'Cobalt + peach',value:'cobalt'},{label:'Berry + pink',value:'berry'},{label:'Teal + apricot',value:'teal'}]});
+    tweak.addToggle(state,'decoration',{label:'Expressive shapes'});
+    tweak.addSlider(state,'tilt',{label:'Sticker tilt',min:0,max:9,step:1,unit:'°'});
+    tweak.addSelect(state,'scene',{label:'App moment',options:[{label:'Check a draw',value:'draw'},{label:'Withdrawal status',value:'withdrawal'},{label:'Confirmed prize',value:'prize'}]});
+  }
+  root.querySelector('#p-join').addEventListener('click', () => { root.querySelector('#p-feedback').textContent = 'Design comparison — no invitation is submitted.'; });
+  root.querySelector('#p-action').addEventListener('click', () => { root.querySelector('#p-feedback').textContent = 'Design comparison — no account action is performed.'; });
+})();
+</script>

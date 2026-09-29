@@ -6,19 +6,61 @@
     "organization": "vibern0",
     "repositoryId": "904789",
     "repositoryName": "SorteCerta",
-    "createdAt": "2026-09-17T16:54:36.160Z",
-    "updatedAt": "2026-09-17T16:54:36.160Z",
+    "createdAt": "2026-09-28T17:19:41.125Z",
+    "updatedAt": "2026-09-28T17:19:41.125Z",
     "languages": [
       "CSS",
+      "HTML",
       "Javascript",
       "JSON",
       "Markdown",
       "Solidity",
+      "SQL",
       "TypeScript",
       "YAML"
     ]
   },
   "tools": [
+    {
+      "toolId": "SQLint",
+      "patterns": [
+        {
+          "patternId": "SQLint_allIssues"
+        }
+      ]
+    },
+    {
+      "toolId": "TSQLLint",
+      "patterns": [
+        {
+          "patternId": "TSQLLint_full-text"
+        },
+        {
+          "patternId": "TSQLLint_upper-lower"
+        },
+        {
+          "patternId": "TSQLLint_unicode-string"
+        },
+        {
+          "patternId": "TSQLLint_linked-server"
+        },
+        {
+          "patternId": "TSQLLint_data-compression"
+        },
+        {
+          "patternId": "TSQLLint_set-quoted-identifier"
+        },
+        {
+          "patternId": "TSQLLint_cross-database-transaction"
+        },
+        {
+          "patternId": "TSQLLint_non-sargable"
+        },
+        {
+          "patternId": "TSQLLint_disallow-cursors"
+        }
+      ]
+    },
     {
       "toolId": "Stylelint",
       "patterns": [
