@@ -1,0 +1,139 @@
+<div id="sc-prize-brand" aria-label="SorteCerta brand direction comparison">
+  <div class="sc-caption"><span>Brand study</span><span id="sc-palette-name">Cobalt + coral</span></div>
+  <div class="sc-previews">
+    <section class="sc-campaign" aria-label="Campaign concept">
+      <div class="sc-wordmark">SorteCerta<span class="sc-dot" aria-hidden="true"></span></div>
+      <div class="sc-campaign-copy">
+        <p class="sc-eyebrow">USDC savings · Prize draws</p>
+        <h2>Your savings.<br>Your chance<br>to win.</h2>
+        <p class="sc-intro">Save in USDC. Your balance at the end of each draw determines your chances.</p>
+        <button type="button" class="sc-cta cursor-interaction" id="sc-access">Join the waitlist <span aria-hidden="true">↗</span></button>
+      </div>
+      <div class="sc-campaign-bottom"><span>Something to look forward to.</span><span class="sc-orbit" aria-hidden="true"></span></div>
+    </section>
+    <section class="sc-app" aria-label="App concept">
+      <div class="sc-app-header"><span class="sc-wordmark">SorteCerta<span class="sc-dot" aria-hidden="true"></span></span><span class="sc-profile" aria-hidden="true">S</span></div>
+      <div class="sc-tabs" aria-label="App sections"><span>Save</span><span class="sc-selected" id="sc-active-tab">Draw</span></div>
+      <div class="sc-app-content">
+        <p class="sc-eyebrow">Your account</p>
+        <h3 id="sc-state-title">The draw has ended.</h3>
+        <div class="sc-prize-tile"><i data-lucide="sparkles" aria-hidden="true"></i><span id="sc-tile-label">A little anticipation.</span></div>
+        <p class="sc-state-copy" id="sc-state-copy">Check whether you have a prize to claim.</p>
+        <button type="button" class="sc-app-action cursor-interaction" id="sc-app-action">Check for a prize</button>
+        <p class="sc-app-note" id="sc-app-note">Prizes depend on the draw result.</p>
+        <div id="sc-local-feedback" aria-live="polite"></div>
+      </div>
+      <div class="sc-app-footer"><span>Clear steps.</span><span>Room for excitement.</span></div>
+    </section>
+  </div>
+  <div class="sc-swatches" aria-label="Palette"><span><i id="sc-swatch-anchor"></i><span id="sc-anchor-label">#2548F4</span></span><span><i id="sc-swatch-accent"></i><span id="sc-accent-label">#FF947F</span></span><span><i id="sc-swatch-paper"></i><span id="sc-paper-label">#FFF9F3</span></span></div>
+</div>
+<style>
+#sc-prize-brand{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:light-dark(#17213B,#F5F4F0);--sc-anchor:#2548F4;--sc-accent:#FF947F;--sc-on-anchor:#FFFFFF;--sc-ink:#17213B;--sc-paper:light-dark(#FFF9F3,#171C29);--sc-text:light-dark(#17213B,#F5F4F0);--sc-muted:light-dark(#536076,#B6BDCA);--sc-line:light-dark(#DDE0E9,#3B4251);--sc-font:ui-sans-serif,system-ui,sans-serif}
+#sc-prize-brand *{box-sizing:border-box}
+#sc-prize-brand .sc-caption{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:13px;font-weight:500}
+#sc-prize-brand .sc-previews{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px}
+#sc-prize-brand .sc-campaign{background:var(--sc-anchor);color:var(--sc-on-anchor);border-radius:24px;padding:24px;min-width:0;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between}
+#sc-prize-brand .sc-wordmark{font-size:21px;letter-spacing:-1px;font-weight:750;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+#sc-prize-brand .sc-dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--sc-accent)}
+#sc-prize-brand .sc-campaign-copy{padding:38px 0 26px;position:relative}
+#sc-prize-brand .sc-eyebrow{font-size:11px;line-height:1.4;text-transform:uppercase;letter-spacing:1.3px;font-weight:650;margin:0 0 14px}
+#sc-prize-brand h2{font-family:var(--sc-font);font-size:clamp(36px,6vw,52px);line-height:1.02;font-weight:750;letter-spacing:-2px;margin:0 0 21px;color:inherit}
+#sc-prize-brand .sc-intro{font-size:14px;line-height:1.65;max-width:265px;margin:0 0 24px;color:inherit}
+#sc-prize-brand button{font:inherit;min-height:44px}
+#sc-prize-brand .sc-cta{border:0;border-radius:100px;background:var(--sc-accent);color:var(--sc-ink);font-size:14px;font-weight:700;padding:12px 18px;display:flex;gap:25px;align-items:center}
+#sc-prize-brand .sc-campaign-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:11px;line-height:1.4}
+#sc-prize-brand .sc-orbit{width:28px;height:28px;flex:0 0 28px;border-radius:50%;background:var(--sc-accent)}
+#sc-prize-brand .sc-app{background:var(--sc-paper);color:var(--sc-text);border:1px solid var(--sc-line);border-radius:24px;min-width:0;overflow:hidden;display:flex;flex-direction:column}
+#sc-prize-brand .sc-app-header{padding:22px 20px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+#sc-prize-brand .sc-app-header .sc-wordmark{font-size:18px}
+#sc-prize-brand .sc-profile{border:1px solid var(--sc-line);border-radius:50%;width:28px;height:28px;display:grid;place-items:center;font-size:12px}
+#sc-prize-brand .sc-tabs{padding:0 20px 14px;border-bottom:1px solid var(--sc-line);display:flex;gap:20px;color:var(--sc-muted);font-size:13px}
+#sc-prize-brand .sc-selected{font-weight:700;color:var(--sc-text)}
+#sc-prize-brand .sc-app-content{padding:28px 20px;flex:1}
+#sc-prize-brand .sc-app-content .sc-eyebrow{color:var(--sc-muted)}
+#sc-prize-brand h3{font-family:var(--sc-font);font-size:29px;line-height:1.15;font-weight:730;letter-spacing:-1px;margin:0 0 25px;color:inherit}
+#sc-prize-brand .sc-prize-tile{background:var(--sc-accent);color:var(--sc-ink);padding:23px 16px;border-radius:16px;font-size:14px;font-weight:650;display:flex;align-items:center;gap:10px}
+#sc-prize-brand .sc-state-copy{font-size:14px;line-height:1.6;margin:20px 0;color:var(--sc-text)}
+#sc-prize-brand .sc-app-action{width:100%;border:0;border-radius:100px;padding:12px 14px;font-size:14px;font-weight:700;color:var(--sc-on-anchor);background:var(--sc-anchor)}
+#sc-prize-brand .sc-app-note{font-size:11px;line-height:1.55;color:var(--sc-muted);margin:13px 0 0}
+#sc-prize-brand .sc-app-footer{border-top:1px solid var(--sc-line);padding:15px 20px;display:flex;gap:8px;justify-content:space-between;font-size:11px;line-height:1.4;color:var(--sc-muted)}
+#sc-prize-brand #sc-local-feedback{font-size:12px;line-height:1.5;color:var(--sc-muted);margin-top:10px}
+#sc-prize-brand .sc-swatches{display:flex;gap:20px;flex-wrap:wrap;margin-top:13px;font-size:11px}
+#sc-prize-brand .sc-swatches>span{display:flex;align-items:center;gap:7px}
+#sc-prize-brand .sc-swatches i{display:block;width:18px;height:18px;border-radius:50%;border:1px solid light-dark(#CDD2DF,#677086)}
+#sc-prize-brand #sc-swatch-anchor{background:var(--sc-anchor)}
+#sc-prize-brand #sc-swatch-accent{background:var(--sc-accent)}
+#sc-prize-brand #sc-swatch-paper{background:#FFF9F3}
+@media(max-width:560px){#sc-prize-brand .sc-previews{grid-template-columns:1fr}#sc-prize-brand .sc-campaign-copy{padding:28px 0}#sc-prize-brand h2{font-size:44px}#sc-prize-brand .sc-app-content{padding:25px 22px}#sc-prize-brand .sc-caption{font-size:12px}}
+</style>
+<script>
+(() => {
+  const root = document.getElementById('sc-prize-brand');
+  const palettes = {
+    cobalt: { name: 'Cobalt + coral', anchor: '#2548F4', accent: '#FF947F', ink: '#17213B', paper: '#FFF9F3', dark: '#171C29' },
+    citron: { name: 'Ink + citron', anchor: '#202826', accent: '#DDF76B', ink: '#202826', paper: '#F7F8EE', dark: '#191E1C' },
+    plum: { name: 'Plum + peach', anchor: '#63318F', accent: '#FFC2A8', ink: '#2D173A', paper: '#FFF8F3', dark: '#22172B' }
+  };
+  const scenes = {
+    draw: { title: 'The draw has ended.', tile: 'A little anticipation.', copy: 'Check whether you have a prize to claim.', action: 'Check for a prize', note: 'Prizes depend on the draw result.', nav: 'Draw' },
+    withdrawal: { title: 'Withdrawal requested.', tile: 'Follow your progress.', copy: 'Your request is being processed. Check its status here.', action: 'View withdrawal', note: 'We’ll show when your next step is ready.', nav: 'Save' },
+    prize: { title: 'You have a prize to claim.', tile: 'Something to celebrate.', copy: 'Your prize is ready. Claim it when you’re ready.', action: 'Claim prize', note: 'Shown only after a prize is confirmed.', nav: 'Draw' }
+  };
+  const state = { palette: 'citron', typeface: 'sans', scene: 'draw' };
+  function applySaved(saved) {
+    const values = saved && saved.modelContent;
+    if (!values || typeof values !== 'object') return;
+    if (palettes[values.palette]) state.palette = values.palette;
+    if (scenes[values.scene]) state.scene = values.scene;
+    if (['sans', 'serif'].includes(values.typeface)) state.typeface = values.typeface;
+  }
+  function render() {
+    const palette = palettes[state.palette] || palettes.cobalt;
+    const scene = scenes[state.scene] || scenes.draw;
+    root.style.setProperty('--sc-anchor', palette.anchor);
+    root.style.setProperty('--sc-accent', palette.accent);
+    root.style.setProperty('--sc-ink', palette.ink);
+    root.style.setProperty('--sc-paper', `light-dark(${palette.paper}, ${palette.dark})`);
+    root.style.setProperty('--sc-text', `light-dark(${palette.ink}, #F5F4F0)`);
+    root.style.setProperty('--sc-font', state.typeface === 'serif' ? 'Georgia, serif' : 'ui-sans-serif, system-ui, sans-serif');
+    root.querySelector('#sc-palette-name').textContent = palette.name;
+    root.querySelector('#sc-anchor-label').textContent = palette.anchor;
+    root.querySelector('#sc-accent-label').textContent = palette.accent;
+    root.querySelector('#sc-paper-label').textContent = palette.paper;
+    root.querySelector('#sc-swatch-paper').style.background = palette.paper;
+    root.querySelector('#sc-state-title').textContent = scene.title;
+    root.querySelector('#sc-tile-label').textContent = scene.tile;
+    root.querySelector('#sc-state-copy').textContent = scene.copy;
+    root.querySelector('#sc-app-action').textContent = scene.action;
+    root.querySelector('#sc-app-note').textContent = scene.note;
+    root.querySelector('#sc-active-tab').textContent = scene.nav === 'Save' ? 'Withdraw' : 'Draw';
+    root.querySelector('#sc-local-feedback').textContent = '';
+  }
+  function save() {
+    if (window.openai && typeof window.openai.setWidgetState === 'function') {
+      window.openai.setWidgetState({ modelContent: { palette: state.palette, typeface: state.typeface, scene: state.scene }, privateContent: null }).catch(() => {});
+    }
+  }
+  applySaved(window.openai && window.openai.widgetState);
+  render();
+  window.addEventListener('openai:set_globals', event => {
+    if (event.detail && event.detail.globals && event.detail.globals.widgetState) {
+      applySaved(event.detail.globals.widgetState);
+      render();
+    }
+  });
+  if (globalThis.Tweak) {
+    const tweak = new Tweak({ container: root, onChange: () => { render(); save(); } });
+    tweak.addSelect(state, 'palette', { label: 'Color direction', options: [{ label: 'Cobalt + coral', value: 'cobalt' }, { label: 'Ink + citron', value: 'citron' }, { label: 'Plum + peach', value: 'plum' }] });
+    tweak.addSelect(state, 'typeface', { label: 'Headline style', options: [{ label: 'Bold sans', value: 'sans' }, { label: 'Editorial serif', value: 'serif' }] });
+    tweak.addSelect(state, 'scene', { label: 'App moment', options: [{ label: 'Check a draw', value: 'draw' }, { label: 'Withdrawal status', value: 'withdrawal' }, { label: 'Confirmed prize', value: 'prize' }] });
+  }
+  root.querySelector('#sc-access').addEventListener('click', () => {
+    root.querySelector('#sc-local-feedback').textContent = 'Concept preview — no invitation is submitted.';
+  });
+  root.querySelector('#sc-app-action').addEventListener('click', () => {
+    root.querySelector('#sc-local-feedback').textContent = 'Concept preview — no account action is performed.';
+  });
+})();
+</script>

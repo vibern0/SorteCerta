@@ -105,6 +105,7 @@ export function WaitlistForm({
           name="email"
           type="email"
           autoComplete="email"
+          placeholder="Approved email"
           value={email}
           aria-describedby="waitlist-email-hint"
           onChange={(event) => setEmail(event.currentTarget.value)}
@@ -121,6 +122,7 @@ export function WaitlistForm({
           name="invitationCode"
           type="text"
           autoComplete="off"
+          placeholder="Invitation code"
           value={invitationCode}
           aria-describedby="waitlist-code-hint"
           onChange={(event) => setInvitationCode(event.currentTarget.value)}

@@ -2,8 +2,8 @@ export function Footer() {
   return (
     <footer className="site-footer">
       <div className="section-inner footer-inner">
-        <span>SorteCerta</span>
-        <span>Prize-linked USDC savings by invitation.</span>
+        <span className="footer-brand">SorteCerta</span>
+        <span>Save steadily. Stay open to a little upside.</span>
       </div>
     </footer>
   );

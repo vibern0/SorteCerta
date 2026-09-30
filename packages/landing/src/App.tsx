@@ -13,14 +13,13 @@ export default function App() {
         <Hero />
         <HowItWorks />
         <TrustSection />
-        <section className="waitlist-section section-band" id="waitlist" aria-labelledby="waitlist-title">
+        <section className="waitlist-section" id="waitlist" aria-labelledby="waitlist-title">
           <div className="section-inner waitlist-layout">
             <div className="section-copy">
               <p className="eyebrow">Invitation only</p>
-              <h2 id="waitlist-title">Join the waitlist</h2>
+              <h2 id="waitlist-title">Already have a code?</h2>
               <p>
-                Approved visitors can reserve early access with an email-bound invitation. Keep your code nearby and
-                complete the quick check to save your place.
+                Use the email tied to your invitation and complete the quick check to save your place.
               </p>
             </div>
             <WaitlistForm />
