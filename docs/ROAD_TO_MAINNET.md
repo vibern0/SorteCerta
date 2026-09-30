@@ -1,8 +1,10 @@
 # Road to Mainnet
 
-SorteCerta's current target remains the Ethereum Sepolia Zama bounty demo.
-Mainnet is a separate, gated program for real funds. Passing one phase does not
-waive any later gate.
+The bounty has finished; SorteCerta is being prepared for a public product launch.
+This document records the existing Ethereum mainnet readiness plan. Compare
+[chain pricing and infrastructure](CHAIN_PRICING_AND_INFRASTRUCTURE.md) before
+confirming the production network. That research does not select a new network
+or authorize deployment. Passing one phase does not waive any later gate.
 
 ## Plans
 

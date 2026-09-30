@@ -2,6 +2,7 @@
   "name": "sortecerta",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.11.1",
   "description": "SorteCerta — mobile-first no-loss lottery on PoolTogether architecture, Web3-abstracted for non-crypto users.",
   "engines": {
     "node": ">=22"
@@ -38,5 +39,8 @@
     "keeper:withdrawal": "node --no-warnings --experimental-strip-types --import ./packages/keeper/src/register-ts-loader.mjs packages/keeper/src/run-web-keeper.mjs withdrawal",
     "keeper:all": "npm run keeper:morpho && npm run keeper:withdrawal",
     "keeper:watch": "node packages/keeper/src/watch-keepers.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.140.0"
   }
 }

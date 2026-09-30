@@ -53,3 +53,16 @@ architecture.
   copy.
 - When explaining prizes, describe eligibility at the end of each draw. Do not
   imply a user has guaranteed winnings before they check or claim a prize.
+
+## Pull request quality gate
+
+Before opening a pull request, run Codacy's local PR analysis and inspect the
+Codacy Cloud PR report. Fix every Critical, High, and Medium finding, or record
+an explicit false-positive reason in Codacy when the finding cannot apply to
+the project's technology. Re-run the analysis after pushing, then resolve the
+corresponding GitHub inline review threads. For any Cloudflare deployment
+affected by the change, use the pinned package-manager version, run a clean
+frozen install, run its real build, and run Wrangler `deploy --dry-run`; if
+deployment credentials are available, deploy and smoke-test the target before
+calling the PR ready. Use the `codacy-pr-review` skill for the detailed review
+workflow.
