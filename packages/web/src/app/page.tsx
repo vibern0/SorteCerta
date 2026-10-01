@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { ConnectButton } from "@/components/ConnectButton";
-import { Countdown } from "@/components/Countdown";
 import { LoadingAmount } from "@/components/LoadingAmount";
-import { useCurrentDraw, useUSDCBalance } from "@/lib/usePoolData";
+import { useUSDCBalance } from "@/lib/usePoolData";
 import { useWallet } from "@/lib/wallet-context";
 import { formatUSDC } from "@/lib/format";
 import { balanceBucketLabels } from "@/lib/withdrawal-state";
@@ -17,10 +16,6 @@ export default function HomePage() {
     confidentialBalancesLoading,
     confidentialBalancesError,
   } = useWallet();
-  const { data: poolData } = useCurrentDraw();
-  const lastDrawId = poolData?.[0]?.result as bigint | undefined;
-  const nextDrawAt = poolData?.[1]?.result as bigint | undefined;
-  const prizeReserve = poolData?.[2]?.result as bigint | undefined;
   const { data: usdcData } = useUSDCBalance(session?.address);
   const usdcBalance = usdcData?.[0]?.result as bigint | undefined;
 
@@ -38,20 +33,6 @@ export default function HomePage() {
           stays available whenever you want to withdraw.
         </p>
       </section>
-
-      {/* Next draw */}
-      {nextDrawAt !== undefined && (
-        <section className="card space-y-2">
-          <p className="label">Next draw #{((lastDrawId ?? 0n) + 1n).toString()}</p>
-          <Countdown target={nextDrawAt} />
-          <div className="flex items-center justify-between pt-2 text-sm">
-            <span className="text-muted">Current prize</span>
-            <span className="font-semibold text-text tabular-nums">
-              {formatUSDC(prizeReserve, 6)} USDC
-            </span>
-          </div>
-        </section>
-      )}
 
       {/* Balance (if connected) */}
       {session && (
