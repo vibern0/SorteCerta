@@ -122,7 +122,7 @@ export function Header() {
           )}
         </div>
 
-        <nav className="flex gap-1 px-3 pb-3 overflow-x-auto">
+        <nav className="flex gap-2 px-3 pb-3 overflow-x-auto">
           {navItems.map((item) => {
             const active = path === item.href;
             return (
@@ -133,8 +133,8 @@ export function Header() {
                   "px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap",
                   "font-display",
                   active
-                    ? "bg-brand text-white shadow-lg shadow-black/10"
-                    : "text-white/90 hover:text-white hover:bg-white/20"
+                    ? "bg-citron text-text shadow-lg shadow-black/10"
+                    : "border border-white/25 bg-white/10 text-white/90 hover:bg-white/20 hover:text-white"
                 )}
               >
                 {item.label}

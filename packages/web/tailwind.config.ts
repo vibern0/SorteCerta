@@ -13,6 +13,7 @@ const config: Config = {
         muted: "#5C6170",
         brand: "#2548F4",
         brandHover: "#1935C7",
+        citron: "#E4F66A",
         success: "#236B4F",
         danger: "#B84754",
         warning: "#9A6518",
