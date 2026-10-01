@@ -1,7 +1,6 @@
 export function Hero() {
   return (
     <section className="hero" id="top" aria-labelledby="hero-title">
-      <img className="hero-art" src="/og-image.png" alt="" aria-hidden="true" />
       <div className="section-inner hero-layout">
         <div className="hero-copy">
           <p className="eyebrow">Prize-linked USDC savings</p>
