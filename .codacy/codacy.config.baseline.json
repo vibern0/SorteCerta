@@ -7,7 +7,7 @@
     "repositoryId": "904789",
     "repositoryName": "SorteCerta",
     "createdAt": "2026-09-28T17:19:41.125Z",
-    "updatedAt": "2026-09-28T17:19:41.125Z",
+    "updatedAt": "2026-10-01T19:27:17.638Z",
     "languages": [
       "CSS",
       "HTML",
@@ -5133,5 +5133,8 @@
       ]
     }
   ],
-  "exclude": []
+  "exclude": [
+    "packages/web/out/**",
+    "packages/**/migrations/**"
+  ]
 }

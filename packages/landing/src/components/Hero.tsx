@@ -28,7 +28,7 @@ export function Hero() {
           <dl className="prize-list">
             <div>
               <dt>Next draw</dt>
-              <dd>Access opens by invitation</dd>
+              <dd>Access opens gradually</dd>
             </div>
             <div>
               <dt>Your savings set your chances</dt>

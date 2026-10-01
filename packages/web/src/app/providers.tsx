@@ -7,6 +7,7 @@ import { wagmiConfig } from "@/lib/wagmi";
 import { WalletProvider } from "@/lib/wallet-context";
 import { ToastProvider } from "@/components/Toast";
 import { ActionCenterProvider } from "@/components/ActionCenter";
+import { AccessGate } from "@/components/AccessGate";
 
 const CHUNK_RELOAD_KEY = "sortecerta:last-chunk-reload";
 const CHUNK_RELOAD_WINDOW_MS = 10_000;
@@ -65,7 +66,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <ToastProvider>
             <ActionCenterProvider>
               <ChunkLoadRecovery />
-              {children}
+              <AccessGate>{children}</AccessGate>
             </ActionCenterProvider>
           </ToastProvider>
         </WalletProvider>

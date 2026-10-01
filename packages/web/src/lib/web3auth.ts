@@ -15,6 +15,7 @@ import {
   createPublicClient,
   http,
   getAddress,
+  stringToHex,
   type Address,
   type Hex,
 } from "viem";
@@ -96,7 +97,9 @@ function getPimlicoClient() {
 export type SmartSession = {
   address: Address;
   ownerAddress: Address;
+  email: string | null;
   smartAccountClient: ReturnType<typeof createSmartAccountClient>;
+  signJoinedMessage: () => Promise<Hex>;
   signOwnerTypedData: (typedData: string) => Promise<Hex>;
   logout: () => Promise<void>;
 };
@@ -119,6 +122,8 @@ async function createSmartSession(
   }
   if (!ownerAccounts[0]) throw new Error("Web3Auth returned no owner account");
   const ownerAddress = getAddress(ownerAccounts[0]);
+  const userInfo = await w3a.getUserInfo().catch(() => null);
+  const email = typeof userInfo?.email === "string" && userInfo.email.trim() !== "" ? userInfo.email.trim().toLowerCase() : null;
 
   const publicClient = getPublicClient();
 
@@ -149,7 +154,13 @@ async function createSmartSession(
   return {
     address: getAddress(smartAccount.address),
     ownerAddress,
+    email,
     smartAccountClient,
+    signJoinedMessage: async () =>
+      (await provider.request({
+        method: "personal_sign",
+        params: [stringToHex("i've joined"), ownerAddress],
+      })) as Hex,
     signOwnerTypedData: async (typedData) =>
       (await provider.request({
         method: "eth_signTypedData_v4",

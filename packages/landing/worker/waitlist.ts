@@ -1,31 +1,11 @@
 import type { Attribution, Env, WaitlistResponse } from "./types";
-import { verifyTurnstile, type TurnstileOutcome } from "./turnstile";
-import { hashInvitationCode, parseWaitlistRequest, PublicError } from "./validation";
+import { parseWaitlistRequest, PublicError } from "./validation";
 
 export type WaitlistDependencies = {
-  verifyTurnstile?: typeof verifyTurnstile;
   now?: () => string;
   uuid?: () => string;
 };
 
-type InvitationRow = {
-  id: string;
-  email_normalized: string;
-  expires_at: string | null;
-  redeemed_at: string | null;
-  entry_email: string | null;
-};
-
-const INVALID_INVITATION: WaitlistResponse = {
-  ok: false,
-  code: "invalid_invitation",
-  message: "This invitation could not be accepted.",
-};
-const VERIFICATION_FAILED: WaitlistResponse = {
-  ok: false,
-  code: "verification_failed",
-  message: "Please complete the verification and try again.",
-};
 const TEMPORARILY_UNAVAILABLE: WaitlistResponse = {
   ok: false,
   code: "temporarily_unavailable",
@@ -47,144 +27,62 @@ export async function registerWaitlist(
     return jsonResponse(TEMPORARILY_UNAVAILABLE, 503);
   }
 
-  const makeUuid = dependencies.uuid ?? crypto.randomUUID.bind(crypto);
-  const requestId = makeUuid();
-  const turnstile = await runTurnstileVerification(payload.turnstileToken, env, requestId, dependencies);
-  if (turnstile === "rejected") {
-    return jsonResponse(VERIFICATION_FAILED, 422);
-  }
-  if (turnstile === "unavailable") {
-    return jsonResponse(TEMPORARILY_UNAVAILABLE, 503);
-  }
-
   const now = (dependencies.now ?? (() => new Date().toISOString()))();
-  const entryId = makeUuid();
+  const entryId = (dependencies.uuid ?? crypto.randomUUID.bind(crypto))();
 
   try {
-    const codeHash = await hashInvitationCode(payload.invitationCode);
-    const invitation = await findInvitation(env.DB, codeHash);
-    if (!invitation) {
-      return jsonResponse(INVALID_INVITATION, 403);
-    }
-    if (invitation.entry_email === payload.email) {
+    const existing = await findEntry(env.DB, payload.email);
+    if (existing) {
       return jsonResponse({ ok: true, status: "already_joined" }, 200);
-    }
-    if (!canRedeem(invitation, payload.email, now)) {
-      return jsonResponse(INVALID_INVITATION, 403);
     }
 
     try {
-      await redeemInvitation(env.DB, invitation.id, payload.email, now, entryId, payload.attribution);
+      await insertEntry(env.DB, entryId, payload.email, now, payload.attribution);
+      return jsonResponse({ ok: true, status: "joined" }, 201);
     } catch (error) {
-      if (!isExpectedD1Conflict(error)) {
-        throw error;
-      }
-      const completed = await findInvitation(env.DB, codeHash);
-      if (completed?.entry_email === payload.email) {
+      if (isExpectedD1Conflict(error)) {
         return jsonResponse({ ok: true, status: "already_joined" }, 200);
       }
-      return jsonResponse(INVALID_INVITATION, 403);
+      throw error;
     }
-
-    const inserted = await findCompletedEntry(env.DB, entryId, codeHash, payload.email);
-    if (inserted) {
-      return jsonResponse({ ok: true, status: "joined" }, 201);
-    }
-
-    const completed = await findInvitation(env.DB, codeHash);
-    if (completed?.entry_email === payload.email) {
-      return jsonResponse({ ok: true, status: "already_joined" }, 200);
-    }
-    return jsonResponse(INVALID_INVITATION, 403);
   } catch {
     return jsonResponse(TEMPORARILY_UNAVAILABLE, 503);
   }
 }
 
-async function runTurnstileVerification(
-  token: string,
-  env: Env,
-  requestId: string,
-  dependencies: WaitlistDependencies,
-): Promise<TurnstileOutcome> {
-  const verifier = dependencies.verifyTurnstile ?? verifyTurnstile;
-  return verifier({ secret: env.TURNSTILE_SECRET_KEY, token, requestId });
-}
-
-async function findInvitation(db: D1Database, codeHash: string): Promise<InvitationRow | null> {
+async function findEntry(db: D1Database, email: string): Promise<{ id: string } | null> {
   return db
-    .prepare(
-      `SELECT
-        invitations.id,
-        invitations.email_normalized,
-        invitations.expires_at,
-        invitations.redeemed_at,
-        waitlist_entries.email_normalized AS entry_email
-      FROM invitations
-      LEFT JOIN waitlist_entries ON waitlist_entries.invitation_id = invitations.id
-      WHERE invitations.code_hash = ?`,
-    )
-    .bind(codeHash)
-    .first<InvitationRow>();
+    .prepare("SELECT id FROM waitlist_entries WHERE email_normalized = ?")
+    .bind(email)
+    .first<{ id: string }>();
 }
 
-function canRedeem(invitation: InvitationRow, email: string, now: string): boolean {
-  return (
-    invitation.email_normalized === email &&
-    invitation.redeemed_at === null &&
-    (invitation.expires_at === null || invitation.expires_at > now)
-  );
-}
-
-async function redeemInvitation(
+async function insertEntry(
   db: D1Database,
-  invitationId: string,
+  entryId: string,
   email: string,
   now: string,
-  entryId: string,
   attribution: Attribution | undefined,
 ) {
-  await db.batch([
-    db
-      .prepare(
-        `UPDATE invitations
-        SET redeemed_at = ?
-        WHERE id = ? AND redeemed_at IS NULL AND (expires_at IS NULL OR expires_at > ?)`,
-      )
-      .bind(now, invitationId, now),
-    db
-      .prepare(
-        `INSERT INTO waitlist_entries (
-          id, invitation_id, email_normalized, joined_at,
-          source, medium, campaign, referral_code, referrer_host
-        ) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
-        WHERE changes() = 1`,
-      )
-      .bind(
-        entryId,
-        invitationId,
-        email,
-        now,
-        attribution?.source ?? null,
-        attribution?.medium ?? null,
-        attribution?.campaign ?? null,
-        attribution?.referralCode ?? null,
-        attribution?.referrerHost ?? null,
-      ),
-  ]);
-}
-
-async function findCompletedEntry(db: D1Database, entryId: string, codeHash: string, email: string): Promise<boolean> {
-  const row = await db
+  await db
     .prepare(
-      `SELECT waitlist_entries.id
-      FROM invitations
-      JOIN waitlist_entries ON waitlist_entries.invitation_id = invitations.id
-      WHERE waitlist_entries.id = ? AND invitations.code_hash = ? AND waitlist_entries.email_normalized = ?`,
+      `INSERT INTO waitlist_entries (
+        id, email_normalized, joined_at, approved_at,
+        wallet_address, joined_message, joined_signature,
+        source, medium, campaign, referral_code, referrer_host
+      ) VALUES (?, ?, ?, NULL, NULL, NULL, NULL, ?, ?, ?, ?, ?)`,
     )
-    .bind(entryId, codeHash, email)
-    .first<{ id: string }>();
-  return row !== null;
+    .bind(
+      entryId,
+      email,
+      now,
+      attribution?.source ?? null,
+      attribution?.medium ?? null,
+      attribution?.campaign ?? null,
+      attribution?.referralCode ?? null,
+      attribution?.referrerHost ?? null,
+    )
+    .run();
 }
 
 function jsonResponse(body: WaitlistResponse, status: number): Response {
@@ -197,5 +95,5 @@ function jsonResponse(body: WaitlistResponse, status: number): Response {
 }
 
 function isExpectedD1Conflict(error: unknown): boolean {
-  return error instanceof Error && /constraint|unique|changes\(\)/i.test(error.message);
+  return error instanceof Error && /constraint|unique/i.test(error.message);
 }

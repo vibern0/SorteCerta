@@ -12,15 +12,9 @@ it("never logs submitted secrets or identity", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => Response.json({ success: false })));
   const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
 
-  const response = await worker.fetch(
-    makeRequest("person@example.com", "SC-ABCD-EFGH-IJKL-MNOP", { turnstileToken: "secret-token" }),
-    { ...env, TURNSTILE_SECRET_KEY: "test-secret" },
-    makeContext(),
-  );
+  const response = await worker.fetch(makeRequest("person@example.com"), { ...env }, makeContext());
 
-  expect(response.status).toBe(422);
+  expect(response.status).toBe(201);
   const output = JSON.stringify(log.mock.calls);
   expect(output).not.toContain("person@example.com");
-  expect(output).not.toContain("SC-ABCD-EFGH-IJKL-MNOP");
-  expect(output).not.toContain("secret-token");
 });
