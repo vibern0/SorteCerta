@@ -18,8 +18,8 @@ const config: Config = {
         warning: "#9A6518",
       },
       fontFamily: {
-        sans: ["var(--font-interphases-mono)", "ui-monospace", "monospace"],
-        display: ["var(--font-ramillas)", "Georgia", "serif"],
+        sans: ["Avenir Next", "ui-rounded", "system-ui", "sans-serif"],
+        display: ["ui-rounded", "Arial Rounded MT Bold", "Avenir Next", "system-ui", "sans-serif"],
         mono: ["var(--font-interphases-mono)", "ui-monospace", "monospace"],
       },
       animation: {

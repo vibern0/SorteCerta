@@ -115,7 +115,7 @@ export function Header() {
             <button
               onClick={() => void connect()}
               disabled={connecting || !web3AuthReady}
-              className="btn-primary !py-2 !px-4 !text-sm"
+              className="btn-secondary !py-2 !px-4 !text-sm"
             >
               {connecting ? "Signing in..." : "Sign in"}
             </button>
@@ -134,7 +134,7 @@ export function Header() {
                   "font-display",
                   active
                     ? "bg-brand text-white shadow-lg shadow-black/10"
-                    : "text-muted hover:text-text hover:bg-white/30"
+                    : "text-white/90 hover:text-white hover:bg-white/20"
                 )}
               >
                 {item.label}

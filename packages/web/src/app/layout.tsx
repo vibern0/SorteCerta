@@ -81,7 +81,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${ramillas.variable} ${interphasesMono.variable}`}>
-      <body>
+      <body className="font-sans">
         <Script src="/config.js" strategy="beforeInteractive" />
         <Providers>
           <div className="app-shell flex flex-col">
