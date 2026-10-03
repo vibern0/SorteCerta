@@ -11,6 +11,7 @@ test("root app Worker config binds the shared waitlist D1 database", () => {
   assert.match(rootWrangler, /database_name = "sortecerta-landing"/);
   assert.match(rootWrangler, /database_id = "f6f8c304-fa39-495d-8307-d01f3899968a"/);
   assert.match(rootWrangler, /migrations_dir = "packages\/landing\/migrations"/);
+  assert.match(rootWrangler, /\[\[previews\.d1_databases\]\]/);
 });
 
 test("package app Worker config binds the same shared waitlist D1 database", () => {
@@ -19,4 +20,5 @@ test("package app Worker config binds the same shared waitlist D1 database", () 
   assert.match(packageWrangler, /database_name = "sortecerta-landing"/);
   assert.match(packageWrangler, /database_id = "f6f8c304-fa39-495d-8307-d01f3899968a"/);
   assert.match(packageWrangler, /migrations_dir = "\.\.\/landing\/migrations"/);
+  assert.match(packageWrangler, /\[\[previews\.d1_databases\]\]/);
 });
