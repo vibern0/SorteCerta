@@ -9,8 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "npm run test:browser && npm run test:worker",
     "test:browser": "vitest run --config vite.config.ts",
-    "test:worker": "vitest run --config vitest.worker.config.ts",
-    "invitation:create": "node --experimental-strip-types scripts/create-invitation.mts"
+    "test:worker": "vitest run --config vitest.worker.config.ts"
   },
   "dependencies": {
     "react": "^18.3.1",

@@ -8,8 +8,6 @@ export type Attribution = {
 
 export type WaitlistRequest = {
   email: string;
-  invitationCode: string;
-  turnstileToken: string;
   attribution?: Attribution;
 };
 
@@ -19,8 +17,6 @@ export type WaitlistResponse =
       ok: false;
       code:
         | "invalid_request"
-        | "invalid_invitation"
-        | "verification_failed"
         | "temporarily_unavailable";
       message: string;
     };
@@ -28,5 +24,5 @@ export type WaitlistResponse =
 export type Env = {
   DB: D1Database;
   ASSETS: { fetch(request: Request): Promise<Response> };
-  TURNSTILE_SECRET_KEY: string;
+  TURNSTILE_SECRET_KEY?: string;
 };

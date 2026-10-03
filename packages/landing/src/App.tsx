@@ -16,11 +16,11 @@ export default function App() {
         <section className="waitlist-section section-band" id="waitlist" aria-labelledby="waitlist-title">
           <div className="section-inner waitlist-layout">
             <div className="section-copy">
-              <p className="eyebrow">Invitation only</p>
+              <p className="eyebrow">Early access</p>
               <h2 id="waitlist-title">Join the waitlist</h2>
               <p>
-                Approved visitors can reserve early access with an email-bound invitation. Keep your code nearby and
-                complete the quick check to save your place.
+                Reserve your spot with the email you plan to use for SorteCerta. Once your access opens, that email is
+                what gets you into the app.
               </p>
             </div>
             <WaitlistForm />

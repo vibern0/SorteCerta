@@ -21,9 +21,7 @@ describe("landing operations README", () => {
     expect(markdown).toContain(
       "npm exec --workspace @sortecerta/landing wrangler d1 migrations apply sortecerta-landing-local --local",
     );
-    expect(markdown).toContain(
-      "npm run invitation:create --workspace @sortecerta/landing -- --email person@example.com",
-    );
+    expect(markdown).toContain("UPDATE waitlist_entries SET approved_at = datetime('now')");
   });
 
   it("documents production deployment, smoke tests, and rollback", () => {
@@ -31,10 +29,13 @@ describe("landing operations README", () => {
 
     expect(markdown).toContain("wrangler d1 create sortecerta-landing");
     expect(markdown).toContain("00000000-0000-0000-0000-000000000000");
-    expect(markdown).toContain("wrangler secret put TURNSTILE_SECRET_KEY");
-    expect(markdown).toContain("VITE_TURNSTILE_SITE_KEY=");
-    expect(markdown).toContain("valid invitation");
-    expect(markdown).toContain("invalid invitation");
+    expect(markdown).toContain(
+      "npm exec --workspace @sortecerta/landing wrangler d1 migrations apply sortecerta-landing --remote",
+    );
+    expect(markdown).toContain("Approve remote emails with a targeted D1 update");
+    expect(markdown).toContain("Waitlist join");
+    expect(markdown).toContain("Manual approval");
+    expect(markdown).toContain("Reuse prevention");
     expect(markdown).toContain("replay");
     expect(markdown).toContain("previous Worker version");
     expect(markdown).toContain("dropping waitlist data is not a safe rollback");

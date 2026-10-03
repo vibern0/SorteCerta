@@ -2,8 +2,6 @@ import type { Attribution, WaitlistRequest, WaitlistResponse } from "../../worke
 
 type SubmitInput = {
   email: string;
-  invitationCode: string;
-  turnstileToken: string;
   attribution?: Attribution;
 };
 
@@ -15,18 +13,11 @@ const TEMPORARY_ERROR: WaitlistResponse = {
   message: "We could not join the waitlist right now. Please try again.",
 };
 
-const ERROR_CODES = new Set([
-  "invalid_request",
-  "invalid_invitation",
-  "verification_failed",
-  "temporarily_unavailable",
-]);
+const ERROR_CODES = new Set(["invalid_request", "temporarily_unavailable"]);
 
 export async function submitWaitlist(input: SubmitInput, fetcher: Fetcher = fetch): Promise<WaitlistResponse> {
   const payload: WaitlistRequest = {
     email: input.email,
-    invitationCode: input.invitationCode,
-    turnstileToken: input.turnstileToken,
     ...(input.attribution !== undefined && Object.keys(input.attribution).length > 0 ? { attribution: input.attribution } : {}),
   };
 

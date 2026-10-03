@@ -4,8 +4,6 @@ import type { WaitlistResponse } from "../worker/types";
 
 const baseInput = {
   email: "person@example.com",
-  invitationCode: "SC-ABCD-EFGH-IJKL-MNOP",
-  turnstileToken: "verified-token",
 };
 
 describe("waitlist client", () => {
@@ -31,8 +29,6 @@ describe("waitlist client", () => {
     expect(init?.headers).toEqual({ "content-type": "application/json" });
     expect(JSON.parse(String(init?.body))).toEqual({
       email: "person@example.com",
-      invitationCode: "SC-ABCD-EFGH-IJKL-MNOP",
-      turnstileToken: "verified-token",
       attribution: {
         source: "zama",
       },
@@ -42,8 +38,6 @@ describe("waitlist client", () => {
   it.each([
     [201, { ok: true, status: "joined" }],
     [200, { ok: true, status: "already_joined" }],
-    [403, { ok: false, code: "invalid_invitation", message: "This invitation could not be accepted." }],
-    [422, { ok: false, code: "verification_failed", message: "Please complete verification again." }],
     [503, { ok: false, code: "temporarily_unavailable", message: "Please try again." }],
   ] satisfies [number, WaitlistResponse][])("maps a valid %s response", async (status, body) => {
     const response = await submitWaitlist(baseInput, async () => Response.json(body, { status }));
