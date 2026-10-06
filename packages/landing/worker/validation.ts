@@ -16,27 +16,11 @@ export class PublicError extends Error {
 
 const BODY_LIMIT_BYTES = 8_192;
 const EMAIL_LIMIT = 254;
-const INVITATION_CODE_LIMIT = 128;
-const TURNSTILE_TOKEN_LIMIT = 2_048;
 const ATTRIBUTION_FIELD_LIMIT = 128;
 const INVALID_REQUEST_MESSAGE = "We could not accept this request.";
 
 export function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
-}
-
-export function normalizeInvitationCode(value: string): string {
-  return value
-    .trim()
-    .replace(/[\s-]+/g, "")
-    .toUpperCase()
-    .replace(/^SC/, "SC-");
-}
-
-export async function hashInvitationCode(code: string): Promise<string> {
-  const normalized = normalizeInvitationCode(code);
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(normalized));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 export async function parseWaitlistRequest(request: Request): Promise<WaitlistRequest> {
@@ -58,20 +42,15 @@ export async function parseWaitlistRequest(request: Request): Promise<WaitlistRe
   }
 
   const email = readRequiredString(parsed.email, EMAIL_LIMIT);
-  const invitationCode = readRequiredString(parsed.invitationCode, INVITATION_CODE_LIMIT);
-  const turnstileToken = readRequiredString(parsed.turnstileToken, TURNSTILE_TOKEN_LIMIT).trim();
   const normalizedEmail = normalizeEmail(email);
-  const normalizedInvitationCode = normalizeInvitationCode(invitationCode);
 
-  if (!isValidEmail(normalizedEmail) || normalizedInvitationCode.length === 0 || turnstileToken.length === 0) {
+  if (!isValidEmail(normalizedEmail)) {
     throw invalidRequest();
   }
 
   const attribution = parseAttribution(parsed.attribution);
   return {
     email: normalizedEmail,
-    invitationCode: normalizedInvitationCode,
-    turnstileToken,
     ...(Object.keys(attribution).length > 0 ? { attribution } : {}),
   };
 }
