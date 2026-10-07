@@ -38,6 +38,10 @@ cp .env.example .env.local
 npm run dev
 ```
 
+Local `next dev` bypasses the early-access gate so you can work in the app
+without a waitlist approval. Set `NEXT_PUBLIC_BYPASS_ACCESS_GATE=false` to test
+the access flow locally, or `true` when running a local production build.
+
 Netlify also runs the Morpho keeper as a Scheduled Function. Configure these as
 private Netlify environment variables, not `NEXT_PUBLIC_*`:
 

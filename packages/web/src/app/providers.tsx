@@ -8,6 +8,7 @@ import { WalletProvider } from "@/lib/wallet-context";
 import { ToastProvider } from "@/components/Toast";
 import { ActionCenterProvider } from "@/components/ActionCenter";
 import { AccessGate } from "@/components/AccessGate";
+import { shouldBypassAccessGate } from "@/lib/access-gate-config";
 
 const CHUNK_RELOAD_KEY = "sortecerta:last-chunk-reload";
 const CHUNK_RELOAD_WINDOW_MS = 10_000;
@@ -50,6 +51,7 @@ function ChunkLoadRecovery() {
 
 // Shared client providers for contracts, cached queries, wallet state, and toasts.
 export function Providers({ children }: { children: ReactNode }) {
+  const bypassAccessGate = shouldBypassAccessGate();
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -66,7 +68,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <ToastProvider>
             <ActionCenterProvider>
               <ChunkLoadRecovery />
-              <AccessGate>{children}</AccessGate>
+              {bypassAccessGate ? children : <AccessGate>{children}</AccessGate>}
             </ActionCenterProvider>
           </ToastProvider>
         </WalletProvider>

@@ -866,7 +866,7 @@ export default function SavingsPage() {
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted text-sm">{balanceBucketLabels.savingsBalance}</span>
-          <span className="font-semibold tabular-nums text-brand">
+          <span className="font-semibold tabular-nums text-text">
             {confidentialBalancesLoading ? <LoadingAmount /> : `${formatUSDC(principal)} USDC`}
           </span>
         </div>
