@@ -16,9 +16,9 @@ type ToastInput = Omit<Toast, "id">;
 const ToastContext = createContext<((toast: ToastInput) => void) | undefined>(undefined);
 
 const toneClass: Record<ToastTone, string> = {
-  success: "border-success/35 bg-success/10 text-success",
-  error: "border-danger/35 bg-danger/10 text-danger",
-  info: "border-text/20 bg-white/35 text-text",
+  success: "border-success/45 text-text",
+  error: "border-danger/45 text-text",
+  info: "border-text/25 text-text",
 };
 
 const dotClass: Record<ToastTone, string> = {

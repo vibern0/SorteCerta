@@ -6,6 +6,10 @@ const homePage = await readFile(
   new URL("../src/app/page.tsx", import.meta.url),
   "utf8",
 );
+const savingsPage = await readFile(
+  new URL("../src/app/savings/page.tsx", import.meta.url),
+  "utf8",
+);
 
 test("uses the standard text color for both account balances", () => {
   assert.match(
@@ -14,6 +18,13 @@ test("uses the standard text color for both account balances", () => {
   );
   assert.match(
     homePage,
+    /savingsBalance\}<\/span>\s*<span className="font-semibold tabular-nums text-text">[\s\S]*?formatUSDC\(principal\)[\s\S]*?USDC/,
+  );
+});
+
+test("uses the standard text color for the savings page balance", () => {
+  assert.match(
+    savingsPage,
     /savingsBalance\}<\/span>\s*<span className="font-semibold tabular-nums text-text">[\s\S]*?formatUSDC\(principal\)[\s\S]*?USDC/,
   );
 });

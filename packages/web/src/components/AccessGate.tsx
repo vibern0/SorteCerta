@@ -115,7 +115,7 @@ export function AccessGate({ children }: { children: ReactNode }) {
   }
 
   return (
-    <main className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center overflow-hidden px-5 py-8 md:min-h-[calc(100vh-48px)] md:px-8">
+    <main className="relative mx-auto flex min-h-[100svh] w-full max-w-5xl flex-col justify-start overflow-hidden px-5 pb-8 pt-7 md:min-h-[calc(100vh-48px)] md:justify-center md:px-8 md:py-8">
       <div className="pointer-events-none absolute right-[-5rem] top-10 h-52 w-52 rounded-full border-[30px] border-[var(--peach)] opacity-70" />
       <div className="pointer-events-none absolute bottom-8 left-[-4rem] h-44 w-44 rotate-[-12deg] rounded-[42%_58%_52%_48%] bg-[var(--lilac)] opacity-60" />
 
