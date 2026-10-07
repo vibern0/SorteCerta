@@ -10,7 +10,7 @@ import {
   morphoYieldAdapterAbi,
   unwrapFinalizedEvent,
   unwrapRequestedEvent,
-} from "@sortecerta/protocol";
+} from "@kettigo/protocol";
 import {
   buildInclusiveBlockRanges,
   chooseMorphoKeeperActions,
@@ -298,6 +298,43 @@ export default async () => {
 
   const publicClient = createPublicClient({ chain: sepolia, transport: http(rpcUrl) });
   const walletClient = createWalletClient({ account, chain: sepolia, transport: http(rpcUrl) });
+  const result = await runMorphoKeeper({
+    rpcUrl,
+    pool,
+    account,
+    publicClient,
+    walletClient,
+    maxTransactions,
+    startBlock,
+    pendingUnwrapRequestId,
+    skipUnwrapLogScan,
+  });
+  return new Response(JSON.stringify(result), {
+    headers: { "content-type": "application/json" },
+  });
+};
+
+export async function runMorphoKeeper({
+  rpcUrl,
+  pool,
+  account,
+  publicClient,
+  walletClient,
+  maxTransactions,
+  startBlock,
+  pendingUnwrapRequestId,
+  skipUnwrapLogScan,
+}: {
+  rpcUrl: string;
+  pool: Hex;
+  account: PrivateKeyAccount;
+  publicClient: ReturnType<typeof createPublicClient>;
+  walletClient: ReturnType<typeof createWalletClient>;
+  maxTransactions: number;
+  startBlock: bigint;
+  pendingUnwrapRequestId?: Hex;
+  skipUnwrapLogScan?: boolean;
+}) {
   const transactions: Array<{ action: MorphoKeeperAction; hash: Hex }> = [];
 
   for (let i = 0; i < maxTransactions; i++) {
@@ -311,10 +348,8 @@ export default async () => {
   }
 
   console.log(JSON.stringify({ transactions }));
-  return new Response(JSON.stringify({ transactions }), {
-    headers: { "content-type": "application/json" },
-  });
-};
+  return { transactions };
+}
 
 export const config = {
   schedule: "*/5 * * * *",

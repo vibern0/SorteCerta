@@ -3,6 +3,7 @@
   "name": "kettigo-landing",
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-25",
+  "workers_dev": true,
   "observability": { "enabled": true },
   "assets": {
     "directory": "./dist",
@@ -13,8 +14,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "kettigo",
-      "database_id": "d6cfede8-60bb-45dc-b342-60e6da48f1e4",
+      "database_name": "kettigo-landing",
+      "database_id": "f6f8c304-fa39-495d-8307-d01f3899968a",
       "migrations_dir": "migrations"
     }
   ],
@@ -22,7 +23,8 @@
     "d1_databases": [
       {
         "binding": "DB",
-        "database_id": "d6cfede8-60bb-45dc-b342-60e6da48f1e4",
+        "database_name": "kettigo-landing",
+        "database_id": "f6f8c304-fa39-495d-8307-d01f3899968a",
         "migrations_dir": "migrations"
       }
     ]

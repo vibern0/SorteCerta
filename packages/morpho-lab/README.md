@@ -1,6 +1,6 @@
-# SorteCerta Morpho Lab
+# Kettigo Morpho Lab
 
-This is a local technical playground for inspecting the SorteCerta Morpho
+This is a local technical playground for inspecting the Kettigo Morpho
 integration against one fixed Ethereum Sepolia deployment. It is not part of
 the hosted consumer app and is not a deployed or hosted operator service.
 
@@ -40,7 +40,7 @@ in the dashboard and checked against the adapter and Morpho market parameters:
 | WETH | `0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9` |
 | ConfidentialUSDC wrapper | `0x6B26B258436bcCE719Be8F9B30F87FDFD9BdFA8a` |
 | ConfidentialPrizePool | `0xe65D6459a7Ce01315FbB0998C37233c6FeE3aB8b` |
-| MorphoYieldAdapter | `0x784C2020a2fbf4a106881E37B673A93604A9559D` |
+| MorphoYieldAdapter | `0xb2dAb46E04c875E6C8c1B966cFC3E1f40f063e90` |
 | Morpho Blue | `0xd011EE229E7459ba1ddd22631eF7bF528d424A14` |
 | Morpho market ID | `0x8c561f0929c3a3e2b20fba99c2ae15fc57b4d0599e4371b67c9a58388a27b9d2` |
 

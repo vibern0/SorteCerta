@@ -32,7 +32,7 @@ if (mode === 'sdk') {
 const snapshot = { pool: {drawId: 1n, publicPrizeReserve: 25000000n, nextDrawAt: 1n} };
 createRoot(document.getElementById('root')).render(mode === 'config'
   ? <App env={{VITE_MORPHO_ADDRESS:'bad'}}/>
-  : <main className="lab-shell"><h1>SorteCerta Morpho Lab</h1><div className="dashboard-grid">
+  : <main className="lab-shell"><h1>Kettigo Morpho Lab</h1><div className="dashboard-grid">
       <dl><Metric label="Market ID" value="0x123" copyValue="0x123"/></dl>
       <MetaMaskProvider config={config}><OperatorPanel config={config} snapshot={snapshot} refresh={async()=>snapshot} stale={false}/></MetaMaskProvider>
     </div></main>);

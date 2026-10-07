@@ -3,7 +3,7 @@
 ## Purpose
 
 Build a polished public acquisition site for crypto-native USDC holders while
-keeping the existing SorteCerta product application unchanged. The landing site
+keeping the existing Kettigo product application unchanged. The landing site
 explains the prize-savings product in accessible language and converts approved
 visitors through an invitation-only waitlist.
 
@@ -41,8 +41,8 @@ implementation does not fabricate resource identifiers or secrets.
 
 The page uses a fixed dark theme and follows this hierarchy:
 
-1. A header with the SorteCerta identity, anchors for “How it works” and “Why
-   SorteCerta,” and a “Join the waitlist” action.
+1. A header with the Kettigo identity, anchors for “How it works” and “Why
+   Kettigo,” and a “Join the waitlist” action.
 2. A prize-led hero headed “Make your USDC feel lucky.” It explains that users
    save in USDC, remain eligible at the end of a draw, and stay in control of
    their money. The primary action scrolls to the invitation form; the

@@ -1,11 +1,11 @@
-# SorteCerta
+# Kettigo
 
 > Your savings, with a chance to win. Test version on Ethereum Sepolia.
 
-**Live app:** https://sortecerta.netlify.app
+**Live app:** https://kettigo.netlify.app
 
 Mobile-first confidential prize-savings app for the Zama Developer Program
-Mainnet Season 4 bounty. SorteCerta recreates the core PoolTogether no-loss
+Mainnet Season 4 bounty. Kettigo recreates the core PoolTogether no-loss
 mechanic on Ethereum Sepolia using Zama FHE; it does not integrate with the
 official PoolTogether protocol.
 
@@ -36,7 +36,7 @@ official PoolTogether protocol.
 ## Repo layout
 
 ```
-sortecerta/
+kettigo/
   packages/
     contracts/   # Hardhat — ConfidentialUSDC, ConfidentialPrizePool, mocks
     landing/     # Vite + Cloudflare Worker — see [Landing site operations](packages/landing/README.md)
@@ -94,7 +94,7 @@ claims, and Morpho yield routing.
 
 Frontend:
 
-- **Live app:** https://sortecerta.netlify.app
+- **Live app:** https://kettigo.netlify.app
 - **Host:** Netlify
 - **Status:** fresh safe-withdrawals contracts deployed; run a new app
   end-to-end exercise before judging from the live URL.
@@ -108,10 +108,10 @@ keeper configuration must point to the same pool.
 
 - **USDC underlying:** `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`
 - **ConfidentialUSDC:** `0x6B26B258436bcCE719Be8F9B30F87FDFD9BdFA8a`
-- **ConfidentialPrizePool:** `0x3d974cEF83CaC5BfD970CA95E121774eb8C9f233`
-- **MorphoYieldAdapter:** `0x84B120Db8b600DE01A49143cf515246B79afcfef`
+- **ConfidentialPrizePool:** `0xe65D6459a7Ce01315FbB0998C37233c6FeE3aB8b`
+- **MorphoYieldAdapter:** `0xb2dAb46E04c875E6C8c1B966cFC3E1f40f063e90`
 - **Chain:** Ethereum Sepolia (`11155111`)
-- **Draw interval:** `900` seconds for Morpho-yield demo testing
+- **Draw interval:** `86400` seconds (24 hours)
 - **Withdrawal batch interval:** `300` seconds; delivery continues automatically
   after settlement, subject to proof availability and market liquidity.
 - **Pool deployment transaction:** `0x2f4bd61e8879daf74a709c9bda2acea4c63b37d85a35aaf1c65c3b002153d904`
@@ -122,7 +122,7 @@ Frontend env values:
 ```bash
 NEXT_PUBLIC_USDC_ADDRESS=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS=0x6B26B258436bcCE719Be8F9B30F87FDFD9BdFA8a
-NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0x3d974cEF83CaC5BfD970CA95E121774eb8C9f233
+NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS=0xe65D6459a7Ce01315FbB0998C37233c6FeE3aB8b
 NEXT_PUBLIC_CHAIN_ID=11155111
 ```
 
@@ -160,7 +160,7 @@ Explorer links use the Sepolia Etherscan transaction URL format:
 
 ## How to test the live app
 
-Use the hosted app at https://sortecerta.netlify.app.
+Use the hosted app at https://kettigo.netlify.app.
 
 1. Create an account in the app.
 2. Fund that account with Circle's faucet: https://faucet.circle.com.
@@ -425,7 +425,7 @@ Important current limitations:
 ## Where to go from here
 
 1. Keep the funded Netlify app and Sepolia contracts available for judges:
-   https://sortecerta.netlify.app.
+   https://kettigo.netlify.app.
 2. Record the real-person demo using the verified hosted flow.
 3. Publish the X thread/article and add the final link here.
 4. Continue hardening after submission: draw-start snapshots, larger participant

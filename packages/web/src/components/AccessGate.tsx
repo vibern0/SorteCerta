@@ -2,6 +2,12 @@
 
 import { FormEvent, ReactNode, useEffect, useState } from "react";
 import { checkAccess, claimAccess, joinWaitlist } from "@/lib/access";
+import {
+  hasCachedApprovedAccess,
+  readCachedApprovedEmail,
+  rememberApprovedAccess,
+  rememberApprovedEmail,
+} from "@/lib/access-cache";
 import { useWallet } from "@/lib/wallet-context";
 import { ConnectButton } from "./ConnectButton";
 
@@ -23,7 +29,18 @@ export function AccessGate({ children }: { children: ReactNode }) {
         setGateState("checking");
         return;
       }
+      if (session && hasCachedApprovedAccess({ email: session.email ?? "", walletAddress: session.address })) {
+        setGateState("approved");
+        return;
+      }
       if (!session) {
+        const cachedEmail = readCachedApprovedEmail();
+        if (cachedEmail) {
+          setApprovedEmail(cachedEmail);
+          setGateState("ready");
+          setStatus("Access is ready. Sign in with this same email to continue.");
+          return;
+        }
         setGateState((current) => (current === "ready" ? "ready" : "email"));
         return;
       }
@@ -56,6 +73,7 @@ export function AccessGate({ children }: { children: ReactNode }) {
         });
         if (cancelled) return;
         if (result.ok) {
+          rememberApprovedAccess({ email: session.email, walletAddress: session.address });
           setGateState("approved");
           return;
         }
@@ -87,7 +105,9 @@ export function AccessGate({ children }: { children: ReactNode }) {
     try {
       const access = await checkAccess(email);
       if (access.ok) {
-        setApprovedEmail(email.trim().toLowerCase());
+        const normalizedEmail = email.trim().toLowerCase();
+        rememberApprovedEmail(normalizedEmail);
+        setApprovedEmail(normalizedEmail);
         setGateState("ready");
         setStatus("Access is ready. Sign in with this same email to continue.");
         return;
@@ -129,7 +149,7 @@ export function AccessGate({ children }: { children: ReactNode }) {
               Your savings, with a chance to win.
             </h1>
             <p className="max-w-xl text-base leading-relaxed text-muted md:text-lg">
-              SorteCerta is opening gradually. Check your email first, then sign in with that same email when your
+              Kettigo is opening gradually. Check your email first, then sign in with that same email when your
               access is ready.
             </p>
           </div>

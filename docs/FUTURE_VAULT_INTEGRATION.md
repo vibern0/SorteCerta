@@ -10,7 +10,7 @@ and available yield infrastructure, see
 ## Goal
 
 Reduce custom yield and settlement code by evaluating a curated Morpho ERC-4626
-vault and the OpenZeppelin batching primitive used by Zama. Keep SorteCerta's
+vault and the OpenZeppelin batching primitive used by Zama. Keep Kettigo's
 encrypted principal, draw eligibility, FHE winner selection, and prize accounting.
 Users should make one withdrawal request; background services complete delivery
 and the UI shows pending funds until USDC actually arrives.
@@ -19,7 +19,7 @@ and the UI shows pending funds until USDC actually arrives.
 
 - Zama announced 16 confidential Morpho vaults across five asset classes on
   September 15. This establishes live Ethereum products, not a verified,
-  yield-producing Sepolia integration for SorteCerta.
+  yield-producing Sepolia integration for Kettigo.
 - Our current `MorphoYieldAdapter` manages a Morpho Blue market position directly.
   A vault adapter could instead use deposit, withdraw/redeem, and share valuation,
   leaving market allocation to the selected vault's curator and allocators.

@@ -1,6 +1,6 @@
 # Privacy and Keeper Notes
 
-SorteCerta is in an early experimental phase. The current production guardrail is
+Kettigo is in an early experimental phase. The current production guardrail is
 a `1,000 USDC` principal limit per account, enforced by `ConfidentialPrizePool`
 and mirrored in the deposit UI.
 

@@ -24,7 +24,7 @@ import {
 } from "@/lib/action-center-model";
 import { cn } from "@/lib/cn";
 
-const STORAGE_KEY = "sortecerta:actions";
+const STORAGE_KEY = "kettigo:actions";
 
 type ActionRunnerControls = {
   id: string;

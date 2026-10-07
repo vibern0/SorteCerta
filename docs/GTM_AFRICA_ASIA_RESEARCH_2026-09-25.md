@@ -9,7 +9,7 @@ should sharpen the existing crypto-native GTM, rather than immediately expand
 it to mainstream savers.
 
 This is a research priority, not a finding that any jurisdiction has approved
-SorteCerta. No provider was contacted, commercial quote obtained, or live
+Kettigo. No provider was contacted, commercial quote obtained, or live
 transaction tested. Published coverage is evidence of a possible route, not
 confirmed acceptance of our business model.
 
@@ -29,7 +29,7 @@ Chainalysis's index published on 23 September 2026 ranks Nigeria third,
 Thailand eighth, South Africa ninth, Indonesia fourteenth, Vietnam eighteenth,
 and the Philippines nineteenth. Its methodology changed this year; do not
 interpret changes from the 2025 ranking as pure growth or decline. These are
-activity indicators, not counts of prospective SorteCerta customers.
+activity indicators, not counts of prospective Kettigo customers.
 [Source: 2026 adoption index](https://www.chainalysis.com/blog/2026-global-crypto-adoption-index/).
 
 The IMF's June 2026 analysis describes Nigerian stablecoin use for cross-border
@@ -84,7 +84,7 @@ or extend a bank's permissions to a DeFi app.
 Nigeria's SEC lists Busha and Quidax as ARIP participants. Treat that as the
 specific status shown, not unlimited authorisation. A May 2026 SEC notice says
 registration is required to promote investment services or solicit funds in the
-Nigerian capital market. Counsel must determine SorteCerta's treatment, including
+Nigerian capital market. Counsel must determine Kettigo's treatment, including
 the applicable federal/state prize and promotion rules, before commercial GTM.
 [SEC register](https://sec.gov.ng/fintech-and-innovation-hub-finport/registered-fintech-operators/),
 [SEC notice](https://sec.gov.ng/for-investors/keep-track-of-circulars/public-notice-unregistered-online-investment-schemes/).
@@ -99,7 +99,7 @@ needed for household spending.
 Busha documents M-Pesa funding and withdrawal, and marks KES ramp buy/sell as
 supported. Its USDC limitation above still applies. Kotani Pay advertises USDC
 and USDT on/off ramps and is another candidate for diligence, without proving
-the exact Kenyan corridor or approval for SorteCerta.
+the exact Kenyan corridor or approval for Kettigo.
 [Busha channels](https://docs.busha.co/guide/reference/supported-countries-and-payment-channels),
 [Kotani Pay](https://www.kotanipay.com/on-off-ramp).
 
@@ -130,7 +130,7 @@ network costs remain additional and require fresh quotes.
 Two regulatory findings materially lower its priority. BSP continued its new
 VASP licence moratorium from September 2025. In June 2026, BSP's coin/token
 listing guidance prohibited VASPs from listing/supporting anonymity-enhancing
-virtual assets. Whether SorteCerta's FHE wrapper or associated flows fall within
+virtual assets. Whether Kettigo's FHE wrapper or associated flows fall within
 that restriction is unresolved. Supporting ordinary USDC does not answer that
 question, and unwrapping before cash-out is not automatically a legal solution.
 [Moratorium](https://www.bsp.gov.ph/Regulations/Issuances/2025/M-2025-031.pdf),
@@ -166,7 +166,7 @@ evidence that a foreign USDC prize pool has an easy compliant route.
 
 **Indonesia:** OJK's December 2025 rules strengthen the regulated trading
 framework and asset-list requirements. No researched source establishes a
-clear permission pathway for SorteCerta's combination of savings, yield, and
+clear permission pathway for Kettigo's combination of savings, yield, and
 random prizes. This is an evidence gap, not a finding that crypto trading is
 prohibited.
 [OJK rules update](https://www.ojk.go.id/id/berita-dan-kegiatan/siaran-pers/Pages/POJK-23-Tahun-2025-Perubahan-POJK-27-Tahun-2024-Penyelenggaraan-Perdagangan-Aset-Keuangan-Digital-Termasuk-Aset-Kripto.aspx).
@@ -210,7 +210,7 @@ safety claims.
 
 For interviews, compare the existing simple positioning with a prize-focused
 version while respecting product copy rules. Explain eligibility at the end of
-each draw. Test whether the name SorteCerta is understood and trusted locally
+each draw. Test whether the name Kettigo is understood and trusted locally
 before deciding to rebrand.
 
 ## Proposed validation, before a commercial launch decision

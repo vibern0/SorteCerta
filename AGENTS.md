@@ -1,4 +1,4 @@
-# SorteCerta Agent Notes
+# Kettigo Agent Notes
 
 Read [docs/BOUNTY_SCOPE.md](docs/BOUNTY_SCOPE.md) and
 [docs/ROADMAP.md](docs/ROADMAP.md) before making architecture, contract,
@@ -45,7 +45,7 @@ architecture.
 
 ## Product copy rules
 
-- Write user-facing product copy for everyday people and assume SorteCerta is a
+- Write user-facing product copy for everyday people and assume Kettigo is a
   finished product, not a demo.
 - Do not mention implementation/privacy words like "encrypted", "confidential",
   "public", "private", "decrypted", "mock", "mocked", "testnet", "Sepolia",

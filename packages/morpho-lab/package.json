@@ -1,9 +1,9 @@
 {
-  "name": "@sortecerta/morpho-lab",
+  "name": "@kettigo/morpho-lab",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Local-only Morpho technical playground for SorteCerta.",
+  "description": "Local-only Morpho technical playground for Kettigo.",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
@@ -11,7 +11,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@sortecerta/protocol": "workspace:*",
+    "@kettigo/protocol": "workspace:*",
     "@zama-fhe/relayer-sdk": "0.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

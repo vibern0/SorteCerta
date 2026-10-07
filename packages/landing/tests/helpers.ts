@@ -19,7 +19,7 @@ export function makeRequest(email: string, overrides: RequestOverrides = {}): Re
       ...(overrides.attribution ? { attribution: overrides.attribution } : {}),
     } satisfies WaitlistRequest);
 
-  return new Request("https://sortecerta.com/api/waitlist", {
+  return new Request("https://kettigo.com/api/waitlist", {
     method: "POST",
     headers: { "content-type": overrides.contentType ?? "application/json" },
     body: typeof body === "string" ? body : JSON.stringify(body),

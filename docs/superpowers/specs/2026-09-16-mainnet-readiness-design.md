@@ -1,8 +1,8 @@
-# SorteCerta Mainnet Readiness Design
+# Kettigo Mainnet Readiness Design
 
 ## Purpose
 
-This design defines the work required to move SorteCerta from its Ethereum
+This design defines the work required to move Kettigo from its Ethereum
 Sepolia bounty deployment to a limited-value Ethereum mainnet beta using real
 USDC and Morpho yield. The Sepolia deployment remains the bounty submission and
 must stay operational while mainnet work proceeds in a separate deployment.
@@ -95,7 +95,7 @@ Mainnet deployment cannot proceed until the exact Zama Solidity package,
 relayer SDK, Ethereum host contracts, relayer URL, and public/user-decryption
 flows pass a funded Ethereum mainnet canary. If production Zama infrastructure
 does not support the required flows, the project stays on Sepolia; it does not
-ship a plaintext fallback under the SorteCerta mainnet brand.
+ship a plaintext fallback under the Kettigo mainnet brand.
 
 ## Rollout stages
 

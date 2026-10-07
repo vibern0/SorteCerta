@@ -7,7 +7,7 @@ Approved for implementation planning on 2026-09-22.
 ## Goal
 
 Create `packages/protocol` as the single reusable TypeScript boundary for
-Morpho behavior and SorteCerta contract integration shared by the consumer web
+Morpho behavior and Kettigo contract integration shared by the consumer web
 application, the local Morpho lab, and server-side keepers.
 
 The package must remove duplicate market types, arithmetic, tuple parsing,
@@ -16,18 +16,18 @@ contracts, configured Sepolia addresses, transaction semantics, or user-facing
 flows.
 
 Official Morpho SDK functionality is the source of truth wherever it exists.
-`@sortecerta/protocol` supplies only the missing SorteCerta-specific layer and
+`@kettigo/protocol` supplies only the missing Kettigo-specific layer and
 small compatibility adapters needed by the current Sepolia deployment.
 
 ## Scope And Ownership
 
-`@sortecerta/protocol` owns deterministic, environment-independent behavior:
+`@kettigo/protocol` owns deterministic, environment-independent behavior:
 
 - selected Morpho entities, types, arithmetic, and standard ABIs sourced from
   the official SDK;
 - checksummed construction and comparison of Morpho market parameters;
 - strict decoding of custom adapter and contract tuple results;
-- SorteCerta contract ABIs used outside the Solidity package;
+- Kettigo contract ABIs used outside the Solidity package;
 - typed contract reads that accept an RPC client and explicit block number;
 - snapshot functions that pin every associated read to one block;
 - protocol transaction request builders that do not submit or sign; and
@@ -77,7 +77,7 @@ explicit; consumers must not depend on package-internal paths.
 The package will be private and workspace-local. It will expose TypeScript
 source through package exports so Next.js and Vite can compile it in the same
 way as consumer source. The Next.js configuration will transpile
-`@sortecerta/protocol`. Root scripts and package tests will exercise the shared
+`@kettigo/protocol`. Root scripts and package tests will exercise the shared
 package directly.
 
 ## Official Morpho SDK Boundary
@@ -92,7 +92,7 @@ Use the currently compatible official packages as the implementation source:
   or peer interfaces.
 
 The protocol package must not copy SDK formulas or standard Morpho ABIs. Thin
-wrappers are acceptable when they enforce SorteCerta invariants or preserve a
+wrappers are acceptable when they enforce Kettigo invariants or preserve a
 stable local interface.
 
 `sameMarketParams` is replaced by canonical identity comparison. Inputs are
@@ -103,7 +103,7 @@ passed to SDK and relayer operations is checksummed.
 The generic SDK fetchers will not own current Sepolia reads. The published
 Morpho address registry does not provide this custom Sepolia deployment, and
 registering custom addresses would introduce mutable global configuration.
-Instead, SorteCerta keeps explicit deployment addresses and uses SDK entities,
+Instead, Kettigo keeps explicit deployment addresses and uses SDK entities,
 math, and ABIs inside read functions that accept those addresses directly.
 
 The high-level `@morpho-org/morpho-sdk` transaction layer is outside this
@@ -201,7 +201,7 @@ package unless a later duplication review finds identical formatting behavior.
 Standard Morpho ABIs are imported from `@morpho-org/blue-sdk-viem`; local
 copies are removed after all consumers migrate.
 
-SorteCerta-specific ABIs are exported from `@sortecerta/protocol`:
+Kettigo-specific ABIs are exported from `@kettigo/protocol`:
 
 - `ConfidentialPrizePool` functions and events used by applications and
   keepers;
@@ -218,7 +218,7 @@ deferred explicitly rather than adding a second build system to this refactor.
 
 Ownership moves in independently verifiable stages:
 
-1. Add `@sortecerta/protocol`, canonical amount parsing, and tests.
+1. Add `@kettigo/protocol`, canonical amount parsing, and tests.
 2. Replace consumer market parameter types, decoding, and equality with the
    SDK-backed protocol exports.
 3. Replace copied Morpho arithmetic with official SDK-backed calculations,
@@ -226,7 +226,7 @@ Ownership moves in independently verifiable stages:
 4. Move pinned Morpho read and yield projection primitives into the protocol
    package while retaining consumer refresh orchestration.
 5. Replace standard Morpho ABIs with official exports and consolidate
-   SorteCerta ABIs.
+   Kettigo ABIs.
 6. Migrate transaction request builders that are genuinely identical across
    consumers.
 7. Remove the old implementations only after their consumers and equivalence

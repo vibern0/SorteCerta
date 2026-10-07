@@ -26,7 +26,7 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     uint256 public constant MAX_PARTICIPANTS = 32;
     uint64 public constant MAX_USER_PRINCIPAL = 1_000_000_000;
     uint64 public constant MAX_TOTAL_PRINCIPAL = uint64(MAX_PARTICIPANTS) * MAX_USER_PRINCIPAL;
-    bytes4 public constant PRIZE_FUNDING_DATA = bytes4(keccak256("SorteCerta.prize"));
+    bytes4 public constant PRIZE_FUNDING_DATA = bytes4(keccak256("Kettigo.prize"));
 
     IERC7984 public immutable token;
     address public immutable owner;

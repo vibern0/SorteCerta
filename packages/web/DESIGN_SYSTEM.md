@@ -1,8 +1,8 @@
-# SorteCerta Design System
+# Kettigo Design System
 
 ## Direction
 
-SorteCerta uses warm glassmorphism over an organic aurora mesh. The interface should feel calm, tactile, friendly, and trustworthy. Depth comes from translucent layers and diffused light, never heavy shadows or high-saturation gradients.
+Kettigo uses warm glassmorphism over an organic aurora mesh. The interface should feel calm, tactile, friendly, and trustworthy. Depth comes from translucent layers and diffused light, never heavy shadows or high-saturation gradients.
 
 ## Color
 
@@ -29,7 +29,7 @@ Use `.card` for content containers and `.glass-surface` when a custom container 
 
 ## Typography
 
-SorteCerta uses a two-font system. TT Ramillas is the display family for page titles, card titles, section labels, and buttons. It brings a softer editorial serif voice to the warm glass UI without taking over dense reading.
+Kettigo uses a two-font system. TT Ramillas is the display family for page titles, card titles, section labels, and buttons. It brings a softer editorial serif voice to the warm glass UI without taking over dense reading.
 
 TT Interphases Pro Mono is the body family for regular text, supporting paragraphs, data, captions, addresses, and card copy. Its monospaced structure gives the product a precise financial feel while Ramillas keeps the brand warm.
 

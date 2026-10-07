@@ -2,7 +2,7 @@ import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
-const DEFAULT_SITE_URL = "https://sortecerta.com";
+const DEFAULT_SITE_URL = "https://kettigo.com";
 
 export function resolveSiteUrl(value = process.env.VITE_SITE_URL): string {
   const trimmed = value?.trim();

@@ -1,8 +1,8 @@
-# SorteCerta Go-To-Market
+# Kettigo Go-To-Market
 
 ## Summary
 
-SorteCerta has a real user and investor wedge, but it should not launch as a
+Kettigo has a real user and investor wedge, but it should not launch as a
 generic savings app. The strongest near-term market is crypto-native USDC users
 who understand onchain deposits, like prize-based upside, and care that their
 balances and winnings are not exposed to everyone.
@@ -10,7 +10,7 @@ balances and winnings are not exposed to everyone.
 The broader prize-linked savings category has behavioral evidence from consumer
 finance research. PoolTogether validates that the mechanic can work onchain,
 but it is a competitor and a market reference, not a user-acquisition channel.
-SorteCerta's differentiated angle is private prize-linked stablecoin savings:
+Kettigo's differentiated angle is private prize-linked stablecoin savings:
 users keep their principal, stay eligible for deposit-weighted prizes, and avoid
 making personal savings activity fully visible onchain.
 
@@ -20,7 +20,7 @@ the main destination for broad marketing traffic.
 
 ## Product Positioning
 
-SorteCerta is a no-loss USDC savings app where every saved dollar gives the user
+Kettigo is a no-loss USDC savings app where every saved dollar gives the user
 more chances to win prizes.
 
 For internal strategy, the differentiator is confidential prize-linked savings:
@@ -92,7 +92,7 @@ Source: [Federal Reserve, "Stablecoins in 2025"](https://www.federalreserve.gov/
 PoolTogether proves that crypto-native users will deposit into a no-loss prize
 savings protocol. DefiLlama tracks PoolTogether V5 as an active yield-lottery
 protocol with current TVL and fee data. Its scale and volatility suggest a real
-but narrow category rather than automatic mass-market demand. SorteCerta should
+but narrow category rather than automatic mass-market demand. Kettigo should
 learn from that evidence without recruiting from PoolTogether-owned communities.
 
 Source: [DefiLlama, PoolTogether V5](https://enterprise.defillama.com/protocol/pooltogether-v5)
@@ -129,7 +129,7 @@ Source: [Zama Protocol update](https://www.zama.org/post/zama-protocol-update-ne
 These users already understand wallets, stablecoins, deposits, gas, and DeFi
 risk. They are the lowest-friction early adopters.
 
-Why they might use SorteCerta:
+Why they might use Kettigo:
 
 - They hold idle USDC.
 - They like upside but do not want to risk principal in trading.
@@ -148,7 +148,7 @@ Where to find them:
 ### 2. Zama ecosystem early adopters
 
 These users understand confidential assets, tolerate early infrastructure, and
-can evaluate whether SorteCerta turns Zama's technology into a useful consumer
+can evaluate whether Kettigo turns Zama's technology into a useful consumer
 experience. They are likely to become reviewers and advocates before they
 become large depositors.
 
@@ -164,7 +164,7 @@ What to test:
 These users are attracted to chance-based upside but should not be asked to
 learn DeFi first. They are a later segment after onboarding is much simpler.
 
-Why they might use SorteCerta:
+Why they might use Kettigo:
 
 - The emotional hook is familiar: a chance to win.
 - The rational hook is stronger than lottery tickets: principal can be
@@ -181,7 +181,7 @@ Main blocker:
 These users care less about lottery psychology and more about financial
 discretion.
 
-Why they might use SorteCerta:
+Why they might use Kettigo:
 
 - They do not want public balance tracking.
 - They want consumer-friendly examples of confidential DeFi.
@@ -192,7 +192,7 @@ Why they might use SorteCerta:
 ### Best initial investor fit: crypto privacy and infrastructure funds
 
 These investors already believe FHE and confidential smart contracts matter.
-They are most likely to understand SorteCerta before there is mainstream
+They are most likely to understand Kettigo before there is mainstream
 traction.
 
 Targets to research and approach:
@@ -209,7 +209,7 @@ Targets to research and approach:
 
 Pitch angle:
 
-> SorteCerta is a consumer DeFi app that makes confidential smart contracts
+> Kettigo is a consumer DeFi app that makes confidential smart contracts
 > tangible: private balances, private prize discovery, and a simple savings
 > behavior users already understand.
 
@@ -220,13 +220,13 @@ retention, and distribution.
 
 Pitch angle:
 
-> PoolTogether proved no-loss prize savings works in DeFi. SorteCerta brings the
+> PoolTogether proved no-loss prize savings works in DeFi. Kettigo brings the
 > mechanic to confidential stablecoin savings, where privacy is part of the
 > product value instead of a technical footnote.
 
 ### Third fit: consumer fintech investors
 
-These investors are more likely to wait until SorteCerta has real usage,
+These investors are more likely to wait until Kettigo has real usage,
 regulatory clarity, and a simple onboarding path.
 
 Relevant prior investors in the category:
@@ -243,7 +243,7 @@ Relevant prior investors in the category:
 
 Pitch angle:
 
-> Prize-linked savings apps have already shown consumer demand. SorteCerta
+> Prize-linked savings apps have already shown consumer demand. Kettigo
 > rebuilds the mechanic with user-controlled stablecoin savings and onchain
 > transparency where it helps, while shielding personal balances and winnings.
 
@@ -252,25 +252,25 @@ Pitch angle:
 ### PoolTogether
 
 PoolTogether is the most important reference point. It validates the no-loss
-prize savings mechanic in DeFi. SorteCerta should not compete by claiming to be
+prize savings mechanic in DeFi. Kettigo should not compete by claiming to be
 "PoolTogether but smaller." It should compete by being the private stablecoin
 prize-savings experience. PoolTogether's Discord, forum, Reddit, and other
 owned communities are explicitly out of scope as acquisition channels. This
 avoids building distribution on a competitor's audience or presenting
-SorteCerta as a derivative community project.
+Kettigo as a derivative community project.
 
 ### Yotta and PrizePool
 
 Yotta and PrizePool validate consumer demand and investor interest. They also
 show the risks of relying on opaque fintech infrastructure and partner-bank
-chains. SorteCerta should learn from their user psychology while avoiding claims
+chains. Kettigo should learn from their user psychology while avoiding claims
 that imply bank-like guarantees.
 
 ### Standard yield apps
 
 Aave, Morpho vaults, Superlend-style products, and other yield apps compete for
-idle USDC. SorteCerta should not try to beat them on APY. The reason to choose
-SorteCerta is the prize experience, principal control, and personal financial
+idle USDC. Kettigo should not try to beat them on APY. The reason to choose
+Kettigo is the prize experience, principal control, and personal financial
 discretion.
 
 ## Core GTM Wedge
@@ -287,7 +287,7 @@ requires stronger compliance, fiat onboarding, education, and trust signals.
 
 ### Phase 1: Credibility inside the Zama ecosystem
 
-Goal: turn SorteCerta from a bounty demo into a credible showcase of
+Goal: turn Kettigo from a bounty demo into a credible showcase of
 confidential DeFi.
 
 Actions:
@@ -327,7 +327,7 @@ Success metrics:
 - Repeat deposit behavior.
 - Users checking draw results without reminders.
 - Low withdrawal panic after draws.
-- Users can explain SorteCerta in one sentence.
+- Users can explain Kettigo in one sentence.
 
 ### Phase 3: Investor-facing traction package
 
@@ -354,7 +354,7 @@ Save in USDC and get chances to win, while staying in control of your money.
 
 ### For DeFi users
 
-SorteCerta turns USDC saving into a draw: save, stay eligible at the end of each
+Kettigo turns USDC saving into a draw: save, stay eligible at the end of each
 draw, check whether you won, claim a prize if eligible, and request your money
 when you need it.
 
@@ -363,12 +363,12 @@ when you need it.
 This language belongs in technical material and investor conversations, not in
 user-facing product copy:
 
-SorteCerta is a consumer-grade confidential DeFi use case: encrypted balances,
+Kettigo is a consumer-grade confidential DeFi use case: encrypted balances,
 deposit-weighted FHE draws, private winnings, and user-controlled decryption.
 
 ### For investors
 
-SorteCerta combines a proven savings behavior with a new privacy primitive. The
+Kettigo combines a proven savings behavior with a new privacy primitive. The
 initial market is crypto-native USDC savers; the long-term market is anyone who
 wants savings upside without turning personal financial activity into a public
 feed.
@@ -380,7 +380,7 @@ feed.
 There is historical demand for the mechanic, supported by academic research,
 Yotta, PrizePool, and PoolTogether. The fintech examples also suffered serious
 trust or durability problems, while the onchain category remains relatively
-narrow. The open question is whether SorteCerta's combination of prize-based
+narrow. The open question is whether Kettigo's combination of prize-based
 saving, control, and financial discretion earns repeat behavior.
 
 ### "Is this regulated like gambling, banking, or securities?"
@@ -474,9 +474,9 @@ The primary metric is qualified repeat interest, not the raw waitlist count.
 When the web app moves to Cloudflare, keep the public acquisition funnel and
 the invited product experience separate:
 
-- `sortecerta.com` remains public and sends visitors to the waitlist. Protect
+- `kettigo.com` remains public and sends visitors to the waitlist. Protect
   the signup form with Cloudflare Turnstile and validate its token server-side.
-- `preview.sortecerta.com` hosts the invited product experience behind
+- `preview.kettigo.com` hosts the invited product experience behind
   Cloudflare Access.
 - Add each approved participant's email address to an Access allow policy and
   use Cloudflare's email one-time PIN login. Removing the address revokes future
@@ -533,7 +533,7 @@ preview and operations control, not a protocol security boundary.
 
 ## Bottom Line
 
-There are likely users for SorteCerta, but the first users are not mainstream
+There are likely users for Kettigo, but the first users are not mainstream
 banking customers. They are crypto-native USDC savers, Zama ecosystem early
 adopters, and privacy-conscious DeFi participants. There are also investors
 interested in the broader space, especially around FHE and confidential

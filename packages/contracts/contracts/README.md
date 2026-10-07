@@ -1,6 +1,6 @@
-# SorteCerta Contracts
+# Kettigo Contracts
 
-SorteCerta's active contract path is the confidential prize-savings protocol
+Kettigo's active contract path is the confidential prize-savings protocol
 used for the Zama bounty demo on Ethereum Sepolia.
 
 ## Active Contracts

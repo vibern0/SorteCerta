@@ -5,7 +5,7 @@
 Status: deferred until current automatic withdrawals work end to end.
 
 Evaluate a curated Morpho ERC-4626 vault, Morpho's SDK, and the OpenZeppelin
-batcher used by Zama. Preserve SorteCerta's prize logic and one-action USDC
+batcher used by Zama. Preserve Kettigo's prize logic and one-action USDC
 withdrawals. Research, tradeoffs, sources, and acceptance gates are documented in
 [`FUTURE_VAULT_INTEGRATION.md`](FUTURE_VAULT_INTEGRATION.md).
 
@@ -94,9 +94,9 @@ Current research snapshot from August 26, 2026:
   `0xd011EE229E7459ba1ddd22631eF7bF528d424A14`.
 - The observed USDC/WETH market uses USDC as `loanToken` and WETH as
   `collateralToken`.
-- SorteCerta would supply only USDC. Users do not deposit WETH.
+- Kettigo would supply only USDC. Users do not deposit WETH.
 - WETH is deposited by borrowers as collateral. Borrowers borrow USDC and pay
-  interest; SorteCerta earns that interest as the USDC supplier.
+  interest; Kettigo earns that interest as the USDC supplier.
 - Observed market id:
   `0x8c561f0929c3a3e2b20fba99c2ae15fc57b4d0599e4371b67c9a58388a27b9d2`.
 - Observed market parameters:
@@ -110,12 +110,12 @@ Current research snapshot from August 26, 2026:
 
 Integration shape:
 
-1. Keep user deposits as USDC into SorteCerta.
+1. Keep user deposits as USDC into Kettigo.
 2. Keep principal accounting and draw eligibility inside `ConfidentialPrizePool`.
 3. Add a separate owner/keeper-controlled yield adapter that supplies idle USDC
    to Morpho.
 4. Periodically withdraw realized yield from Morpho and fund the prize reserve.
-5. Do not expose Morpho positions as user balances; SorteCerta remains the pool
+5. Do not expose Morpho positions as user balances; Kettigo remains the pool
    accounting source of truth.
 
 Risks and open questions:

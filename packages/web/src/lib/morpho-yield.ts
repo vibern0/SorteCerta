@@ -1,10 +1,10 @@
-import type { ProjectedMorphoYield } from "@sortecerta/protocol";
+import type { ProjectedMorphoYield } from "@kettigo/protocol";
 
 export {
   projectMorphoYield,
   readProjectedMorphoYield,
   type ProjectedMorphoYield,
-} from "@sortecerta/protocol";
+} from "@kettigo/protocol";
 
 type BlockSnapshot = {
   blockNumber: bigint;

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
-  <title id="title">SorteCerta landing page wireframe C — Quiet invitation</title>
+  <title id="title">Kettigo landing page wireframe C — Quiet invitation</title>
   <desc id="desc">A restrained invitation-only landing page with a centered editorial message, a calm three-step line, and a dark waitlist band.</desc>
   <rect width="1440" height="900" fill="#f6f6f3"/>
   <rect x="28" y="28" width="1384" height="844" rx="18" fill="#ffffff" stroke="#242424" stroke-width="2"/>
@@ -8,7 +8,7 @@
   <circle cx="50" cy="48" r="5" fill="#a8a8a2"/><circle cx="68" cy="48" r="5" fill="#a8a8a2"/><circle cx="86" cy="48" r="5" fill="#a8a8a2"/>
 
   <g font-family="Arial, Helvetica, sans-serif" fill="#181818">
-    <text x="88" y="112" font-size="22" font-weight="700">SorteCerta</text>
+    <text x="88" y="112" font-size="22" font-weight="700">Kettigo</text>
     <text x="643" y="112" font-size="16" fill="#686864">The idea</text>
     <text x="744" y="112" font-size="16" fill="#686864">How it works</text>
     <rect x="1186" y="85" width="170" height="42" rx="6" fill="#ffffff" stroke="#242424" stroke-width="2"/>

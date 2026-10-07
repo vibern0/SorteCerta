@@ -1,4 +1,4 @@
-import type { ProtocolSnapshotData } from "@sortecerta/protocol";
+import type { ProtocolSnapshotData } from "@kettigo/protocol";
 
 export type {
   AccountSnapshot,
@@ -12,6 +12,6 @@ export type {
   PositionHealth,
   TokenSnapshot,
   WithdrawalBatchSnapshot,
-} from "@sortecerta/protocol";
+} from "@kettigo/protocol";
 
 export type ProtocolSnapshot = ProtocolSnapshotData & { refreshedAt: number };

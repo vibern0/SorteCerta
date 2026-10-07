@@ -5,6 +5,9 @@
   "compatibility_date": "2026-09-24",
   "workers_dev": true,
   "preview_urls": true,
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
   "assets": {
     "binding": "ASSETS",
     "directory": "out"
@@ -14,13 +17,15 @@
     "NEXT_PUBLIC_RPC_URL": "https://ethereum-sepolia-rpc.publicnode.com",
     "NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS": "0xe65D6459a7Ce01315FbB0998C37233c6FeE3aB8b",
     "NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS": "0x6B26B258436bcCE719Be8F9B30F87FDFD9BdFA8a",
-    "NEXT_PUBLIC_USDC_ADDRESS": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+    "NEXT_PUBLIC_USDC_ADDRESS": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    "DRAW_KEEPER_MINIMUM_PRIZE": "1000000",
+    "MORPHO_KEEPER_START_BLOCK": "11864127"
   },
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "kettigo",
-      "database_id": "d6cfede8-60bb-45dc-b342-60e6da48f1e4",
+      "database_name": "kettigo-landing",
+      "database_id": "f6f8c304-fa39-495d-8307-d01f3899968a",
       "migrations_dir": "../landing/migrations"
     }
   ],
@@ -30,12 +35,15 @@
       "NEXT_PUBLIC_RPC_URL": "https://ethereum-sepolia-rpc.publicnode.com",
       "NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS": "0xe65D6459a7Ce01315FbB0998C37233c6FeE3aB8b",
       "NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS": "0x6B26B258436bcCE719Be8F9B30F87FDFD9BdFA8a",
-      "NEXT_PUBLIC_USDC_ADDRESS": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+      "NEXT_PUBLIC_USDC_ADDRESS": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "DRAW_KEEPER_MINIMUM_PRIZE": "1000000",
+      "MORPHO_KEEPER_START_BLOCK": "11864127"
     },
     "d1_databases": [
       {
         "binding": "DB",
-        "database_id": "d6cfede8-60bb-45dc-b342-60e6da48f1e4",
+        "database_name": "kettigo-landing",
+        "database_id": "f6f8c304-fa39-495d-8307-d01f3899968a",
         "migrations_dir": "../landing/migrations"
       }
     ]

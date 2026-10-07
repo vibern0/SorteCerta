@@ -1,4 +1,4 @@
-import { parseAmount } from "@sortecerta/protocol";
+import { parseAmount } from "@kettigo/protocol";
 
 /** Format USDC (6 decimals) to a human string. */
 export function formatUSDC(amount: bigint | undefined, maxDecimals = 2): string {

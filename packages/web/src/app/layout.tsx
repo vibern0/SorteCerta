@@ -55,7 +55,7 @@ const interphasesMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "SorteCerta — Savings with a chance to win",
+  title: "Kettigo — Savings with a chance to win",
   description:
     "Your savings, with weekly prizes. 100% of your principal, always.",
   manifest: "/manifest.json",
@@ -66,7 +66,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "SorteCerta",
+    title: "Kettigo",
   },
 };
 

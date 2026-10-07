@@ -2,7 +2,7 @@
 
 ## Decision
 
-SorteCerta will implement the PoolTogether **mechanic** as its own confidential
+Kettigo will implement the PoolTogether **mechanic** as its own confidential
 prize-savings protocol on Ethereum Sepolia. It will not integrate with or deploy
 the official PoolTogether protocol.
 
@@ -44,10 +44,10 @@ The final bounty implementation must provide:
   official Sepolia USDC when practical:
   `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`.
 - The bounty's `5,000 cUSDT` amount is the organizer's reward pool, not a
-  requirement that SorteCerta accept cUSDT or USDT deposits.
+  requirement that Kettigo accept cUSDT or USDT deposits.
 - An admin-funded prize reserve or other mock yield source is acceptable on
   Sepolia when its behavior and real-yield replacement point are documented.
-  SorteCerta exposes the sponsor-funded global prize amount publicly for UX,
+  Kettigo exposes the sponsor-funded global prize amount publicly for UX,
   while individual balances, winner crediting, and user winnings remain
   confidential.
 - A documented keeper/admin draw trigger is acceptable.
@@ -57,7 +57,7 @@ The final bounty implementation must provide:
 - Integrating official PoolTogether deployments.
 - Cross-chain messaging between Sepolia and a PoolTogether testnet.
 - Deploying PoolTogether's complete protocol stack.
-- Deploying SorteCerta to mainnet before submission.
+- Deploying Kettigo to mainnet before submission.
 - Integrating a real yield protocol before the Sepolia demo works end to end.
 
 ## Current gap

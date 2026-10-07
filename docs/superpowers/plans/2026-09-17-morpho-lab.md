@@ -106,7 +106,7 @@ export default defineConfig({
 });
 ```
 
-Add root scripts that call the `@sortecerta/morpho-lab` workspace through npm.
+Add root scripts that call the `@kettigo/morpho-lab` workspace through npm.
 
 - [ ] **Step 4: Implement checked defaults and strict overrides**
 
@@ -383,7 +383,7 @@ Refresh on initial load, account change, chain change, manual click, and confirm
 
 - [ ] **Step 5: Complete responsive console styling**
 
-Use a restrained neutral palette with status colors, square technical panels, 8px-or-smaller radii, tables that become stacked metrics on narrow screens, and no dependency on SorteCerta's consumer styles.
+Use a restrained neutral palette with status colors, square technical panels, 8px-or-smaller radii, tables that become stacked metrics on narrow screens, and no dependency on Kettigo's consumer styles.
 
 - [ ] **Step 6: Run tests and build**
 

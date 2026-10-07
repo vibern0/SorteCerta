@@ -1,4 +1,4 @@
-# SorteCerta Bounty Roadmap
+# Kettigo Bounty Roadmap
 
 This roadmap targets the Zama Developer Program Mainnet Season 4 bounty. See
 [`BOUNTY_SCOPE.md`](BOUNTY_SCOPE.md) for the binding scope decision.

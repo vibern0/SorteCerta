@@ -19,7 +19,7 @@ describe("landing operations README", () => {
     expect(markdown).toContain("npm run landing:test");
     expect(markdown).toContain("npm run landing:build");
     expect(markdown).toContain(
-      "npm exec --workspace @sortecerta/landing wrangler d1 migrations apply sortecerta-landing-local --local",
+      "npm exec --workspace @kettigo/landing wrangler d1 migrations apply kettigo-landing-local --local",
     );
     expect(markdown).toContain("UPDATE waitlist_entries SET approved_at = datetime('now')");
   });
@@ -27,10 +27,10 @@ describe("landing operations README", () => {
   it("documents production deployment, smoke tests, and rollback", () => {
     const markdown = read(landingReadme);
 
-    expect(markdown).toContain("wrangler d1 create kettigo");
+    expect(markdown).toContain("wrangler d1 create kettigo-landing");
     expect(markdown).toContain("00000000-0000-0000-0000-000000000000");
     expect(markdown).toContain(
-      "npm exec --workspace @sortecerta/landing wrangler d1 migrations apply kettigo --remote",
+      "npm exec --workspace @kettigo/landing wrangler d1 migrations apply kettigo-landing --remote",
     );
     expect(markdown).toContain("Approve remote emails with a targeted D1 update");
     expect(markdown).toContain("Waitlist join");

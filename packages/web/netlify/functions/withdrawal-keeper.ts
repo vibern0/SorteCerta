@@ -8,7 +8,7 @@ import {
   confidentialUsdcAbi as wrapperAbi,
   morphoBlueAbi,
   morphoYieldAdapterAbi,
-} from "@sortecerta/protocol";
+} from "@kettigo/protocol";
 import { sanitizeKeeperError } from "../../src/lib/morpho-keeper.ts";
 import {
   chooseWithdrawalKeeperAction,

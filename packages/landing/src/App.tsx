@@ -19,7 +19,7 @@ export default function App() {
               <p className="eyebrow">Early access</p>
               <h2 id="waitlist-title">Join the waitlist</h2>
               <p>
-                Reserve your spot with the email you plan to use for SorteCerta. Once your access opens, that email is
+                Reserve your spot with the email you plan to use for Kettigo. Once your access opens, that email is
                 what gets you into the app.
               </p>
             </div>

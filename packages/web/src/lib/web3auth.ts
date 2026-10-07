@@ -61,7 +61,7 @@ async function getWeb3Auth(): Promise<Web3Auth> {
     ],
     defaultChainId: "0xaa36a7",
     uiConfig: {
-      appName: "SorteCerta",
+      appName: "Kettigo",
       loginMethodsOrder: ["google", "apple"],
       defaultLanguage: "pt",
       mode: "dark",

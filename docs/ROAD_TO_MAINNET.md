@@ -1,6 +1,6 @@
 # Road to Mainnet
 
-The bounty has finished; SorteCerta is being prepared for a public product launch.
+The bounty has finished; Kettigo is being prepared for a public product launch.
 This document records the existing Ethereum mainnet readiness plan. Compare
 [chain pricing and infrastructure](CHAIN_PRICING_AND_INFRASTRUCTURE.md) before
 confirming the production network. That research does not select a new network

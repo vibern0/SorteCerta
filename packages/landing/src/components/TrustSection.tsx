@@ -1,7 +1,7 @@
 const trustItems = [
   {
     title: "Privacy powered by Zama",
-    body: "SorteCerta is built so personal balances and prize checks can stay personal while the draw remains verifiable.",
+    body: "Kettigo is built so personal balances and prize checks can stay personal while the draw remains verifiable.",
   },
   {
     title: "Yield powered by Morpho",
@@ -11,11 +11,11 @@ const trustItems = [
 
 export function TrustSection() {
   return (
-    <section className="section-band trust-section" id="why-sortecerta" aria-labelledby="why-sortecerta-title">
+    <section className="section-band trust-section" id="why-kettigo" aria-labelledby="why-kettigo-title">
       <div className="section-inner trust-layout">
         <div className="section-copy">
-          <p className="eyebrow">Why SorteCerta</p>
-          <h2 id="why-sortecerta-title">Built for people who like upside without losing the habit of saving.</h2>
+          <p className="eyebrow">Why Kettigo</p>
+          <h2 id="why-kettigo-title">Built for people who like upside without losing the habit of saving.</h2>
         </div>
         <div className="trust-grid">
           {trustItems.map((item) => (

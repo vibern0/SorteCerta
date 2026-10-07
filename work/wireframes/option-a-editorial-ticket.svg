@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
-  <title id="title">SorteCerta landing page wireframe A — Editorial ticket</title>
+  <title id="title">Kettigo landing page wireframe A — Editorial ticket</title>
   <desc id="desc">A split editorial landing page with a large headline, an oversized prize ticket, and a three-step explanation.</desc>
   <rect width="1440" height="900" fill="#f6f6f3"/>
   <rect x="28" y="28" width="1384" height="844" rx="18" fill="#ffffff" stroke="#242424" stroke-width="2"/>
@@ -8,9 +8,9 @@
   <circle cx="50" cy="48" r="5" fill="#a8a8a2"/><circle cx="68" cy="48" r="5" fill="#a8a8a2"/><circle cx="86" cy="48" r="5" fill="#a8a8a2"/>
 
   <g font-family="Arial, Helvetica, sans-serif" fill="#181818">
-    <text x="88" y="112" font-size="22" font-weight="700">SorteCerta</text>
+    <text x="88" y="112" font-size="22" font-weight="700">Kettigo</text>
     <text x="614" y="112" font-size="16" fill="#686864">How it works</text>
-    <text x="748" y="112" font-size="16" fill="#686864">Why SorteCerta</text>
+    <text x="748" y="112" font-size="16" fill="#686864">Why Kettigo</text>
     <rect x="1192" y="85" width="164" height="42" rx="6" fill="#242424"/>
     <text x="1274" y="111" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Join the waitlist</text>
   </g>
@@ -41,7 +41,7 @@
     <text x="454" y="122" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#181818">Set your chances</text>
     <text x="36" y="162" font-family="Arial, Helvetica, sans-serif" font-size="16" fill="#555550">At draw close</text>
     <text x="454" y="162" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="16" fill="#181818">Check &amp; claim</text>
-    <text x="36" y="250" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#181818">SorteCerta</text>
+    <text x="36" y="250" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#181818">Kettigo</text>
     <text x="454" y="250" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="16" fill="#555550">№ 000184</text>
   </g>
 

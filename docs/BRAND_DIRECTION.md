@@ -1,4 +1,4 @@
-# SorteCerta: chosen brand direction
+# Kettigo: chosen brand direction
 
 **Decision — 29 September 2026:** Direction 02, **playful and expressive**, is the chosen brand direction. Founder confirmation: “direction 02 completely wins. it's decided”.
 
@@ -31,6 +31,6 @@ Use short, warm, direct wording. Keep actions precise: “Check for a prize”, 
 
 The creative direction is settled. Further work should develop this direction consistently, rather than reopen the original style comparison. Audience testing should assess comprehension, recognition, and usability; founder preference is not evidence of measured market performance.
 
-SorteCerta remains the working name; this decision does not select a replacement name. Final logo artwork, accessible color combinations, typography specifications, and shared implementation tokens still need to be formalized. No production app, PR, or deployment was changed by recording this decision.
+Kettigo remains the working name; this decision does not select a replacement name. Final logo artwork, accessible color combinations, typography specifications, and shared implementation tokens still need to be formalized. No production app, PR, or deployment was changed by recording this decision.
 
 The [saved comparisons](brand-explorations/2026-09-29/README.md) preserve the earlier alternatives for reference. The [research brief](BRAND_RESEARCH_2026-09-29.md) retains the evidence and exploration history; this decision supersedes its earlier open-ended art-direction recommendations.

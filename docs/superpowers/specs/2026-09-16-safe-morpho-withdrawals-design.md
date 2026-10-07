@@ -6,7 +6,7 @@ Approved on September 16, 2026.
 
 ## Objective
 
-Replace SorteCerta's unsafe immediate withdrawal path with one mandatory,
+Replace Kettigo's unsafe immediate withdrawal path with one mandatory,
 Morpho-aware withdrawal state machine. A withdrawal request must immediately
 stop the requested principal from participating in draws, preserve the same
 amount as a user-owned liability, restore exactly the required liquidity from

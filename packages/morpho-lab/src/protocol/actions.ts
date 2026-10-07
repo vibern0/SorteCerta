@@ -12,8 +12,8 @@ import {
   toSupplyAssetsDown,
   WAD,
   wethAbi,
-} from "@sortecerta/protocol";
-export { parseAmount } from "@sortecerta/protocol";
+} from "@kettigo/protocol";
+export { parseAmount } from "@kettigo/protocol";
 import type { LabConfig } from "../config";
 import type { AccountSnapshot, ProtocolSnapshot } from "../types";
 import type { SimulatedWriteArgs } from "../wallet/MetaMaskProvider";

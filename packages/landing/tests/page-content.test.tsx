@@ -9,7 +9,7 @@ describe("marketing page", () => {
     const links = screen.getAllByRole("link", { name: /join the waitlist/i }) as HTMLAnchorElement[];
     expect(links.every((link) => link.hash === "#waitlist")).toBe(true);
     expect(document.querySelector("#how-it-works")).not.toBeNull();
-    expect(document.querySelector("#why-sortecerta")).not.toBeNull();
+    expect(document.querySelector("#why-kettigo")).not.toBeNull();
   });
 
   it("does not publish fabricated or guaranteed claims", () => {

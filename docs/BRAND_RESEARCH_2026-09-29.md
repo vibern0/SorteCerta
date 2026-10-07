@@ -1,22 +1,22 @@
-# SorteCerta brand research and decision brief
+# Kettigo brand research and decision brief
 
 29 September 2026. Internal research and recommendations, not customer-facing copy.
 
 **Decision update:** the founder selected **Direction 02 — playful and expressive**. The [brand decision](BRAND_DIRECTION.md) is the current reference. Earlier alternatives and recommendations below are retained as research history, not competing approved directions.
 
-**Finding:** SorteCerta has the beginnings of a brand, but its identity is fragmented. The web app, original landing page, and PR #15 express different visual personalities. Their language also creates different expectations. Matching one button color will not resolve that.
+**Finding:** Kettigo has the beginnings of a brand, but its identity is fragmented. The web app, original landing page, and PR #15 express different visual personalities. Their language also creates different expectations. Matching one button color will not resolve that.
 
 **Recommendation after selection:** formalize the chosen playful direction into one product promise, recognizable visual assets, and a shared vocabulary across the landing page and app. Preserve useful structural work from PR #15 while aligning its expression with the selected direction.
 
 ## 1. Scope, evidence, and unanswered decisions
 
-This research combines a repository audit, visual inspection of the live app and PR preview, academic research, marketing research, and brands' own published material. It does not include interviews, a representative market survey, conversion experiments, or measurement of SorteCerta's existing brand recognition.
+This research combines a repository audit, visual inspection of the live app and PR preview, academic research, marketing research, and brands' own published material. It does not include interviews, a representative market survey, conversion experiments, or measurement of Kettigo's existing brand recognition.
 
 Evidence is distinguished as follows:
 
 - **Observed:** present in source files or visible in the inspected product.
 - **Research finding:** reported by the linked study, within its original setting.
-- **Interpretation:** an application of that evidence to SorteCerta, requiring validation.
+- **Interpretation:** an application of that evidence to Kettigo, requiring validation.
 - **Decision pending:** a business or aesthetic preference that research cannot choose for the founder.
 
 **Founder decisions, confirmed 29 September 2026:** the first audience is existing USDC holders in Nigeria and Kenya; prize excitement leads the emotional positioning; every existing brand element was open to reconsideration during exploration. The founder subsequently chose Direction 02, playful and expressive. This does not establish priority between the two countries, audience demographics, preferred language, or measured audience preference. The name remains a working label, not a confirmed naming decision.
@@ -25,7 +25,7 @@ Existing constraints remain in force: [bounty scope](BOUNTY_SCOPE.md), [roadmap]
 
 ## 2. What we actually have
 
-Inspected [live app](https://sortecerta.netlify.app/), [PR #15](https://github.com/vibern0/SorteCerta/pull/15), and its [landing preview](https://quiet-invitation-sortecerta-landing.blvieira5.workers.dev/). PR source was inspected at commit `6d6ed846ddde041b1b6f373aee221a31b75f66b0`.
+Inspected [live app](https://kettigo.netlify.app/), [PR #15](https://github.com/vibern0/Kettigo/pull/15), and its [landing preview](https://quiet-invitation-kettigo-landing.blvieira5.workers.dev/). PR source was inspected at commit `6d6ed846ddde041b1b6f373aee221a31b75f66b0`.
 
 | Element | Existing app | Earlier landing in local checkout | PR #15 |
 | --- | --- | --- | --- |
@@ -56,7 +56,7 @@ These differ in promise, precision, and emotional emphasis:
 - “Withdraw when you need it” may be understood as immediate settlement. The app's withdrawal model explicitly includes requested, preparing, claimable, finalizing, and complete states.
 - “Technology partners” can imply a commercial endorsement. Integration evidence alone does not establish that relationship.
 
-References: [home copy](../packages/web/src/app/page.tsx), [withdrawal states](../packages/web/src/lib/withdrawal-state.ts), [contract](../packages/contracts/contracts/ConfidentialPrizePool.sol), and [PR files](https://github.com/vibern0/SorteCerta/pull/15/files).
+References: [home copy](../packages/web/src/app/page.tsx), [withdrawal states](../packages/web/src/lib/withdrawal-state.ts), [contract](../packages/contracts/contracts/ConfidentialPrizePool.sol), and [PR files](https://github.com/vibern0/Kettigo/pull/15/files).
 
 ### Two implementation details affect the brand audit
 
@@ -68,7 +68,7 @@ On the inspected PR preview, the computed body font is `Times`, with `normal` li
 
 A useful distinction is:
 
-| Layer | Question it answers | SorteCerta decision |
+| Layer | Question it answers | Kettigo decision |
 | --- | --- | --- |
 | Positioning | Why would someone choose this? | Audience, situation, alternative, benefit, evidence |
 | Identity | How do they recognize it? | Name, logo, colors, typography, imagery, repeated language |
@@ -78,24 +78,24 @@ A useful distinction is:
 
 Keller's foundational customer-based brand equity model centers on how knowledge of a brand changes consumer response, with awareness and associations as key components. It is a conceptual framework, not evidence that a particular visual style produces financial returns. The implication here is to build a coherent expectation people can remember and verify through use. [Keller, 1993](https://doi.org/10.1177/002224299305700101).
 
-Distinctiveness and differentiation solve different problems. Distinctiveness helps someone recognize SorteCerta. Differentiation gives them a reason to choose it. A beautiful forest-green page may accomplish neither if people confuse it with another financial app and cannot explain its benefit.
+Distinctiveness and differentiation solve different problems. Distinctiveness helps someone recognize Kettigo. Differentiation gives them a reason to choose it. A beautiful forest-green page may accomplish neither if people confuse it with another financial app and cannot explain its benefit.
 
 ## 4. What the research supports—and its limits
 
-| Evidence | Finding | Application to SorteCerta | Limitation |
+| Evidence | Finding | Application to Kettigo | Limitation |
 | --- | --- | --- | --- |
 | Ehrenberg-Bass distinctive-asset framework | Assess whether an asset brings the brand to mind and whether it also brings competitors to mind: fame and uniqueness | Choose a few cues, use them repeatedly with the name, then measure recognition | A new palette is a potential asset, not established brand equity |
 | Labrecque & Milne, 2012, four studies | Hue, saturation, and value can affect perceived brand personality and related responses | Evaluate a whole palette in context, including saturation and contrast | Does not identify a universally best fintech color or predict our conversion |
 | Elliot, 2015 review | Color effects need careful interpretation; the literature has methodological and contextual limits | Reject deterministic charts such as “green = trust” | Review is a methodological caution, not a current palette recommendation |
 | Jonauskaite et al., 2020 | 4,598 participants across 30 nations showed both shared and locally varying color-emotion associations | Test actual layouts and language with the intended markets | Participants associated emotion concepts with color terms; this is not a financial-app choice experiment |
 | Nielsen Norman Group tone study | Wording changes altered perceived friendliness, trustworthiness, and willingness to recommend; friendliness did not automatically improve trust | Test reassuring clarity separately from likability | Stated impressions of fictional organizations are not actual deposits or long-term trust |
-| Nielsen Norman Group web-writing study | Concise, scannable, objective writing improved measured usability in its study | Put the offer, eligibility, and action in plain language | Historical study; its percentage improvements are not forecast uplift for SorteCerta |
+| Nielsen Norman Group web-writing study | Concise, scannable, objective writing improved measured usability in its study | Put the offer, eligibility, and action in plain language | Historical study; its percentage improvements are not forecast uplift for Kettigo |
 | Filiz-Ozbay et al., 2013 | A laboratory prize-linked payment option increased payment deferral relative to equal-expected-value conventional interest | Prize motivation is a credible hypothesis to test | Laboratory payment deferral is not lasting savings behavior in our target markets |
 | Gertler et al., 2023 | A randomized experiment across 110 Mexican bank branches found increased account openings and deposits during a lottery incentive | There is field evidence for the behavioral mechanism | A bank campaign in Mexico does not establish demand for a USDC product, our brand, or our jurisdictions |
 
 Sources: [Ehrenberg-Bass measurement](https://marketingscience.info/learn-with-us/commercial-research/distinctive-asset), [fame and uniqueness](https://marketingscience.info/news-and-insights/how-brands-can-harness-creative-data-to-build-distinctive-assets), [Labrecque & Milne](https://doi.org/10.1007/s11747-010-0245-y), [Elliot review](https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2015.00368/full), [cross-country study](https://www.psychologicalscience.org/journals/psychological-science/0956797620948810/), [tone research](https://www.nngroup.com/articles/tone-voice-users/), [web-writing research](https://www.nngroup.com/articles/concise-scannable-and-objective-how-to-write-for-the-web/), [laboratory prize-savings study](https://www.nber.org/papers/w19130), [field experiment](https://www.nber.org/papers/w31529).
 
-For the academic papers, conclusions above are limited to accessible abstracts or summaries except where full text was available; no independent reanalysis or systematic literature review was performed. NBER abstracts were accessible through search, while direct page opens returned access errors. Neither study is presented as new research conducted for SorteCerta.
+For the academic papers, conclusions above are limited to accessible abstracts or summaries except where full text was available; no independent reanalysis or systematic literature review was performed. NBER abstracts were accessible through search, while direct page opens returned access errors. Neither study is presented as new research conducted for Kettigo.
 
 The strongest inference is procedural: develop a coherent candidate, test comprehension and recognition, and revise from evidence. Research cannot select the exact hex values on the founder's behalf.
 
@@ -110,16 +110,16 @@ The cases below are selected for lessons relevant to this decision. Some are glo
 | Apple | Current product pages organize short benefit statements around the product, with explanation and evidence beneath | Establish a clear information hierarchy and demonstrate what the product does | Extreme brevity works equally well for an unfamiliar financial mechanism |
 | Coca-Cola | Its July 2026 refresh reinforces red/white, script, ribbon, and a unified system across physical and digital contexts | Evolve recognizable assets together, across surfaces | Red itself caused the brand's success |
 | Wise | Its 2023 redesign coordinated green, typography, imagery, symbols, and voice around a global-money proposition | Tie the visual system to the service promise; a rebrand is broader than recoloring one page | Green automatically communicates trust or is available to us as an ownable cue |
-| Nubank | Its June 2026 refresh retains purple and the core symbol, creates hierarchy for different contexts, and distinguishes display and text typography | Marketing and product can vary while retaining a recognizable center | SorteCerta needs multiple subbrands or a custom font now |
+| Nubank | Its June 2026 refresh retains purple and the core symbol, creates hierarchy for different contexts, and distinguishes display and text typography | Marketing and product can vary while retaining a recognizable center | Kettigo needs multiple subbrands or a custom font now |
 | Monzo | Published writing principles make clarity and kindness universal; delight and humor depend on context | Write operational and marketing examples, not just adjectives describing a voice | A friendly joke is appropriate during a failed withdrawal |
-| NS&I Premium Bonds | Product copy explicitly distinguishes prize chances from regular income and guaranteed returns | Explain what a prize product does and does not deliver next to the offer | SorteCerta inherits NS&I's institutional assurances or product protections |
+| NS&I Premium Bonds | Product copy explicitly distinguishes prize chances from regular income and guaranteed returns | Explain what a prize product does and does not deliver next to the offer | Kettigo inherits NS&I's institutional assurances or product protections |
 | PiggyVest | Its navigation names recognizable savings jobs: automated, fixed, goal-oriented, flexible, dollar savings | If Nigeria is selected, study language already used for local savings decisions | Those users want our mechanism, or its product promises apply to us |
 
 Primary references: [Apple product page](https://www.apple.com/iphone/), [Coca-Cola visual identity](https://www.coca-colacompany.com/media-center/coca-cola-sharpens-its-identity-under-one-bold-visual-system), [Wise redesign](https://wise.com/gb/blog/a-brand-for-everywhere-wise-unveils-bold-new-look), [Nubank refresh](https://blog.nubank.com.br/brand-refresh-como-renovamos-a-identidade-visual-do-nubank/), [Monzo writing principles](https://monzo.com/tone-of-voice), [NS&I product explanation](https://www.nsandi.com/products/premium-bonds), [PiggyVest product navigation](https://www.piggyvest.com/).
 
 These are brands' own descriptions and visible communication, not independent proof that their redesigns improved commercial performance. The transferable pattern is coordination: the promise, name, visual assets, language, and product behavior reinforce one another.
 
-## 6. Positioning choices for SorteCerta
+## 6. Positioning choices for Kettigo
 
 The founder has now selected existing USDC holders in Nigeria and Kenya. The [GTM](GTM.md) and [regional research](GTM_AFRICA_ASIA_RESEARCH_2026-09-25.md) provide supporting context, but neither country is treated as representative of the other. Their relative launch priority remains undecided in this brand brief.
 
@@ -135,7 +135,7 @@ Three viable strategic emphases should be compared:
 
 A positioning statement to test with the selected audience:
 
-> For USDC holders in Nigeria and Kenya, SorteCerta makes saving something to look forward to: eligible savings bring a chance to win a prize at the end of each draw.
+> For USDC holders in Nigeria and Kenya, Kettigo makes saving something to look forward to: eligible savings bring a chance to win a prize at the end of each draw.
 
 This explains the category. It is not yet a unique competitive claim: [PoolTogether already describes saving and winning](https://pooltogether.com/). We need to test which product advantage actually matters to our audience.
 
@@ -215,7 +215,7 @@ Use more personality in a headline and less during an error. Monzo's published d
 
 > Save in USDC. Your savings balance at the end of each draw determines your chances. After the draw, check whether you have a prize to claim.
 
-The second line describes the intended mechanism and must remain aligned with the verified implementation. It is clearer than “upside,” but it does not claim the category is unique to SorteCerta.
+The second line describes the intended mechanism and must remain aligned with the verified implementation. It is clearer than “upside,” but it does not claim the category is unique to Kettigo.
 
 **Useful headings and labels**
 
@@ -258,7 +258,7 @@ Keep the repository's prohibited implementation/privacy terms out of customer-fa
 
 ## 9. Naming and international fit
 
-SorteCerta can suggest luck and certainty to a Portuguese speaker. That is a linguistic interpretation to test, particularly because a prize is not certain. It is not a recommendation to rename the company.
+Kettigo can suggest luck and certainty to a Portuguese speaker. That is a linguistic interpretation to test, particularly because a prize is not certain. It is not a recommendation to rename the company.
 
 For the selected Nigerian and Kenyan audiences, test unaided pronunciation, spelling after hearing the name, recall, and inferred product category. Do people think it is a savings service, a lottery, or something else? Does “Certa” imply assured winnings? Ask without teaching participants the intended interpretation first. English is the working language of these concept examples; preferred customer languages still need validation.
 
@@ -311,7 +311,7 @@ Name an owner for changes to the promise, logo, typography, and core colors. Fut
 
 ## 12. Decision on PR #15
 
-PR #15 demonstrates a coherent direction, but its quiet, editorial emphasis is less aligned with the founder's newly confirmed preference for prize excitement. It is not, by itself, an established SorteCerta brand system.
+PR #15 demonstrates a coherent direction, but its quiet, editorial emphasis is less aligned with the founder's newly confirmed preference for prize excitement. It is not, by itself, an established Kettigo brand system.
 
 Preserve its useful work: spacing, hierarchy, responsive navigation, and clearer content structure. Align typography, colors, decoration, and wording with the chosen playful direction, using matched marketing and product screens to check consistency.
 
@@ -327,7 +327,7 @@ Access Bank's DiamondXtra terms link a qualifying savings balance to participati
 
 Safaricom's official history describes its June 2024 Shine Kenya campaign around cash prizes and community projects. Its partner newsletter records the promotion ending in September. It is a historical communication reference, not a current offer or a savings-product equivalent. [Safaricom history](https://www.safaricom.co.ke/personal/m-pesa/m-pesa-journey), [campaign timeline](https://www.safaricom.co.ke/PartnerNewsletter/highlights/product-and-service-highlights-of-the-year).
 
-Kuda's current site uses short action vocabulary around sending, spending, saving, and rewards. This is a useful language reference, not evidence that our users want its precise tone or that its bank protections apply to SorteCerta. [Kuda](https://kuda.com/).
+Kuda's current site uses short action vocabulary around sending, spending, saving, and rewards. This is a useful language reference, not evidence that our users want its precise tone or that its bank protections apply to Kettigo. [Kuda](https://kuda.com/).
 
 **Interpretation:** a prize-led brand can be locally relevant without explaining the idea entirely through unfamiliar technical concepts. But these examples do not establish that any national audience prefers bright colors, slang, gambling aesthetics, or a particular name. Test the two markets separately.
 
@@ -356,7 +356,7 @@ These are exploration palettes, not final tokens or scientifically optimized col
 
 Typography should first explore a bold, approachable sans-serif display with a highly readable text face. Compare a serif alternative using the same message before excluding it; a serif is not inherently incompatible with excitement. A stable wordmark, repeated shape, and recognizable layout pattern must carry identity alongside the colors.
 
-Keep SorteCerta as a temporary label during palette comparison so naming and color are not changed in the same test. Naming is fully open for the next exercise. A replacement needs pronunciation, recall, inferred-promise, availability, and trademark checks before selection. No candidate name is assumed available.
+Keep Kettigo as a temporary label during palette comparison so naming and color are not changed in the same test. Naming is fully open for the next exercise. A replacement needs pronunciation, recall, inferred-promise, availability, and trademark checks before selection. No candidate name is assumed available.
 
 ### Excitement across the experience
 

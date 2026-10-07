@@ -16,7 +16,7 @@ remains in [BOUNTY_SCOPE.md](BOUNTY_SCOPE.md). Existing launch controls remain i
   standard Morpho infrastructure. Zama's ready-made confidential Morpho vaults and
   their batchers were not found on Polygon in the registry checked below.
 - HyperEVM has the lowest gas cost in this snapshot, but the Zama deployments found
-  there are token/bridge infrastructure. FHE support required by SorteCerta is
+  there are token/bridge infrastructure. FHE support required by Kettigo is
   unverified; the presence of the ZAMA token does not establish that support.
 - Polygon merits a feasibility investigation. Lower execution fees must be weighed
   against implementing and auditing a yield integration. This is not a migration
@@ -52,7 +52,7 @@ integration features across chains.
 
 Zama's [September 15 expansion](https://www.zama.org/post/confidential-defi-at-scale)
 and [vault product](https://www.zama.org/confidential-vaults) provide an existing
-route into curated Morpho strategies. SorteCerta still needs to prove that route
+route into curated Morpho strategies. Kettigo still needs to prove that route
 with its own principal liabilities, prize accounting, and withdrawal flow.
 
 The existing [vault integration research](FUTURE_VAULT_INTEGRATION.md) compares a
@@ -82,7 +82,7 @@ price that architecture.
 [Zama's token documentation](https://github.com/zama-ai/protocol-apps/blob/main/docs/zama-token.md)
 describes the ZAMA token's LayerZero bridge and HyperCore connection. These are
 different capabilities from executing FHE contracts and decrypting user balances.
-Before considering SorteCerta here, obtain official host-chain deployment and
+Before considering Kettigo here, obtain official host-chain deployment and
 relayer/SDK support evidence, then run the complete required FHE lifecycle.
 
 ## Gas price snapshot
@@ -117,7 +117,7 @@ and native token prices change independently. Refresh both before budgeting.
 ## Five transactions per user per month
 
 Assume five successful onchain transactions per active user each month, all paid
-by SorteCerta. These are scenarios, not measured SorteCerta gas consumption.
+by Kettigo. These are scenarios, not measured Kettigo gas consumption.
 An approval, wrap, deposit, claim, or smart-account operation can have a different
 cost. One UI action can require multiple transactions; an offchain signature is
 not itself a host-chain transaction. Include smart-account/bundler overhead when
@@ -168,11 +168,11 @@ comparison; estimate and measure each deployment independently.
 supports the hosting baseline.
 [Zama's published fee model](https://docs.zama.org/protocol/zama-protocol-litepaper)
 describes verification and decryption charges separately from FHE computation.
-Its initial price ranges are not a verified production quote for SorteCerta.
+Its initial price ranges are not a verified production quote for Kettigo.
 Changing the host chain does not establish that those service charges disappear.
 
-If users pay their own fees, remove those fees from SorteCerta's cash expenses,
-but retain them when evaluating the user's economics. If SorteCerta sponsors
+If users pay their own fees, remove those fees from Kettigo's cash expenses,
+but retain them when evaluating the user's economics. If Kettigo sponsors
 them, apply the sponsored fraction and budget the shared operations separately.
 Recurring cash break-even also differs from recovering audit costs or paying
 the founder.

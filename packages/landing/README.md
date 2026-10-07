@@ -1,4 +1,4 @@
-# SorteCerta Landing Operations
+# Kettigo Landing Operations
 
 This package is the standalone public landing site and email waitlist. It builds
 a Vite React frontend and a same-origin Cloudflare Worker that serves static
@@ -35,14 +35,14 @@ npm run landing:build
 Apply the local D1 migration:
 
 ```bash
-npm exec --workspace @sortecerta/landing wrangler d1 migrations apply sortecerta-landing-local --local
+npm exec --workspace @kettigo/landing wrangler d1 migrations apply kettigo-landing-local --local
 ```
 
 Join the waitlist from the browser with any email. Approve an email directly in
 D1 by setting `approved_at`:
 
 ```bash
-npm exec --workspace @sortecerta/landing wrangler d1 execute sortecerta-landing-local --local --command "UPDATE waitlist_entries SET approved_at = datetime('now') WHERE email_normalized = 'person@example.com';"
+npm exec --workspace @kettigo/landing wrangler d1 execute kettigo-landing-local --local --command "UPDATE waitlist_entries SET approved_at = datetime('now') WHERE email_normalized = 'person@example.com';"
 ```
 
 ## Production D1
@@ -50,7 +50,7 @@ npm exec --workspace @sortecerta/landing wrangler d1 execute sortecerta-landing-
 Create the shared owner-operated production D1 database from `packages/landing`:
 
 ```bash
-npm exec --workspace @sortecerta/landing wrangler d1 create kettigo
+npm exec --workspace @kettigo/landing wrangler d1 create kettigo-landing
 ```
 
 Copy the returned `database_id` into `packages/landing/wrangler.jsonc`,
@@ -66,7 +66,7 @@ will run the Worker. Keep the `DB` binding name unchanged.
 Apply the migration to the remote D1 database after the ID is configured:
 
 ```bash
-npm exec --workspace @sortecerta/landing wrangler d1 migrations apply kettigo --remote
+npm exec --workspace @kettigo/landing wrangler d1 migrations apply kettigo-landing --remote
 ```
 
 The web Worker has its own Wrangler config at `packages/web/wrangler.jsonc`.
@@ -80,7 +80,7 @@ Approve remote emails with a targeted D1 update after reviewing the row.
 Deploy to a Worker preview URL before connecting any custom domain:
 
 ```bash
-npm exec --workspace @sortecerta/landing wrangler deploy
+npm exec --workspace @kettigo/landing wrangler deploy
 ```
 
 Use the preview URL for smoke testing. Connect the custom domain only after the
@@ -108,13 +108,13 @@ Exercise these flows against the preview URL before routing public traffic:
 List deployments and identify the previous good Worker version:
 
 ```bash
-npm exec --workspace @sortecerta/landing wrangler deployments list
+npm exec --workspace @kettigo/landing wrangler deployments list
 ```
 
 Restore the previous Worker version:
 
 ```bash
-npm exec --workspace @sortecerta/landing wrangler rollback <version-id>
+npm exec --workspace @kettigo/landing wrangler rollback <version-id>
 ```
 
 The waitlist migrations are additive for data retention. Leave them in place

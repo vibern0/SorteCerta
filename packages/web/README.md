@@ -1,9 +1,9 @@
-# SorteCerta — Web (PWA)
+# Kettigo — Web (PWA)
 
 Mobile-first PWA. Next.js 14 (App Router) + Tailwind + wagmi v2 + Web3Auth +
 permissionless (Safe smart account) + Pimlico.
 
-Live app: https://sortecerta.netlify.app
+Live app: https://kettigo.netlify.app
 
 ## Stack
 

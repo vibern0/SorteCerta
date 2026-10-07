@@ -96,7 +96,7 @@ export function WaitlistForm({
           onChange={(event) => setEmail(event.currentTarget.value)}
         />
         <p className="form-hint" id="waitlist-email-hint">
-          Use the same email when you open SorteCerta.
+          Use the same email when you open Kettigo.
         </p>
       </div>
 

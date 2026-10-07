@@ -5,7 +5,7 @@ import worker from "../worker/index";
 describe("Worker routing", () => {
   it("rejects cross-origin API submissions", async () => {
     const response = await worker.fetch(
-      new Request("https://sortecerta.com/api/waitlist", {
+      new Request("https://kettigo.com/api/waitlist", {
         method: "POST",
         headers: { origin: "https://evil.example", "content-type": "application/json" },
         body: "{}",
@@ -19,7 +19,7 @@ describe("Worker routing", () => {
   });
 
   it("returns 405 for GET on the waitlist endpoint", async () => {
-    const response = await worker.fetch(new Request("https://sortecerta.com/api/waitlist"), makeEnv(), makeContext());
+    const response = await worker.fetch(new Request("https://kettigo.com/api/waitlist"), makeEnv(), makeContext());
 
     expect(response.status).toBe(405);
     expect(response.headers.get("allow")).toBe("POST");
@@ -27,7 +27,7 @@ describe("Worker routing", () => {
   });
 
   it("returns JSON 404 for unknown API routes", async () => {
-    const response = await worker.fetch(new Request("https://sortecerta.com/api/nope"), makeEnv(), makeContext());
+    const response = await worker.fetch(new Request("https://kettigo.com/api/nope"), makeEnv(), makeContext());
 
     expect(response.status).toBe(404);
     expect(response.headers.get("cache-control")).toBe("no-store");
@@ -41,7 +41,7 @@ describe("Worker routing", () => {
   it("delegates pages to Assets and applies document headers", async () => {
     const assets = vi.fn(async () => new Response("<html></html>", { headers: { "content-type": "text/html" } }));
 
-    const response = await worker.fetch(new Request("https://sortecerta.com/"), makeEnv(assets), makeContext());
+    const response = await worker.fetch(new Request("https://kettigo.com/"), makeEnv(assets), makeContext());
 
     expect(assets).toHaveBeenCalledOnce();
     expect(response.headers.get("content-security-policy")).toContain("challenges.cloudflare.com");

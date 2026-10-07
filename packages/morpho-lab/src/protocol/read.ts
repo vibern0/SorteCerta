@@ -1,7 +1,7 @@
 import {
   readProtocolSnapshotAtBlock,
   type ProtocolReadClient as SharedReadClient,
-} from "@sortecerta/protocol";
+} from "@kettigo/protocol";
 import type { Address } from "viem";
 
 import type { LabConfig } from "../config";

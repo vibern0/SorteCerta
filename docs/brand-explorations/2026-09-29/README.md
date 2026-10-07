@@ -28,6 +28,6 @@ Editable fragment: [sources/playful-directions.html](sources/playful-directions.
 
 Open the exported HTML files in a browser. They preserve each palette as a separate default snapshot. Design controls in the conversation allow switching palettes and example app states; those host controls are not required to view the exported versions. The playful version loads fonts from Google Fonts and falls back to system fonts when unavailable. Both versions use the visualization renderer's CDN resources, so these are not fully offline archives.
 
-The depicted app states are illustrative, with no wallet connection or financial operations. No production app or landing styles were changed. The playful creative direction is approved. The cobalt version is the saved default reference; a preference between the playful palette variants was not separately recorded. SorteCerta remains the working name, and production specifications still need to be formalized.
+The depicted app states are illustrative, with no wallet connection or financial operations. No production app or landing styles were changed. The playful creative direction is approved. The cobalt version is the saved default reference; a preference between the playful palette variants was not separately recorded. Kettigo remains the working name, and production specifications still need to be formalized.
 
 Research and rationale: [brand research brief](../../BRAND_RESEARCH_2026-09-29.md).

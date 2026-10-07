@@ -154,7 +154,7 @@ importers:
 
   packages/morpho-lab:
     dependencies:
-      '@sortecerta/protocol':
+      '@kettigo/protocol':
         specifier: workspace:*
         version: link:../protocol
       '@zama-fhe/relayer-sdk':
@@ -210,7 +210,7 @@ importers:
 
   packages/web:
     dependencies:
-      '@sortecerta/protocol':
+      '@kettigo/protocol':
         specifier: workspace:*
         version: link:../protocol
       '@tanstack/react-query':

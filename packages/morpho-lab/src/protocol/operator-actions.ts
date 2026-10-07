@@ -1,4 +1,4 @@
-import { buildCloseDrawRequest } from "@sortecerta/protocol";
+import { buildCloseDrawRequest } from "@kettigo/protocol";
 import { getAddress } from "viem";
 
 import type { LabConfig } from "../config";

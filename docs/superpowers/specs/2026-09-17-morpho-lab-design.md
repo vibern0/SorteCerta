@@ -7,7 +7,7 @@ Approved for implementation on 2026-09-17.
 ## Goal
 
 Add a local-only technical playground for observing and interacting with
-SorteCerta's current Sepolia Morpho deployment. The playground must use
+Kettigo's current Sepolia Morpho deployment. The playground must use
 MetaMask directly, expose the protocol state needed to understand yield and
 withdrawal liquidity, and provide safe lending and borrowing controls that can
 increase utilization in the configured USDC/WETH market.
@@ -19,8 +19,8 @@ playground.
 ## Scope
 
 Create a separate Vite application at `packages/morpho-lab`. It runs on
-`localhost:3001`, is not linked from the SorteCerta application, is not included
-in the SorteCerta deployment, and never receives a private key.
+`localhost:3001`, is not linked from the Kettigo application, is not included
+in the Kettigo deployment, and never receives a private key.
 
 The lab targets only the current configured deployment and market. It will not
 offer arbitrary contract address inputs or recovery controls for retired
@@ -73,7 +73,7 @@ raw values alongside formatted token amounts.
 - Market ID, LLTV, chain ID, block number, and refresh time
 - Direct Blockscout links for addresses and transactions
 
-### SorteCerta Pool
+### Kettigo Pool
 
 - Draw ID, next draw timestamp, participant count, and public prize reserve
 - Current withdrawal batch ID and status
@@ -144,7 +144,7 @@ shares to avoid residual dust.
 
 ## Operator Controls
 
-The lab retains the round-closing operation currently found in SorteCerta
+The lab retains the round-closing operation currently found in Kettigo
 `/admin`. Round closing remains permissionless and is disabled until the
 onchain close timestamp has passed.
 

@@ -130,7 +130,7 @@ function AppContent({ config }: { config: LabConfig }) {
       <header className="lab-header">
         <div>
           <p className="eyebrow">Local technical playground</p>
-          <h1>SorteCerta Morpho Lab</h1>
+          <h1>Kettigo Morpho Lab</h1>
         </div>
         <div
           className={`status ${

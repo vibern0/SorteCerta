@@ -1,8 +1,8 @@
 {
-  "name": "@sortecerta/contracts",
+  "name": "@kettigo/contracts",
   "version": "0.1.0",
   "private": true,
-  "description": "SorteCerta smart contracts — confidential prize savings on Sepolia.",
+  "description": "Kettigo smart contracts — confidential prize savings on Sepolia.",
   "engines": {
     "node": ">=22"
   },

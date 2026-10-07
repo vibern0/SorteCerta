@@ -45,8 +45,8 @@ type Status = "idle" | "working" | "success" | "error";
 type WorkingAction = "deposit" | "withdraw" | "pending" | undefined;
 type SheetStep = "entry" | "confirm";
 
-const PENDING_UNWRAPS_STORAGE_PREFIX = "sortecerta:pending-unwraps";
-const PENDING_WITHDRAWALS_STORAGE_PREFIX = "sortecerta:pending-withdrawals";
+const PENDING_UNWRAPS_STORAGE_PREFIX = "kettigo:pending-unwraps";
+const PENDING_WITHDRAWALS_STORAGE_PREFIX = "kettigo:pending-withdrawals";
 const UNWRAP_LOG_LOOKBACK_BLOCKS = 512n;
 const WITHDRAWAL_LOG_LOOKBACK_BLOCKS = 10_000n;
 const MAX_USER_PRINCIPAL = 1_000_000_000n;

@@ -14,7 +14,7 @@ describe("waitlist validation", () => {
     ["application/json", "{", "invalid_request"],
     ["application/json", JSON.stringify({ email: "bad" }), "invalid_request"],
   ])("rejects invalid request data", async (contentType, body, code) => {
-    const request = new Request("https://sortecerta.com/api/waitlist", {
+    const request = new Request("https://kettigo.com/api/waitlist", {
       method: "POST",
       headers: { "content-type": contentType },
       body,
@@ -23,7 +23,7 @@ describe("waitlist validation", () => {
   });
 
   it("rejects a declared body larger than 8 KiB", async () => {
-    const request = new Request("https://sortecerta.com/api/waitlist", {
+    const request = new Request("https://kettigo.com/api/waitlist", {
       method: "POST",
       headers: { "content-type": "application/json", "content-length": "8193" },
       body: "{}",
@@ -32,7 +32,7 @@ describe("waitlist validation", () => {
   });
 
   it("accepts an email-only waitlist request", async () => {
-    const request = new Request("https://sortecerta.com/api/waitlist", {
+    const request = new Request("https://kettigo.com/api/waitlist", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email: " Person@Example.COM " }),

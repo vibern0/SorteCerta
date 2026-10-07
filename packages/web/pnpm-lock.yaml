@@ -18,7 +18,7 @@ importers:
 
   .:
     dependencies:
-      '@sortecerta/protocol':
+      '@kettigo/protocol':
         specifier: workspace:*
         version: link:../protocol
       '@tanstack/react-query':

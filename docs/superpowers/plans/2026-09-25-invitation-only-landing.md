@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build an independently deployable SorteCerta marketing site whose same-origin Cloudflare Worker admits only valid, email-bound, single-use invitations to a D1-backed waitlist.
+**Goal:** Build an independently deployable Kettigo marketing site whose same-origin Cloudflare Worker admits only valid, email-bound, single-use invitations to a D1-backed waitlist.
 
 **Architecture:** A Vite React bundle supplies the public page and form. A native Worker routes `/api/waitlist`, verifies Turnstile, atomically redeems invitations in D1, and delegates every other request to the `ASSETS` binding. Browser, domain, persistence, and operator concerns stay in focused modules with typed interfaces.
 
@@ -75,7 +75,7 @@ describe("landing shell", () => {
 
 - [ ] **Step 2: Run the shell test and observe the missing module failure**
 
-Run: `npm run test --workspace @sortecerta/landing -- tests/app-shell.test.tsx`
+Run: `npm run test --workspace @kettigo/landing -- tests/app-shell.test.tsx`
 
 Expected: FAIL because `packages/landing` and `src/App.tsx` do not exist.
 
@@ -85,7 +85,7 @@ Use this package shape so the browser and Worker suites have separate runners wh
 
 ```json
 {
-  "name": "@sortecerta/landing",
+  "name": "@kettigo/landing",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -126,7 +126,7 @@ Configure browser tests with `jsdom` and worker tests through `vitest.worker.con
 // packages/landing/wrangler.jsonc
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "sortecerta-landing",
+  "name": "kettigo-landing",
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-25",
   "observability": { "enabled": true },
@@ -139,7 +139,7 @@ Configure browser tests with `jsdom` and worker tests through `vitest.worker.con
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "sortecerta-landing-local",
+      "database_name": "kettigo-landing-local",
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
     }
@@ -164,10 +164,10 @@ export default function App() {
 Add only these root scripts:
 
 ```json
-"landing:dev": "npm run dev -w @sortecerta/landing",
-"landing:build": "npm run build -w @sortecerta/landing",
-"landing:typecheck": "npm run typecheck -w @sortecerta/landing",
-"landing:test": "npm run test -w @sortecerta/landing"
+"landing:dev": "npm run dev -w @kettigo/landing",
+"landing:build": "npm run build -w @kettigo/landing",
+"landing:typecheck": "npm run typecheck -w @kettigo/landing",
+"landing:test": "npm run test -w @kettigo/landing"
 ```
 
 `.dev.vars.example` contains only:
@@ -184,7 +184,7 @@ Run:
 ```bash
 npm install
 npm run landing:typecheck
-npm run test:browser --workspace @sortecerta/landing -- tests/app-shell.test.tsx
+npm run test:browser --workspace @kettigo/landing -- tests/app-shell.test.tsx
 npm run landing:build
 ```
 
@@ -231,7 +231,7 @@ describe("waitlist validation", () => {
     ["application/json", "{", "invalid_request"],
     ["application/json", JSON.stringify({ email: "bad", invitationCode: "x", turnstileToken: "t" }), "invalid_request"],
   ])("rejects invalid request data", async (contentType, body, code) => {
-    const request = new Request("https://sortecerta.com/api/waitlist", {
+    const request = new Request("https://kettigo.com/api/waitlist", {
       method: "POST",
       headers: { "content-type": contentType },
       body,
@@ -240,7 +240,7 @@ describe("waitlist validation", () => {
   });
 
   it("rejects a declared body larger than 8 KiB", async () => {
-    const request = new Request("https://sortecerta.com/api/waitlist", {
+    const request = new Request("https://kettigo.com/api/waitlist", {
       method: "POST",
       headers: { "content-type": "application/json", "content-length": "8193" },
       body: "{}",
@@ -252,7 +252,7 @@ describe("waitlist validation", () => {
 
 - [ ] **Step 2: Run the validation tests and observe the missing module failure**
 
-Run: `npm run test:browser --workspace @sortecerta/landing -- tests/validation.test.ts`
+Run: `npm run test:browser --workspace @kettigo/landing -- tests/validation.test.ts`
 
 Expected: FAIL because `worker/validation.ts` does not exist.
 
@@ -296,7 +296,7 @@ Return a validated object with normalized bounded attribution; throw a `PublicEr
 Run:
 
 ```bash
-npm run test:browser --workspace @sortecerta/landing -- tests/validation.test.ts
+npm run test:browser --workspace @kettigo/landing -- tests/validation.test.ts
 npm run landing:typecheck
 ```
 
@@ -356,7 +356,7 @@ describe("invitation issuer", () => {
 
 - [ ] **Step 2: Run the issuer tests and observe the missing module failure**
 
-Run: `npm run test:browser --workspace @sortecerta/landing -- tests/invitation.test.ts`
+Run: `npm run test:browser --workspace @kettigo/landing -- tests/invitation.test.ts`
 
 Expected: FAIL because `scripts/invitation.ts` does not exist.
 
@@ -364,7 +364,7 @@ Expected: FAIL because `scripts/invitation.ts` does not exist.
 
 Use the exact two-table schema from the approved spec. Generate 16 random bytes, encode all 32 uppercase hexadecimal characters in eight four-character groups, and prefix `SC-`; the displayed code therefore retains all 128 random bits. Hash the normalized code with SHA-256. Validate the optional expiration as a future ISO timestamp.
 
-Invoke Wrangler with `spawn(process.execPath, [wranglerBin, "d1", "execute", "sortecerta-landing-local", mode, "--command", sql], { stdio: ["ignore", "pipe", "pipe"] })`. Encode values as SQL literals with a helper that doubles single quotes; never invoke a shell. Print the code only after exit code 0, exactly once.
+Invoke Wrangler with `spawn(process.execPath, [wranglerBin, "d1", "execute", "kettigo-landing-local", mode, "--command", sql], { stdio: ["ignore", "pipe", "pipe"] })`. Encode values as SQL literals with a helper that doubles single quotes; never invoke a shell. Print the code only after exit code 0, exactly once.
 
 ```sql
 CREATE TABLE invitations (
@@ -395,8 +395,8 @@ CREATE TABLE waitlist_entries (
 Run:
 
 ```bash
-npm run test:browser --workspace @sortecerta/landing -- tests/invitation.test.ts
-npm exec --workspace @sortecerta/landing wrangler d1 migrations apply sortecerta-landing-local --local
+npm run test:browser --workspace @kettigo/landing -- tests/invitation.test.ts
+npm exec --workspace @kettigo/landing wrangler d1 migrations apply kettigo-landing-local --local
 npm run landing:typecheck
 ```
 
@@ -448,7 +448,7 @@ describe("Turnstile verification", () => {
 
 - [ ] **Step 2: Run the tests and observe the missing module failure**
 
-Run: `npm run test:browser --workspace @sortecerta/landing -- tests/turnstile.test.ts`
+Run: `npm run test:browser --workspace @kettigo/landing -- tests/turnstile.test.ts`
 
 Expected: FAIL because `worker/turnstile.ts` does not exist.
 
@@ -461,7 +461,7 @@ POST `FormData` to `https://challenges.cloudflare.com/turnstile/v0/siteverify`, 
 Run:
 
 ```bash
-npm run test:browser --workspace @sortecerta/landing -- tests/turnstile.test.ts
+npm run test:browser --workspace @kettigo/landing -- tests/turnstile.test.ts
 npm run landing:typecheck
 ```
 
@@ -544,7 +544,7 @@ Add cases for expired, already-redeemed by another identity, failed Turnstile, u
 
 - [ ] **Step 2: Run isolated-D1 tests and observe the missing use case**
 
-Run: `npm run test:worker --workspace @sortecerta/landing -- tests/waitlist-worker.test.ts`
+Run: `npm run test:worker --workspace @kettigo/landing -- tests/waitlist-worker.test.ts`
 
 Expected: FAIL because `worker/waitlist.ts` does not exist.
 
@@ -571,7 +571,7 @@ After the batch, confirm the inserted row. On a uniqueness or lost-race error, r
 Run:
 
 ```bash
-npm run test:worker --workspace @sortecerta/landing -- tests/waitlist-worker.test.ts
+npm run test:worker --workspace @kettigo/landing -- tests/waitlist-worker.test.ts
 npm run landing:test
 npm run landing:typecheck
 ```
@@ -605,7 +605,7 @@ import { describe, expect, it, vi } from "vitest";
 
 describe("Worker routing", () => {
   it("rejects cross-origin API submissions", async () => {
-    const response = await worker.fetch(new Request("https://sortecerta.com/api/waitlist", {
+    const response = await worker.fetch(new Request("https://kettigo.com/api/waitlist", {
       method: "POST",
       headers: { origin: "https://evil.example", "content-type": "application/json" },
       body: "{}",
@@ -615,14 +615,14 @@ describe("Worker routing", () => {
   });
 
   it("returns 405 for GET on the waitlist endpoint", async () => {
-    const response = await worker.fetch(new Request("https://sortecerta.com/api/waitlist"), makeEnv(), makeContext());
+    const response = await worker.fetch(new Request("https://kettigo.com/api/waitlist"), makeEnv(), makeContext());
     expect(response.status).toBe(405);
     expect(response.headers.get("allow")).toBe("POST");
   });
 
   it("delegates pages to Assets and applies document headers", async () => {
     const assets = vi.fn(async () => new Response("<html></html>", { headers: { "content-type": "text/html" } }));
-    const response = await worker.fetch(new Request("https://sortecerta.com/"), makeEnv(assets), makeContext());
+    const response = await worker.fetch(new Request("https://kettigo.com/"), makeEnv(assets), makeContext());
     expect(assets).toHaveBeenCalledOnce();
     expect(response.headers.get("content-security-policy")).toContain("challenges.cloudflare.com");
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
@@ -658,7 +658,7 @@ it("never logs submitted secrets or identity", async () => {
 
 - [ ] **Step 2: Run routing tests and observe the missing Worker failure**
 
-Run: `npm run test:worker --workspace @sortecerta/landing -- tests/worker-routing.test.ts`
+Run: `npm run test:worker --workspace @kettigo/landing -- tests/worker-routing.test.ts`
 
 Expected: FAIL because `worker/index.ts` does not exist.
 
@@ -682,8 +682,8 @@ Log one JSON object after API completion with `requestId`, `outcome`, and `durat
 Run:
 
 ```bash
-npm run test:worker --workspace @sortecerta/landing -- tests/worker-routing.test.ts tests/security-privacy.test.ts
-npm run test:worker --workspace @sortecerta/landing
+npm run test:worker --workspace @kettigo/landing -- tests/worker-routing.test.ts tests/security-privacy.test.ts
+npm run test:worker --workspace @kettigo/landing
 npm run landing:typecheck
 ```
 
@@ -716,7 +716,7 @@ import { captureAttribution } from "../src/lib/attribution";
 
 it("captures only approved attribution and only a referrer hostname", () => {
   expect(captureAttribution(
-    new URL("https://sortecerta.com/?utm_source=zama&utm_medium=post&utm_campaign=launch&ref=friend&secret=drop"),
+    new URL("https://kettigo.com/?utm_source=zama&utm_medium=post&utm_campaign=launch&ref=friend&secret=drop"),
     "https://community.example/path?email=hidden",
   )).toEqual({
     source: "zama",
@@ -728,7 +728,7 @@ it("captures only approved attribution and only a referrer hostname", () => {
 });
 
 it("drops malformed and oversized attribution values", () => {
-  expect(captureAttribution(new URL(`https://sortecerta.com/?utm_source=${"x".repeat(129)}`), "not a url")).toEqual({});
+  expect(captureAttribution(new URL(`https://kettigo.com/?utm_source=${"x".repeat(129)}`), "not a url")).toEqual({});
 });
 ```
 
@@ -736,7 +736,7 @@ Test `submitWaitlist` with literal 201, 200, 403, 422, and 503 JSON responses. A
 
 - [ ] **Step 2: Run client tests and observe missing modules**
 
-Run: `npm run test:browser --workspace @sortecerta/landing -- tests/attribution.test.ts tests/waitlist-client.test.ts`
+Run: `npm run test:browser --workspace @kettigo/landing -- tests/attribution.test.ts tests/waitlist-client.test.ts`
 
 Expected: FAIL because both client modules are missing.
 
@@ -749,7 +749,7 @@ Read only `utm_source`, `utm_medium`, `utm_campaign`, and `ref`; trim values, ke
 Run:
 
 ```bash
-npm run test:browser --workspace @sortecerta/landing -- tests/attribution.test.ts tests/waitlist-client.test.ts
+npm run test:browser --workspace @kettigo/landing -- tests/attribution.test.ts tests/waitlist-client.test.ts
 npm run landing:typecheck
 ```
 
@@ -808,7 +808,7 @@ Add tests that the submit button remains disabled without a token and while pend
 
 - [ ] **Step 2: Run form tests and observe missing components**
 
-Run: `npm run test:browser --workspace @sortecerta/landing -- tests/waitlist-form.test.tsx`
+Run: `npm run test:browser --workspace @kettigo/landing -- tests/waitlist-form.test.tsx`
 
 Expected: FAIL because `WaitlistForm.tsx` does not exist.
 
@@ -823,7 +823,7 @@ Use semantic labels, `autocomplete="email"`, `aria-describedby`, a pending butto
 Run:
 
 ```bash
-npm run test:browser --workspace @sortecerta/landing -- tests/waitlist-form.test.tsx
+npm run test:browser --workspace @kettigo/landing -- tests/waitlist-form.test.tsx
 npm run landing:test
 npm run landing:typecheck
 ```
@@ -856,7 +856,7 @@ git commit -m "feat(landing): add invitation waitlist form"
 
 **Interfaces:**
 - Consumes: `<WaitlistForm />` and approved page copy.
-- Produces: one semantic responsive page with `#how-it-works`, `#why-sortecerta`, and `#waitlist` targets.
+- Produces: one semantic responsive page with `#how-it-works`, `#why-kettigo`, and `#waitlist` targets.
 
 - [ ] **Step 1: Write failing semantic and copy tests**
 
@@ -872,7 +872,7 @@ describe("marketing page", () => {
     const links = screen.getAllByRole("link", { name: /join the waitlist/i }) as HTMLAnchorElement[];
     expect(links.every((link) => link.hash === "#waitlist")).toBe(true);
     expect(document.querySelector("#how-it-works")).not.toBeNull();
-    expect(document.querySelector("#why-sortecerta")).not.toBeNull();
+    expect(document.querySelector("#why-kettigo")).not.toBeNull();
   });
 
   it("does not publish fabricated or guaranteed claims", () => {
@@ -886,7 +886,7 @@ describe("marketing page", () => {
 
 - [ ] **Step 2: Run the page test and observe missing section failures**
 
-Run: `npm run test:browser --workspace @sortecerta/landing -- tests/page-content.test.tsx`
+Run: `npm run test:browser --workspace @kettigo/landing -- tests/page-content.test.tsx`
 
 Expected: FAIL because the page sections and CTA links are absent.
 
@@ -894,7 +894,7 @@ Expected: FAIL because the page sections and CTA links are absent.
 
 Keep each component responsible for one page section. The hero prize card uses labels such as “Next draw” and “Your savings set your chances” without live amounts. How It Works uses three ordered steps. Trust cards use the issue-approved headings “Privacy powered by Zama” and “Yield powered by Morpho” with one short paragraph each. Do not add legal links because no real destinations are provided.
 
-Set title, description, canonical URL based on `VITE_SITE_URL` with `https://sortecerta.com` as the production default, theme color, favicon, and Open Graph metadata in `index.html`. Generate a purpose-built 1200×630 PNG showing the SorteCerta wordmark and abstract prize atmosphere; do not place invented metrics in the image.
+Set title, description, canonical URL based on `VITE_SITE_URL` with `https://kettigo.com` as the production default, theme color, favicon, and Open Graph metadata in `index.html`. Generate a purpose-built 1200×630 PNG showing the Kettigo wordmark and abstract prize atmosphere; do not place invented metrics in the image.
 
 - [ ] **Step 4: Implement responsive styling and reduced motion**
 
@@ -916,7 +916,7 @@ Define tokens for the approved palette and fluid spacing. Use system-serif fallb
 Run:
 
 ```bash
-npm run test:browser --workspace @sortecerta/landing -- tests/page-content.test.tsx
+npm run test:browser --workspace @kettigo/landing -- tests/page-content.test.tsx
 npm run landing:typecheck
 npm run landing:build
 rg -n "Make your USDC feel lucky|challenges.cloudflare.com" packages/landing/dist
@@ -951,11 +951,11 @@ npm run landing:dev
 npm run landing:typecheck
 npm run landing:test
 npm run landing:build
-npm exec --workspace @sortecerta/landing wrangler d1 migrations apply sortecerta-landing-local --local
-npm run invitation:create --workspace @sortecerta/landing -- --email person@example.com
+npm exec --workspace @kettigo/landing wrangler d1 migrations apply kettigo-landing-local --local
+npm run invitation:create --workspace @kettigo/landing -- --email person@example.com
 ```
 
-For production, document `wrangler d1 create sortecerta-landing`, replacement of the zero UUID with the returned database ID, remote migration application, `wrangler secret put TURNSTILE_SECRET_KEY`, setting `VITE_TURNSTILE_SITE_KEY` at build time, preview deployment, valid/invalid/replay smoke tests, and custom-domain connection only after preview validation. Rollback restores the previous Worker version; the additive migration remains because dropping waitlist data is not a safe rollback.
+For production, document `wrangler d1 create kettigo-landing`, replacement of the zero UUID with the returned database ID, remote migration application, `wrangler secret put TURNSTILE_SECRET_KEY`, setting `VITE_TURNSTILE_SITE_KEY` at build time, preview deployment, valid/invalid/replay smoke tests, and custom-domain connection only after preview validation. Rollback restores the previous Worker version; the additive migration remains because dropping waitlist data is not a safe rollback.
 
 Add a short root README link to `packages/landing/README.md`; do not change existing deployment instructions.
 
@@ -971,8 +971,8 @@ npm run landing:build
 npm run web:build
 npm run lab:typecheck
 npm run lab:test -- --run
-npm test --workspace @sortecerta/protocol
-npm test --workspace @sortecerta/keeper
+npm test --workspace @kettigo/protocol
+npm test --workspace @kettigo/keeper
 npm run contracts:compile
 npm run contracts:test
 git diff --check HEAD~1

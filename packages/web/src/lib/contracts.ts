@@ -1,4 +1,4 @@
-// Contract addresses & ABIs. The active SorteCerta ABIs come from the shared
+// Contract addresses & ABIs. The active Kettigo ABIs come from the shared
 // protocol package.
 
 import { erc20Abi } from "viem";
@@ -8,7 +8,7 @@ export {
   confidentialPrizePoolAbi,
   confidentialUsdcAbi,
   morphoYieldAdapterAbi,
-} from "@sortecerta/protocol";
+} from "@kettigo/protocol";
 
 export const CONTRACTS = {
   usdc: publicConfig("NEXT_PUBLIC_USDC_ADDRESS", process.env.NEXT_PUBLIC_USDC_ADDRESS) as `0x${string}`,

@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const webWrangler = readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8");
+const rootWrangler = readFileSync(new URL("../../../wrangler.toml", import.meta.url), "utf8");
+const rootWorker = readFileSync(new URL("../worker.ts", import.meta.url), "utf8");
 const publicRuntimeVars = [
   ["NEXT_PUBLIC_CHAIN_ID", "11155111"],
   ["NEXT_PUBLIC_RPC_URL", "https://ethereum-sepolia-rpc.publicnode.com"],
@@ -14,10 +16,19 @@ const publicRuntimeVars = [
 test("web Worker config binds the shared waitlist D1 database", () => {
   assert.match(webWrangler, /"d1_databases"\s*:/);
   assert.match(webWrangler, /"binding": "DB"/);
-  assert.match(webWrangler, /"database_name": "kettigo"/);
-  assert.match(webWrangler, /"database_id": "d6cfede8-60bb-45dc-b342-60e6da48f1e4"/);
+  assert.match(webWrangler, /"database_name": "kettigo-landing"/);
+  assert.match(webWrangler, /"database_id": "f6f8c304-fa39-495d-8307-d01f3899968a"/);
   assert.match(webWrangler, /"migrations_dir": "\.\.\/landing\/migrations"/);
   assert.match(webWrangler, /"previews"\s*:/);
+});
+
+test("root app Worker config binds the shared waitlist D1 database", () => {
+  assert.match(rootWrangler, /\[\[d1_databases\]\]/);
+  assert.match(rootWrangler, /binding = "DB"/);
+  assert.match(rootWrangler, /database_name = "kettigo-landing"/);
+  assert.match(rootWrangler, /database_id = "f6f8c304-fa39-495d-8307-d01f3899968a"/);
+  assert.match(rootWrangler, /migrations_dir = "packages\/landing\/migrations"/);
+  assert.match(rootWrangler, /\[\[previews\.d1_databases\]\]/);
 });
 
 test("web Worker config preserves public runtime variables across deploys", () => {
@@ -27,4 +38,33 @@ test("web Worker config preserves public runtime variables across deploys", () =
     const assignment = `"${name}": "${value}"`;
     assert.equal(webWrangler.split(assignment).length, 3, `${name} should be set for production and previews`);
   }
+});
+
+test("root app Worker config preserves public runtime variables across deploys", () => {
+  assert.match(rootWrangler, /\[vars\]/);
+  assert.match(rootWrangler, /\[previews\.vars\]/);
+  for (const [name, value] of publicRuntimeVars) {
+    const assignment = `${name} = "${value}"`;
+    assert.equal(rootWrangler.split(assignment).length, 3, `${name} should be set for production and previews`);
+  }
+});
+
+test("web Worker configs run the keeper every minute", () => {
+  assert.match(webWrangler, /"triggers"\s*:/);
+  assert.match(webWrangler, /"crons": \["\* \* \* \* \*"\]/);
+  assert.equal(webWrangler.split('"DRAW_KEEPER_MINIMUM_PRIZE": "1000000"').length, 3);
+  assert.equal(webWrangler.split('"MORPHO_KEEPER_START_BLOCK": "11864127"').length, 3);
+
+  assert.match(rootWrangler, /\[triggers\]/);
+  assert.match(rootWrangler, /crons = \["\* \* \* \* \*"\]/);
+  assert.equal(rootWrangler.split('DRAW_KEEPER_MINIMUM_PRIZE = "1000000"').length, 3);
+  assert.equal(rootWrangler.split('MORPHO_KEEPER_START_BLOCK = "11864127"').length, 3);
+});
+
+test("root app Worker cron runs every keeper lane", () => {
+  assert.match(rootWorker, /runKeeperAll\(env, "cron"\)/);
+  assert.match(rootWorker, /runMorphoKeeper/);
+  assert.match(rootWorker, /runWithdrawalKeeper/);
+  assert.match(rootWorker, /runDrawKeeper/);
+  assert.doesNotMatch(rootWorker, /ctx\.waitUntil\(runDrawKeeper\(env, "cron"\)\)/);
 });

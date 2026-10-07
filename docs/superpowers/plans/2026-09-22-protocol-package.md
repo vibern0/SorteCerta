@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Create `@sortecerta/protocol` as the single SDK-backed implementation of shared Morpho types, math, decoding, pinned reads, ABIs, and amount parsing used by web, Morpho lab, and keepers.
+**Goal:** Create `@kettigo/protocol` as the single SDK-backed implementation of shared Morpho types, math, decoding, pinned reads, ABIs, and amount parsing used by web, Morpho lab, and keepers.
 
 **Architecture:** The package exposes TypeScript source to existing workspace consumers and wraps only the official Morpho primitives needed for the custom Sepolia deployment. Consumers continue to create clients, select blocks, manage wallets, submit transactions, and own UI state; the shared package owns deterministic interpretation and request construction.
 
@@ -52,7 +52,7 @@
 
 **Interfaces:**
 - Consumes: no earlier task interfaces.
-- Produces: `parseAmount(input: string, decimals: number): bigint` from `@sortecerta/protocol`.
+- Produces: `parseAmount(input: string, decimals: number): bigint` from `@kettigo/protocol`.
 
 - [ ] **Step 1: Add package scaffolding and the failing amount tests**
 
@@ -60,7 +60,7 @@ Create `packages/protocol/package.json` with this public source export and test 
 
 ```json
 {
-  "name": "@sortecerta/protocol",
+  "name": "@kettigo/protocol",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -124,16 +124,16 @@ test("rejects hostile long input without coercing a partial value", () => {
 Run:
 
 ```bash
-npm install --workspace @sortecerta/protocol --save-exact @morpho-org/blue-sdk@6.11.0 @morpho-org/blue-sdk-viem@5.7.0 @morpho-org/morpho-ts@2.15.0 viem@2.55.19
-npm install --workspace @sortecerta/web @sortecerta/protocol@0.1.0
-npm install --workspace @sortecerta/morpho-lab @sortecerta/protocol@0.1.0
+npm install --workspace @kettigo/protocol --save-exact @morpho-org/blue-sdk@6.11.0 @morpho-org/blue-sdk-viem@5.7.0 @morpho-org/morpho-ts@2.15.0 viem@2.55.19
+npm install --workspace @kettigo/web @kettigo/protocol@0.1.0
+npm install --workspace @kettigo/morpho-lab @kettigo/protocol@0.1.0
 ```
 
 Expected: `packages/protocol/package.json`, the two consumer manifests, and root `package-lock.json` contain only the new workspace/dependency entries; the preserved package-local pnpm files are unchanged.
 
 - [ ] **Step 3: Run the amount test to verify RED**
 
-Run: `npm run test -w @sortecerta/protocol`
+Run: `npm run test -w @kettigo/protocol`
 
 Expected: FAIL because `packages/protocol/src/amounts.ts` does not exist.
 
@@ -166,21 +166,21 @@ Export it from `packages/protocol/src/index.ts`.
 
 - [ ] **Step 5: Run the package tests and typecheck to verify GREEN**
 
-Run: `npm run test -w @sortecerta/protocol && npm run typecheck -w @sortecerta/protocol`
+Run: `npm run test -w @kettigo/protocol && npm run typecheck -w @kettigo/protocol`
 
 Expected: PASS.
 
 - [ ] **Step 6: Migrate both consumers to the canonical parser**
 
-Remove `parseUSDC` from `packages/web/src/lib/format.ts`; import `parseAmount` from `@sortecerta/protocol` in the savings page and replace `parseUSDC(value)` with `parseAmount(value, 6)`.
+Remove `parseUSDC` from `packages/web/src/lib/format.ts`; import `parseAmount` from `@kettigo/protocol` in the savings page and replace `parseUSDC(value)` with `parseAmount(value, 6)`.
 
 Remove the local parser helpers `parseAmount`, `isDecimalAmount`, and `hasOnlyDigits` from lab `actions.ts`, and re-export the shared function to preserve existing component and test imports:
 
 ```ts
-export { parseAmount } from "@sortecerta/protocol";
+export { parseAmount } from "@kettigo/protocol";
 ```
 
-Remove the zero expectation from parser tests; retain zero rejection in action validation tests. Add `@sortecerta/protocol` to `transpilePackages` in `packages/web/next.config.js`.
+Remove the zero expectation from parser tests; retain zero rejection in action validation tests. Add `@kettigo/protocol` to `transpilePackages` in `packages/web/next.config.js`.
 
 - [ ] **Step 7: Verify both consumer parser paths**
 
@@ -188,7 +188,7 @@ Run:
 
 ```bash
 node --experimental-strip-types --test packages/web/tests/format.test.mjs
-npm run test -w @sortecerta/morpho-lab -- --run src/protocol/actions.test.ts
+npm run test -w @kettigo/morpho-lab -- --run src/protocol/actions.test.ts
 ```
 
 Expected: PASS, including parser acceptance of zero and action-level rejection of zero-value writes.
@@ -228,7 +228,7 @@ Also assert rejection of a missing named field, a four-element tuple, an invalid
 
 - [ ] **Step 2: Run parameter tests to verify RED**
 
-Run: `npm run test -w @sortecerta/protocol`
+Run: `npm run test -w @kettigo/protocol`
 
 Expected: FAIL because the exports do not exist.
 
@@ -259,7 +259,7 @@ export function sameMarketParams(left: IMarketParams, right: IMarketParams): boo
 
 - [ ] **Step 4: Export and verify**
 
-Run: `npm run test -w @sortecerta/protocol && npm run typecheck -w @sortecerta/protocol`
+Run: `npm run test -w @kettigo/protocol && npm run typecheck -w @kettigo/protocol`
 
 Expected: PASS.
 
@@ -296,7 +296,7 @@ Retain exact expected rounding for supply assets, borrow assets, fee shares, uti
 
 - [ ] **Step 2: Run math tests to verify RED**
 
-Run: `npm run test -w @sortecerta/protocol`
+Run: `npm run test -w @kettigo/protocol`
 
 Expected: FAIL because `morpho-math.ts` does not exist.
 
@@ -336,7 +336,7 @@ Use `MathLib.wTaylorCompounded` plus `MathLib.wMulDown` for `accruedBorrowAssets
 
 - [ ] **Step 4: Run protocol math verification**
 
-Run: `npm run test -w @sortecerta/protocol && npm run typecheck -w @sortecerta/protocol`
+Run: `npm run test -w @kettigo/protocol && npm run typecheck -w @kettigo/protocol`
 
 Expected: PASS with the same integer outputs as the pre-refactor fixtures.
 
@@ -402,7 +402,7 @@ assert.deepEqual(buildFinalizeUnwrapRequest(wrapper.toLowerCase(), requestId, 7n
 
 - [ ] **Step 2: Run ABI tests to verify RED**
 
-Run: `npm run test -w @sortecerta/protocol`
+Run: `npm run test -w @kettigo/protocol`
 
 Expected: FAIL because the ABI modules do not exist.
 
@@ -439,7 +439,7 @@ export function buildFinalizeUnwrapRequest(wrapper: Address, requestId: Hex, amo
 
 - [ ] **Step 4: Verify ABI coverage and types**
 
-Run: `npm run test -w @sortecerta/protocol && npm run typecheck -w @sortecerta/protocol`
+Run: `npm run test -w @kettigo/protocol && npm run typecheck -w @kettigo/protocol`
 
 Expected: PASS; no custom ABI consumer named in the test is missing.
 
@@ -478,7 +478,7 @@ assert.deepEqual(client.blockRequests, [{ blockNumber: 77n }]);
 
 - [ ] **Step 2: Run projection tests to verify RED**
 
-Run: `npm run test -w @sortecerta/protocol`
+Run: `npm run test -w @kettigo/protocol`
 
 Expected: FAIL because `morpho-yield.ts` does not exist.
 
@@ -509,7 +509,7 @@ export {
   projectMorphoYield,
   readProjectedMorphoYield,
   type ProjectedMorphoYield,
-} from "@sortecerta/protocol";
+} from "@kettigo/protocol";
 ```
 
 Remove the duplicated market types, ABIs, math, and decoders from the web file.
@@ -519,9 +519,9 @@ Remove the duplicated market types, ABIs, math, and decoders from the web file.
 Run:
 
 ```bash
-npm run test -w @sortecerta/protocol
+npm run test -w @kettigo/protocol
 node --experimental-strip-types --test packages/web/tests/morpho-yield.test.mjs
-npm run typecheck -w @sortecerta/web
+npm run typecheck -w @kettigo/web
 ```
 
 Expected: PASS, including overlapping refresh ordering and same-block fallback.
@@ -549,7 +549,7 @@ git commit -m "refactor(protocol): share pinned yield reads"
 
 - [ ] **Step 1: Add an explicit-block characterization test**
 
-In the existing lab read test, import `readProtocolSnapshotAtBlock` from `@sortecerta/protocol` and add a test using the existing `createClient` fixture:
+In the existing lab read test, import `readProtocolSnapshotAtBlock` from `@kettigo/protocol` and add a test using the existing `createClient` fixture:
 
 ```ts
 const snapshot = await readProtocolSnapshotAtBlock(client, config, 456n, account);
@@ -561,7 +561,7 @@ Adjust `createClient` so `getBlock` and `getBalance` assert the block supplied b
 
 - [ ] **Step 2: Run the explicit-block test to verify RED**
 
-Run: `npm run test -w @sortecerta/morpho-lab -- --run src/protocol/read.test.ts`
+Run: `npm run test -w @kettigo/morpho-lab -- --run src/protocol/read.test.ts`
 
 Expected: FAIL because `readProtocolSnapshotAtBlock` is not exported.
 
@@ -594,7 +594,7 @@ export type ProtocolSnapshotData = {
 Keep `refreshedAt` out of the shared type. In lab `types.ts`, re-export the component types and define:
 
 ```ts
-import type { ProtocolSnapshotData } from "@sortecerta/protocol";
+import type { ProtocolSnapshotData } from "@kettigo/protocol";
 export type ProtocolSnapshot = ProtocolSnapshotData & { refreshedAt: number };
 ```
 
@@ -630,7 +630,7 @@ Remove `getBlockNumber()` and `Date.now()` from the shared implementation. Repla
 Reduce lab `protocol/read.ts` to:
 
 ```ts
-import { readProtocolSnapshotAtBlock, type ProtocolReadClient as SharedReadClient } from "@sortecerta/protocol";
+import { readProtocolSnapshotAtBlock, type ProtocolReadClient as SharedReadClient } from "@kettigo/protocol";
 import type { Address } from "viem";
 import type { LabConfig } from "../config";
 import type { ProtocolSnapshot } from "../types";
@@ -649,9 +649,9 @@ export async function readProtocolSnapshot(client: ProtocolReadClient, config: L
 Run:
 
 ```bash
-npm run test -w @sortecerta/protocol
-npm run test -w @sortecerta/morpho-lab -- --run src/protocol/read.test.ts
-npm run typecheck -w @sortecerta/morpho-lab
+npm run test -w @kettigo/protocol
+npm run test -w @kettigo/morpho-lab -- --run src/protocol/read.test.ts
+npm run typecheck -w @kettigo/morpho-lab
 ```
 
 Expected: PASS; every read in both the latest wrapper and explicit-block test is pinned.
@@ -693,13 +693,13 @@ Extend lab action tests to verify case-varied but equivalent market addresses pa
 
 - [ ] **Step 2: Run lab tests as the pre-migration baseline**
 
-Run: `npm run test -w @sortecerta/morpho-lab -- --run`
+Run: `npm run test -w @kettigo/morpho-lab -- --run`
 
 Expected: PASS before structural edits.
 
 - [ ] **Step 3: Replace lab-local imports**
 
-Import SDK-backed helpers and types from `@sortecerta/protocol`. Replace action-local `normalizeParams`/`sameMarketParams` checks with `toMarketParams` and `sameMarketParams`. Import `morphoBlueAbi`, `erc20Abi`, and `wethAbi` from the package. Replace the operator's duplicated `closeDraw` request with `buildCloseDrawRequest`.
+Import SDK-backed helpers and types from `@kettigo/protocol`. Replace action-local `normalizeParams`/`sameMarketParams` checks with `toMarketParams` and `sameMarketParams`. Import `morphoBlueAbi`, `erc20Abi`, and `wethAbi` from the package. Replace the operator's duplicated `closeDraw` request with `buildCloseDrawRequest`.
 
 Keep the remaining lab action builders local because no second consumer constructs the same direct MetaMask workbench requests. Keep positivity validation local:
 
@@ -711,16 +711,16 @@ function positive(amount: bigint) {
 
 - [ ] **Step 4: Remove obsolete local modules and update type-only component imports**
 
-Delete `math.ts`, its migrated test, and `abis.ts` after `rg` shows no remaining imports. Change components and operator/prize modules to import snapshot types from `@sortecerta/protocol` or the lab compatibility type file as appropriate.
+Delete `math.ts`, its migrated test, and `abis.ts` after `rg` shows no remaining imports. Change components and operator/prize modules to import snapshot types from `@kettigo/protocol` or the lab compatibility type file as appropriate.
 
 - [ ] **Step 5: Verify lab behavior and bundle**
 
 Run:
 
 ```bash
-npm run test -w @sortecerta/morpho-lab -- --run
-npm run typecheck -w @sortecerta/morpho-lab
-npm run build -w @sortecerta/morpho-lab
+npm run test -w @kettigo/morpho-lab -- --run
+npm run typecheck -w @kettigo/morpho-lab
+npm run build -w @kettigo/morpho-lab
 ```
 
 Expected: all tests pass and Vite builds with SDK code resolved from the workspace package.
@@ -748,7 +748,7 @@ git commit -m "refactor(morpho-lab): consume protocol package"
 
 **Interfaces:**
 - Consumes: custom and official ABIs plus request builders from Task 4 and `decodeMarketParams` from Task 2.
-- Produces: unchanged frontend and keeper contract calls with no duplicated active SorteCerta or Morpho ABI definitions.
+- Produces: unchanged frontend and keeper contract calls with no duplicated active Kettigo or Morpho ABI definitions.
 
 - [ ] **Step 1: Add keeper ABI regression assertions**
 
@@ -769,14 +769,14 @@ Expected: PASS before structural edits.
 Remove active `confidentialUsdcAbi` and `confidentialPrizePoolAbi` arrays from `contracts.ts` and re-export them:
 
 ```ts
-export { confidentialPrizePoolAbi, confidentialUsdcAbi } from "@sortecerta/protocol";
+export { confidentialPrizePoolAbi, confidentialUsdcAbi } from "@kettigo/protocol";
 ```
 
 Leave the unrelated Zama spike and plaintext prototype ABIs in place. Existing source imports may continue through the `contracts.ts` compatibility re-export; no compatibility export may contain a copied ABI.
 
 - [ ] **Step 4: Replace keeper-local parsed ABIs and tuple reconstruction**
 
-Delete local `parseAbi` and `parseAbiItem` declarations from both Netlify functions. Import pool, wrapper, adapter, Morpho, and event ABIs from `@sortecerta/protocol`. Replace manual positional market parameter reconstruction with:
+Delete local `parseAbi` and `parseAbiItem` declarations from both Netlify functions. Import pool, wrapper, adapter, Morpho, and event ABIs from `@kettigo/protocol`. Replace manual positional market parameter reconstruction with:
 
 ```ts
 const params = decodeMarketParams(marketParams);
@@ -799,9 +799,9 @@ Run:
 
 ```bash
 node --experimental-strip-types --test packages/web/tests/*.test.mjs packages/web/test/*.test.mjs
-npm run typecheck -w @sortecerta/web
-npm run build -w @sortecerta/web
-npm run test -w @sortecerta/keeper
+npm run typecheck -w @kettigo/web
+npm run build -w @kettigo/web
+npm run test -w @kettigo/keeper
 ```
 
 Expected: PASS; Next.js compiles the workspace source package and keeper requests are unchanged.
@@ -849,15 +849,15 @@ Expected: no whitespace errors; the three tracked pre-existing changes are not s
 Run:
 
 ```bash
-npm run test -w @sortecerta/protocol
-npm run typecheck -w @sortecerta/protocol
-npm run test -w @sortecerta/morpho-lab -- --run
-npm run typecheck -w @sortecerta/morpho-lab
-npm run build -w @sortecerta/morpho-lab
+npm run test -w @kettigo/protocol
+npm run typecheck -w @kettigo/protocol
+npm run test -w @kettigo/morpho-lab -- --run
+npm run typecheck -w @kettigo/morpho-lab
+npm run build -w @kettigo/morpho-lab
 node --experimental-strip-types --test packages/web/tests/*.test.mjs packages/web/test/*.test.mjs
-npm run typecheck -w @sortecerta/web
-npm run build -w @sortecerta/web
-npm run test -w @sortecerta/keeper
+npm run typecheck -w @kettigo/web
+npm run build -w @kettigo/web
+npm run test -w @kettigo/keeper
 ```
 
 Expected: every command exits zero.

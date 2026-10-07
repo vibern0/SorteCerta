@@ -11,7 +11,7 @@ import {
   confidentialPrizePoolAbi,
   confidentialUsdcAbi,
   erc20Abi,
-} from "@sortecerta/protocol";
+} from "@kettigo/protocol";
 import type { LabConfig } from "../config";
 import type { ProtocolSnapshot } from "../types";
 import type { SimulatedWriteArgs } from "../wallet/MetaMaskProvider";

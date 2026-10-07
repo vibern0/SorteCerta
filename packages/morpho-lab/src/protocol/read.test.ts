@@ -16,7 +16,7 @@ import { AmountAction } from "../components/AmountAction";
 import { Workbench } from "../components/Workbench";
 import { createActionContext } from "./actions";
 import { MetaMaskProvider } from "../wallet/MetaMaskProvider";
-import { readProtocolSnapshotAtBlock } from "@sortecerta/protocol";
+import { readProtocolSnapshotAtBlock } from "@kettigo/protocol";
 
 import { loadLabConfig } from "../config";
 import { readProtocolSnapshot } from "./read";

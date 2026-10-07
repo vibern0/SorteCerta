@@ -94,7 +94,7 @@ export function Header() {
               className="h-8 w-8 rounded-xl shadow-lg shadow-black/10"
               priority
             />
-            <span className="font-display font-semibold tracking-tight text-lg">SorteCerta</span>
+            <span className="font-display font-semibold tracking-tight text-lg">Kettigo</span>
           </Link>
 
           {session ? (

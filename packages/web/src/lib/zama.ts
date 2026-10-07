@@ -86,7 +86,7 @@ class OwnerZamaSigner implements GenericSigner {
   }
 
   async writeContract(): Promise<ZamaHex> {
-    throw new Error("The owner signer is only used for SorteCerta reveal permissions.");
+    throw new Error("The owner signer is only used for Kettigo reveal permissions.");
   }
 }
 
