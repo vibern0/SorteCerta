@@ -17,6 +17,9 @@ import { decryptPublicHandles } from "../../src/lib/zama-node.ts";
 
 declare const Netlify: { env: { get(name: string): string | undefined } } | undefined;
 
+const WITHDRAWAL_RETRY_ATTEMPTS = 4;
+const WITHDRAWAL_RETRY_BASE_DELAY_MS = 1_500;
+
 async function decryptHandles(handles: Hex[], rpcUrl: string) {
   return decryptPublicHandles(handles, rpcUrl);
 }
@@ -59,17 +62,39 @@ function statusName(status: number): WithdrawalBatchStatus {
   }
 }
 
+function isRateLimitError(error: unknown) {
+  const candidate = error && typeof error === "object" ? error as Record<string, unknown> : undefined;
+  const message = `${candidate?.message ?? ""} ${candidate?.details ?? ""} ${candidate?.shortMessage ?? ""}`;
+  return candidate?.status === 429 || candidate?.code === -32005 || /rate limit|too many requests/i.test(message);
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withRateLimitRetry<T>(operation: () => Promise<T>) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!isRateLimitError(error) || attempt >= WITHDRAWAL_RETRY_ATTEMPTS - 1) throw error;
+      await delay(WITHDRAWAL_RETRY_BASE_DELAY_MS * 2 ** attempt);
+    }
+  }
+}
+
 async function readSnapshot(
   publicClient: ReturnType<typeof createPublicClient>,
   pool: `0x${string}`,
   batchId: bigint,
 ) {
-  const [status, closesAt, requestCount, block] = await Promise.all([
-    publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "withdrawalBatchStatus", args: [batchId] }),
-    publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "withdrawalBatchClosesAt", args: [batchId] }),
-    publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "withdrawalBatchRequestCount", args: [batchId] }),
-    publicClient.getBlock(),
-  ]);
+  const status = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "withdrawalBatchStatus", args: [batchId] }));
+  const closesAt = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "withdrawalBatchClosesAt", args: [batchId] }));
+  const requestCount = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "withdrawalBatchRequestCount", args: [batchId] }));
+  const block = await withRateLimitRetry(() => publicClient.getBlock());
 
   return {
     now: block.timestamp,
@@ -100,10 +125,10 @@ async function runAction(
     });
   }
 
-  const [totalHandle, restoreHandle] = await Promise.all([
-    publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "encryptedWithdrawalBatchTotal", args: [batchId] }),
-    publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "encryptedWithdrawalBatchMorphoRestore", args: [batchId] }),
-  ]);
+  const totalHandle = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "encryptedWithdrawalBatchTotal", args: [batchId] }));
+  const restoreHandle = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "encryptedWithdrawalBatchMorphoRestore", args: [batchId] }));
   let decrypted;
   try {
     decrypted = await decrypt([totalHandle, restoreHandle], rpcUrl);
@@ -153,13 +178,14 @@ export async function runWithdrawalKeeper({ rpcUrl, pool, account, publicClient,
   walletClient: ReturnType<typeof createWalletClient>;
   decrypt?: typeof decryptHandles;
 }) {
-  const currentBatchId = await publicClient.readContract({
+  const currentBatchId = await withRateLimitRetry(() => publicClient.readContract({
     address: pool,
     abi: prizePoolAbi,
     functionName: "currentWithdrawalBatchId",
-  });
+  }));
 
-  const token = getAddress(await publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "token" }));
+  const token = getAddress(await withRateLimitRetry(() =>
+    publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "token" })));
   const transactions: Array<{ action: string; batchId: string; hash: Hex }> = [];
   const pending: Array<{ batchId: string; account?: string; status: string; error?: ReturnType<typeof sanitizeKeeperError> }> = [];
   async function confirmed(hash: Hex, action: string, batchId: bigint) {
@@ -185,16 +211,20 @@ export async function runWithdrawalKeeper({ rpcUrl, pool, account, publicClient,
         pending.push({ batchId: batchId.toString(), status: snapshot.status === "open" ? "waiting-for-batch" : "waiting-for-settlement" });
         continue;
       }
-      const claimants = await publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "withdrawalAccounts", args: [batchId] });
+      const claimants = await withRateLimitRetry(() =>
+        publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "withdrawalAccounts", args: [batchId] }));
       for (const claimant of claimants) {
         try {
-          const hasClaim = await publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "hasWithdrawalClaim", args: [batchId, claimant] });
+          const hasClaim = await withRateLimitRetry(() =>
+            publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "hasWithdrawalClaim", args: [batchId, claimant] }));
           if (hasClaim) {
             await confirmed(await walletClient.writeContract({ account, chain: sepolia, address: pool, abi: prizePoolAbi, functionName: "processWithdrawal", args: [batchId, claimant] }), "payout", batchId);
           }
-          const requestId = await publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "withdrawalUnwrapRequest", args: [batchId, claimant] });
+          const requestId = await withRateLimitRetry(() =>
+            publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "withdrawalUnwrapRequest", args: [batchId, claimant] }));
           if (requestId === zeroHash) throw new Error("Missing payout request");
-          const receiver = await publicClient.readContract({ address: token, abi: wrapperAbi, functionName: "unwrapRequester", args: [requestId] });
+          const receiver = await withRateLimitRetry(() =>
+            publicClient.readContract({ address: token, abi: wrapperAbi, functionName: "unwrapRequester", args: [requestId] }));
           if (receiver === zeroAddress) continue;
           const decrypted = await decrypt([requestId], rpcUrl);
           const amount = clearValueFor(decrypted.clearValues, requestId);
