@@ -9,6 +9,13 @@ type ApprovedAccessInput = {
   walletAddress: string;
 };
 
+type AccessGateBypassInput = {
+  walletReady: boolean;
+  hasApprovedSession: boolean;
+  hasMatchingApprovedAccess: boolean;
+  hasSession: boolean;
+};
+
 type AccessCache = {
   approvedEmail?: string;
   approvedAccess?: {
@@ -38,6 +45,12 @@ export function hasCachedApprovedAccess(input: ApprovedAccessInput, storage = ge
 
 export function hasCachedApprovedSession(storage = getAccessStorage()): boolean {
   return readCache(storage).approvedAccess !== undefined;
+}
+
+export function shouldBypassAccessGate(input: AccessGateBypassInput): boolean {
+  if (!input.walletReady) return false;
+  if (input.hasSession) return input.hasMatchingApprovedAccess;
+  return input.hasApprovedSession;
 }
 
 export function rememberApprovedAccess(input: ApprovedAccessInput, storage = getAccessStorage()) {

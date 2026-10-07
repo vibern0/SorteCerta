@@ -19,3 +19,11 @@ test("keeps Web3Auth sessions alive across page reloads", () => {
 
   assert.match(source, /sessionTime:\s*60\s*\*\s*60\s*\*\s*24\s*\*\s*7/);
 });
+
+test("serializes Web3Auth initialization across restore and manual login", () => {
+  const source = readFileSync(new URL("../src/lib/web3auth.ts", import.meta.url), "utf8");
+
+  assert.match(source, /let _web3authInit: Promise<Web3Auth> \| null = null/);
+  assert.match(source, /_web3authInit = \(async \(\) =>/);
+  assert.match(source, /return _web3authInit/);
+});

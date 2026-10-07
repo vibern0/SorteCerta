@@ -7,6 +7,7 @@ import {
   readCachedApprovedEmail,
   rememberApprovedAccess,
   rememberApprovedEmail,
+  shouldBypassAccessGate,
 } from "../src/lib/access-cache.ts";
 
 function createStorage() {
@@ -79,4 +80,46 @@ test("only a completed approved access pass can bypass the gate screen", () => {
     storage,
   );
   assert.equal(hasCachedApprovedSession(storage), true);
+});
+
+test("does not bypass the gate while wallet restore is still pending", () => {
+  assert.equal(
+    shouldBypassAccessGate({
+      walletReady: false,
+      hasApprovedSession: true,
+      hasMatchingApprovedAccess: false,
+      hasSession: false,
+    }),
+    false,
+  );
+});
+
+test("bypasses only after restore or a matching restored session", () => {
+  assert.equal(
+    shouldBypassAccessGate({
+      walletReady: true,
+      hasApprovedSession: true,
+      hasMatchingApprovedAccess: false,
+      hasSession: false,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldBypassAccessGate({
+      walletReady: true,
+      hasApprovedSession: true,
+      hasMatchingApprovedAccess: true,
+      hasSession: true,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldBypassAccessGate({
+      walletReady: true,
+      hasApprovedSession: true,
+      hasMatchingApprovedAccess: false,
+      hasSession: true,
+    }),
+    false,
+  );
 });

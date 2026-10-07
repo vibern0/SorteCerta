@@ -7,6 +7,7 @@ import {
   hasCachedApprovedSession,
   rememberApprovedAccess,
   rememberApprovedEmail,
+  shouldBypassAccessGate,
 } from "@/lib/access-cache";
 import { useWallet } from "@/lib/wallet-context";
 import { ConnectButton } from "./ConnectButton";
@@ -19,24 +20,27 @@ export function AccessGate({ children }: { children: ReactNode }) {
   const [approvedEmail, setApprovedEmail] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("Enter your email to check whether your access is ready.");
   const [submitting, setSubmitting] = useState(false);
-  const [gateState, setGateState] = useState<GateState>(() =>
-    hasCachedApprovedSession() ? "approved" : "checking",
-  );
+  const [gateState, setGateState] = useState<GateState>("checking");
 
   useEffect(() => {
     let cancelled = false;
 
     async function verify() {
-      if (hasCachedApprovedSession()) {
+      const hasApprovedSession = hasCachedApprovedSession();
+      const hasMatchingApprovedAccess = session
+        ? hasCachedApprovedAccess({ email: session.email ?? "", walletAddress: session.address })
+        : false;
+      if (shouldBypassAccessGate({
+        walletReady: ready,
+        hasApprovedSession,
+        hasMatchingApprovedAccess,
+        hasSession: Boolean(session),
+      })) {
         setGateState("approved");
         return;
       }
       if (!ready) {
         setGateState("checking");
-        return;
-      }
-      if (session && hasCachedApprovedAccess({ email: session.email ?? "", walletAddress: session.address })) {
-        setGateState("approved");
         return;
       }
       if (!session) {

@@ -36,43 +36,52 @@ import { PIMLICO_API_KEY, PIMLICO_URL, RPC_URL, WEB3AUTH_CLIENT_ID } from "./con
 // ─── Web3Auth lifecycle (browser-only) ─────────────────────────────────────
 
 let _web3auth: Web3Auth | null = null;
+let _web3authInit: Promise<Web3Auth> | null = null;
 
 async function getWeb3Auth(): Promise<Web3Auth> {
   if (_web3auth) return _web3auth;
+  if (_web3authInit) return _web3authInit;
   if (typeof window === "undefined") {
     throw new Error("Web3Auth can only be initialized in the browser");
   }
-  const options: Web3AuthOptions = {
-    clientId: WEB3AUTH_CLIENT_ID,
-    web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
-    disableAnalytics: true,
-    sessionTime: 60 * 60 * 24 * 7,
-    chains: [
-      {
-        chainNamespace: CHAIN_NAMESPACES.EIP155,
-        chainId: "0xaa36a7", // Sepolia
-        rpcTarget: RPC_URL,
-        displayName: "Ethereum",
-        blockExplorerUrl: "https://sepolia.etherscan.io",
-        ticker: "ETH",
-        tickerName: "Ether",
-        logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
+  _web3authInit = (async () => {
+    const options: Web3AuthOptions = {
+      clientId: WEB3AUTH_CLIENT_ID,
+      web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
+      disableAnalytics: true,
+      sessionTime: 60 * 60 * 24 * 7,
+      chains: [
+        {
+          chainNamespace: CHAIN_NAMESPACES.EIP155,
+          chainId: "0xaa36a7", // Sepolia
+          rpcTarget: RPC_URL,
+          displayName: "Ethereum",
+          blockExplorerUrl: "https://sepolia.etherscan.io",
+          ticker: "ETH",
+          tickerName: "Ether",
+          logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
+        },
+      ],
+      defaultChainId: "0xaa36a7",
+      uiConfig: {
+        appName: "Kettigo",
+        loginMethodsOrder: ["google", "apple"],
+        defaultLanguage: "pt",
+        mode: "dark",
+        theme: {
+          primary: "#7C5CFF",
+        },
       },
-    ],
-    defaultChainId: "0xaa36a7",
-    uiConfig: {
-      appName: "Kettigo",
-      loginMethodsOrder: ["google", "apple"],
-      defaultLanguage: "pt",
-      mode: "dark",
-      theme: {
-        primary: "#7C5CFF",
-      },
-    },
-  };
-  _web3auth = new Web3Auth(options);
-  await _web3auth.init();
-  return _web3auth;
+    };
+    const web3auth = new Web3Auth(options);
+    await web3auth.init();
+    _web3auth = web3auth;
+    return web3auth;
+  })().catch((error) => {
+    _web3authInit = null;
+    throw error;
+  });
+  return _web3authInit;
 }
 
 function getPublicClient() {
