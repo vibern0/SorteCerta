@@ -25,6 +25,9 @@ import { decryptPublicHandles } from "../../src/lib/zama-node.ts";
 declare const Netlify: { env: { get(name: string): string | undefined } } | undefined;
 
 const UNWRAP_LOG_CHUNK_BLOCKS = 10_000n;
+const UNWRAP_LOG_RETRY_ATTEMPTS = 4;
+const UNWRAP_LOG_RETRY_BASE_DELAY_MS = 1_500;
+type UnwrapLog = { args: { unwrapRequestId?: `0x${string}` } };
 type MorphoKeeperRuntimeSnapshot = MorphoKeeperSnapshot & {
   token: `0x${string}`;
   adapter: `0x${string}`;
@@ -37,7 +40,9 @@ type EnvName =
   | "NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS"
   | "KEEPER_PRIVATE_KEY"
   | "MORPHO_KEEPER_MAX_TXS"
-  | "MORPHO_KEEPER_START_BLOCK";
+  | "MORPHO_KEEPER_START_BLOCK"
+  | "MORPHO_KEEPER_PENDING_UNWRAP_REQUEST_ID"
+  | "MORPHO_KEEPER_SKIP_UNWRAP_LOG_SCAN";
 
 function env(name: EnvName): string | undefined {
   if (typeof Netlify !== "undefined") return Netlify.env.get(name);
@@ -49,6 +54,8 @@ function env(name: EnvName): string | undefined {
     case "KEEPER_PRIVATE_KEY": return process.env.KEEPER_PRIVATE_KEY;
     case "MORPHO_KEEPER_MAX_TXS": return process.env.MORPHO_KEEPER_MAX_TXS;
     case "MORPHO_KEEPER_START_BLOCK": return process.env.MORPHO_KEEPER_START_BLOCK;
+    case "MORPHO_KEEPER_PENDING_UNWRAP_REQUEST_ID": return process.env.MORPHO_KEEPER_PENDING_UNWRAP_REQUEST_ID;
+    case "MORPHO_KEEPER_SKIP_UNWRAP_LOG_SCAN": return process.env.MORPHO_KEEPER_SKIP_UNWRAP_LOG_SCAN;
   }
 }
 
@@ -70,13 +77,21 @@ async function findPendingUnwrap(
   startBlock: bigint,
   latestBlock: bigint,
 ) {
-  const requested: Array<{ args: { unwrapRequestId?: `0x${string}` } }> = [];
-  const finalized: Array<{ args: { unwrapRequestId?: `0x${string}` } }> = [];
+  const requested: UnwrapLog[] = [];
+  const finalized: UnwrapLog[] = [];
   for (const range of buildInclusiveBlockRanges(startBlock, latestBlock, UNWRAP_LOG_CHUNK_BLOCKS)) {
-    const [requestedChunk, finalizedChunk] = await Promise.all([
-      publicClient.getLogs({ address: token, event: unwrapRequestedEvent, args: { receiver: adapter }, ...range }),
-      publicClient.getLogs({ address: token, event: unwrapFinalizedEvent, args: { receiver: adapter }, ...range }),
-    ]);
+    const requestedChunk = await getLogsWithRateLimitRetry<UnwrapLog>(publicClient, {
+      address: token,
+      event: unwrapRequestedEvent,
+      args: { receiver: adapter },
+      ...range,
+    });
+    const finalizedChunk = await getLogsWithRateLimitRetry<UnwrapLog>(publicClient, {
+      address: token,
+      event: unwrapFinalizedEvent,
+      args: { receiver: adapter },
+      ...range,
+    });
     requested.push(...requestedChunk);
     finalized.push(...finalizedChunk);
   }
@@ -87,33 +102,85 @@ async function findPendingUnwrap(
   );
 }
 
-async function readSnapshot(publicClient: ReturnType<typeof createPublicClient>, pool: `0x${string}`, startBlock: bigint) {
-  const [availablePrincipalAssets, accruedYieldAssets, morphoPendingDepositCount, lastMorphoUnwrapAt, morphoUnwrapInterval, tokenAddress, adapterAddress, block] =
-    await Promise.all([
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoAvailablePrincipalAssets" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoAccruedYieldAssets" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoPendingDepositCount" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "lastMorphoUnwrapAt" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoUnwrapInterval" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "token" }),
-      publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoYieldAdapter" }),
-      publicClient.getBlock(),
-    ]);
+async function getLogsWithRateLimitRetry<TLog>(
+  publicClient: ReturnType<typeof createPublicClient>,
+  request: Parameters<typeof publicClient.getLogs>[0],
+): Promise<TLog[]> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await publicClient.getLogs(request) as TLog[];
+    } catch (error) {
+      if (!isRateLimitError(error) || attempt >= UNWRAP_LOG_RETRY_ATTEMPTS - 1) throw error;
+      await delay(UNWRAP_LOG_RETRY_BASE_DELAY_MS * 2 ** attempt);
+    }
+  }
+}
+
+function isRateLimitError(error: unknown) {
+  const candidate = error && typeof error === "object" ? error as Record<string, unknown> : undefined;
+  const message = `${candidate?.message ?? ""} ${candidate?.details ?? ""} ${candidate?.shortMessage ?? ""}`;
+  return candidate?.status === 429 || candidate?.code === -32005 || /rate limit|too many requests/i.test(message);
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withRateLimitRetry<T>(operation: () => Promise<T>) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!isRateLimitError(error) || attempt >= UNWRAP_LOG_RETRY_ATTEMPTS - 1) throw error;
+      await delay(UNWRAP_LOG_RETRY_BASE_DELAY_MS * 2 ** attempt);
+    }
+  }
+}
+
+function truthyEnv(value: string | undefined) {
+  return value === "1" || value?.toLowerCase() === "true" || value?.toLowerCase() === "yes";
+}
+
+async function readSnapshot(
+  publicClient: ReturnType<typeof createPublicClient>,
+  pool: `0x${string}`,
+  startBlock: bigint,
+  options: { pendingUnwrapRequestId?: Hex; skipUnwrapLogScan?: boolean } = {},
+) {
+  const availablePrincipalAssets = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoAvailablePrincipalAssets" }));
+  const accruedYieldAssets = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoAccruedYieldAssets" }));
+  const morphoPendingDepositCount = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoPendingDepositCount" }));
+  const lastMorphoUnwrapAt = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "lastMorphoUnwrapAt" }));
+  const morphoUnwrapInterval = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoUnwrapInterval" }));
+  const tokenAddress = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "token" }));
+  const adapterAddress = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: pool, abi: confidentialPrizePoolAbi, functionName: "morphoYieldAdapter" }));
+  const block = await withRateLimitRetry(() => publicClient.getBlock());
 
   const token = getAddress(tokenAddress);
   const adapter = getAddress(adapterAddress);
-  const [suppliedPrincipalAssets, pendingUnwrapRequestId, morphoAddress, marketId] = await Promise.all([
-    publicClient.readContract({ address: adapter, abi: morphoYieldAdapterAbi, functionName: "suppliedPrincipal" }),
-    findPendingUnwrap(publicClient, token, adapter, startBlock, block.number),
-    publicClient.readContract({ address: adapter, abi: morphoYieldAdapterAbi, functionName: "morpho" }),
-    publicClient.readContract({ address: adapter, abi: morphoYieldAdapterAbi, functionName: "marketId" }),
-  ]);
-  const market = await publicClient.readContract({
+  const resolvedPendingUnwrapRequestId =
+    options.pendingUnwrapRequestId ??
+    (options.skipUnwrapLogScan ? undefined : await findPendingUnwrap(publicClient, token, adapter, startBlock, block.number));
+  const suppliedPrincipalAssets = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: adapter, abi: morphoYieldAdapterAbi, functionName: "suppliedPrincipal" }));
+  const pendingUnwrapRequestId = resolvedPendingUnwrapRequestId;
+  const morphoAddress = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: adapter, abi: morphoYieldAdapterAbi, functionName: "morpho" }));
+  const marketId = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: adapter, abi: morphoYieldAdapterAbi, functionName: "marketId" }));
+  const market = await withRateLimitRetry(() => publicClient.readContract({
     address: getAddress(morphoAddress),
     abi: morphoBlueAbi,
     functionName: "market",
     args: [marketId],
-  });
+  }));
 
   return {
     availablePrincipalAssets,
@@ -225,6 +292,8 @@ export default async () => {
   const privateKey = privateKeyEnv("KEEPER_PRIVATE_KEY");
   const maxTransactions = normalizeKeeperMaxTransactions(env("MORPHO_KEEPER_MAX_TXS"));
   const startBlock = BigInt(requiredEnv("MORPHO_KEEPER_START_BLOCK"));
+  const pendingUnwrapRequestId = env("MORPHO_KEEPER_PENDING_UNWRAP_REQUEST_ID") as Hex | undefined;
+  const skipUnwrapLogScan = truthyEnv(env("MORPHO_KEEPER_SKIP_UNWRAP_LOG_SCAN"));
   const account = privateKeyToAccount(privateKey);
 
   const publicClient = createPublicClient({ chain: sepolia, transport: http(rpcUrl) });
@@ -232,7 +301,7 @@ export default async () => {
   const transactions: Array<{ action: MorphoKeeperAction; hash: Hex }> = [];
 
   for (let i = 0; i < maxTransactions; i++) {
-    const snapshot = await readSnapshot(publicClient, pool, startBlock);
+    const snapshot = await readSnapshot(publicClient, pool, startBlock, { pendingUnwrapRequestId, skipUnwrapLogScan });
     const [action] = chooseMorphoKeeperActions(snapshot, 1);
     if (!action) break;
 
