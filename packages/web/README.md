@@ -56,6 +56,25 @@ harvests the resulting surplus for that draw. The withdrawal function runs every
 minute, scans recent batches, closes expired nonempty batches, and settles closed
 batches once their public-decryption proof is available.
 
+## Cloudflare Worker deployment
+
+The web Worker owns its deployment configuration in
+`packages/web/wrangler.jsonc`. Its `DB` binding points to the same D1 database
+as the landing Worker, while its assets and entry point remain package-local.
+
+Build and deploy from the repository root:
+
+```bash
+npm run cf:build
+npx wrangler deploy --config packages/web/wrangler.jsonc
+```
+
+Apply the shared landing migrations to the configured remote database with:
+
+```bash
+npx wrangler d1 migrations apply kettigo --remote --config packages/web/wrangler.jsonc
+```
+
 ## Where things live
 
 ```

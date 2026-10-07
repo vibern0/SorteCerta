@@ -1,0 +1,41 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "kettigo",
+  "main": "worker.ts",
+  "compatibility_date": "2026-09-24",
+  "workers_dev": true,
+  "preview_urls": true,
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "out"
+  },
+  "vars": {
+    "NEXT_PUBLIC_CHAIN_ID": "11155111",
+    "NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS": "0x9c23E5f7143612dc1232FC643A57300291e0d719",
+    "NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS": "0x3B4F71c77e288d92871Cda495891Cd42f543A3f5",
+    "NEXT_PUBLIC_USDC_ADDRESS": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kettigo",
+      "database_id": "d6cfede8-60bb-45dc-b342-60e6da48f1e4",
+      "migrations_dir": "../landing/migrations"
+    }
+  ],
+  "previews": {
+    "vars": {
+      "NEXT_PUBLIC_CHAIN_ID": "11155111",
+      "NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS": "0x9c23E5f7143612dc1232FC643A57300291e0d719",
+      "NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS": "0x3B4F71c77e288d92871Cda495891Cd42f543A3f5",
+      "NEXT_PUBLIC_USDC_ADDRESS": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+    },
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_id": "d6cfede8-60bb-45dc-b342-60e6da48f1e4",
+        "migrations_dir": "../landing/migrations"
+      }
+    ]
+  }
+}
