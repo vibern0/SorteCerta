@@ -1,0 +1,35 @@
+name = "kettigo"
+compatibility_date = "2026-09-24"
+main = "packages/web/worker.ts"
+workers_dev = true
+preview_urls = true
+
+[assets]
+binding = "ASSETS"
+directory = "packages/web/out"
+
+[vars]
+NEXT_PUBLIC_CHAIN_ID = "11155111"
+NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS = "0xe65D6459a7Ce01315FbB0998C37233c6FeE3aB8b"
+NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS = "0x6B26B258436bcCE719Be8F9B30F87FDFD9BdFA8a"
+NEXT_PUBLIC_USDC_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kettigo"
+database_id = "d6cfede8-60bb-45dc-b342-60e6da48f1e4"
+migrations_dir = "packages/landing/migrations"
+
+[previews]
+
+[previews.vars]
+NEXT_PUBLIC_CHAIN_ID = "11155111"
+NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS = "0xe65D6459a7Ce01315FbB0998C37233c6FeE3aB8b"
+NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS = "0x6B26B258436bcCE719Be8F9B30F87FDFD9BdFA8a"
+NEXT_PUBLIC_USDC_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+
+[[previews.d1_databases]]
+binding = "DB"
+database_name = "kettigo"
+database_id = "d6cfede8-60bb-45dc-b342-60e6da48f1e4"
+migrations_dir = "packages/landing/migrations"

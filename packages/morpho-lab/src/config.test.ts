@@ -7,7 +7,7 @@ describe("loadLabConfig", () => {
     const config = loadLabConfig({});
 
     expect(config.chainId).toBe(11155111);
-    expect(config.pool).toBe("0x9c23E5f7143612dc1232FC643A57300291e0d719");
+    expect(config.pool).toBe("0xe65D6459a7Ce01315FbB0998C37233c6FeE3aB8b");
     expect(config.adapter).toBe("0x784C2020a2fbf4a106881E37B673A93604A9559D");
   });
 
