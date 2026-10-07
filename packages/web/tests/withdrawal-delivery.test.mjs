@@ -20,6 +20,10 @@ function fixture({ stalled = false, reverted = false } = {}) {
         switch (functionName) {
           case "currentWithdrawalBatchId": return 2n;
           case "token": return address;
+          case "morphoYieldAdapter": return address;
+          case "morpho": return address;
+          case "marketId": return handle;
+          case "market": return [1_000_000n, 1_000_000n, 0n, 0n, 0n, 0n];
           case "withdrawalBatchStatus": return state.status;
           case "withdrawalBatchClosesAt": return 900n;
           case "withdrawalBatchRequestCount": return 1n;

@@ -6,6 +6,8 @@ import {
   buildFinalizeUnwrapRequest,
   confidentialPrizePoolAbi as prizePoolAbi,
   confidentialUsdcAbi as wrapperAbi,
+  morphoBlueAbi,
+  morphoYieldAdapterAbi,
 } from "@sortecerta/protocol";
 import { sanitizeKeeperError } from "../../src/lib/morpho-keeper.ts";
 import {
@@ -143,6 +145,19 @@ async function runAction(
     console.log(JSON.stringify({ action, batchId: batchId.toString(), status: "invalid-decryption-response" }));
     return undefined;
   }
+  if (clearRestore > 0n) {
+    const availableLiquidity = await readMorphoAvailableLiquidity(publicClient, pool);
+    if (availableLiquidity < clearRestore) {
+      console.log(JSON.stringify({
+        action,
+        batchId: batchId.toString(),
+        status: "waiting-for-liquidity",
+        required: clearRestore.toString(),
+        available: availableLiquidity.toString(),
+      }));
+      return undefined;
+    }
+  }
 
   return walletClient.writeContract({
     address: pool,
@@ -152,6 +167,23 @@ async function runAction(
     functionName: "settleWithdrawalBatch",
     args: [batchId, clearTotal, clearRestore, decrypted.decryptionProof],
   });
+}
+
+async function readMorphoAvailableLiquidity(
+  publicClient: ReturnType<typeof createPublicClient>,
+  pool: `0x${string}`,
+) {
+  const adapter = getAddress(await withRateLimitRetry(() =>
+    publicClient.readContract({ address: pool, abi: prizePoolAbi, functionName: "morphoYieldAdapter" })));
+  const morpho = getAddress(await withRateLimitRetry(() =>
+    publicClient.readContract({ address: adapter, abi: morphoYieldAdapterAbi, functionName: "morpho" })));
+  const marketId = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: adapter, abi: morphoYieldAdapterAbi, functionName: "marketId" }));
+  const market = await withRateLimitRetry(() =>
+    publicClient.readContract({ address: morpho, abi: morphoBlueAbi, functionName: "market", args: [marketId] }));
+  const totalSupplyAssets = market[0];
+  const totalBorrowAssets = market[2];
+  return totalSupplyAssets > totalBorrowAssets ? totalSupplyAssets - totalBorrowAssets : 0n;
 }
 
 function clearValueFor(values: Readonly<Record<string, unknown>>, handle: Hex): unknown {
