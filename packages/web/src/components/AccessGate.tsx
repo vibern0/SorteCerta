@@ -4,7 +4,7 @@ import { FormEvent, ReactNode, useEffect, useState } from "react";
 import { checkAccess, claimAccess, joinWaitlist } from "@/lib/access";
 import {
   hasCachedApprovedAccess,
-  readCachedApprovedEmail,
+  hasCachedApprovedSession,
   rememberApprovedAccess,
   rememberApprovedEmail,
 } from "@/lib/access-cache";
@@ -19,12 +19,18 @@ export function AccessGate({ children }: { children: ReactNode }) {
   const [approvedEmail, setApprovedEmail] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("Enter your email to check whether your access is ready.");
   const [submitting, setSubmitting] = useState(false);
-  const [gateState, setGateState] = useState<GateState>("checking");
+  const [gateState, setGateState] = useState<GateState>(() =>
+    hasCachedApprovedSession() ? "approved" : "checking",
+  );
 
   useEffect(() => {
     let cancelled = false;
 
     async function verify() {
+      if (hasCachedApprovedSession()) {
+        setGateState("approved");
+        return;
+      }
       if (!ready) {
         setGateState("checking");
         return;
@@ -34,13 +40,6 @@ export function AccessGate({ children }: { children: ReactNode }) {
         return;
       }
       if (!session) {
-        const cachedEmail = readCachedApprovedEmail();
-        if (cachedEmail) {
-          setApprovedEmail(cachedEmail);
-          setGateState("ready");
-          setStatus("Access is ready. Sign in with this same email to continue.");
-          return;
-        }
         setGateState((current) => (current === "ready" ? "ready" : "email"));
         return;
       }
@@ -134,6 +133,17 @@ export function AccessGate({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
+  if (gateState === "checking") {
+    return (
+      <main
+        aria-busy="true"
+        className="min-h-[100svh] md:min-h-[calc(100vh-48px)]"
+      >
+        <span className="sr-only">Checking your session...</span>
+      </main>
+    );
+  }
+
   return (
     <main className="relative mx-auto flex min-h-[100svh] w-full max-w-5xl flex-col justify-start overflow-hidden px-5 pb-8 pt-7 md:min-h-[calc(100vh-48px)] md:justify-center md:px-8 md:py-8">
       <div className="pointer-events-none absolute right-[-5rem] top-10 h-52 w-52 rounded-full border-[30px] border-[var(--peach)] opacity-70" />
@@ -186,7 +196,7 @@ export function AccessGate({ children }: { children: ReactNode }) {
           )}
 
           <p className="text-sm leading-relaxed text-muted" role="status" aria-live="polite">
-            {gateState === "checking" ? "Checking your session..." : status}
+            {status}
           </p>
         </section>
       </div>

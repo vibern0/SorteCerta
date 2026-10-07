@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   hasCachedApprovedAccess,
+  hasCachedApprovedSession,
   readCachedApprovedEmail,
   rememberApprovedAccess,
   rememberApprovedEmail,
@@ -62,4 +63,20 @@ test("approved access cache only matches the same email and wallet", () => {
     ),
     false,
   );
+});
+
+test("only a completed approved access pass can bypass the gate screen", () => {
+  const storage = createStorage();
+
+  rememberApprovedEmail("person@example.com", storage);
+  assert.equal(hasCachedApprovedSession(storage), false);
+
+  rememberApprovedAccess(
+    {
+      email: "person@example.com",
+      walletAddress: "0x00000000000000000000000000000000000000aa",
+    },
+    storage,
+  );
+  assert.equal(hasCachedApprovedSession(storage), true);
 });

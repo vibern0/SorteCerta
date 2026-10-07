@@ -36,6 +36,10 @@ export function hasCachedApprovedAccess(input: ApprovedAccessInput, storage = ge
   return approvedAccess.email === normalizedEmail && approvedAccess.walletAddress === walletAddress;
 }
 
+export function hasCachedApprovedSession(storage = getAccessStorage()): boolean {
+  return readCache(storage).approvedAccess !== undefined;
+}
+
 export function rememberApprovedAccess(input: ApprovedAccessInput, storage = getAccessStorage()) {
   const normalizedEmail = normalizeEmail(input.email);
   const walletAddress = normalizeAddress(input.walletAddress);
