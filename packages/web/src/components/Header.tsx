@@ -87,8 +87,8 @@ export function Header() {
         <div className="flex items-center justify-between px-5 h-16">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/icon-192.png"
-              alt=""
+              src="/kettigo-mark.svg"
+              alt="Kettigo"
               width={32}
               height={32}
               className="h-8 w-8 rounded-xl shadow-lg shadow-black/10"

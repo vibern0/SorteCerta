@@ -10,15 +10,15 @@
   "lang": "en",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/kettigo-mark.svg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/kettigo-mark.svg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]

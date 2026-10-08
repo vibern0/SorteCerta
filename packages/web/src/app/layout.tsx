@@ -60,8 +60,8 @@ export const metadata: Metadata = {
     "Your savings, with weekly prizes. 100% of your principal, always.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.png",
-    apple: "/apple-touch-icon.png",
+    icon: "/kettigo-mark.svg",
+    apple: "/kettigo-mark.svg",
   },
   appleWebApp: {
     capable: true,

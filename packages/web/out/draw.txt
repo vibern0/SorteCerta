@@ -1,17 +1,17 @@
 1:"$Sreact.fragment"
-2:I[51079,["5423","static/chunks/da606c37-058c5e832617f36a.js","3522","static/chunks/0eedbce9-fde743a4764954b7.js","1043","static/chunks/1043-31d02ee5ea62feb9.js","5694","static/chunks/5694-acf1de2f202cdff2.js","7514","static/chunks/7514-0d03d76516ca61ac.js","2598","static/chunks/2598-c7a02e45805db9d4.js","5476","static/chunks/5476-36316fe8d4b2e860.js","792","static/chunks/792-43d4f73b3948c428.js","3156","static/chunks/3156-6d4ba9b7d3b1cdf6.js","7177","static/chunks/app/layout-78c913dab68004b9.js"],""]
-3:I[20972,["5423","static/chunks/da606c37-058c5e832617f36a.js","3522","static/chunks/0eedbce9-fde743a4764954b7.js","1043","static/chunks/1043-31d02ee5ea62feb9.js","5694","static/chunks/5694-acf1de2f202cdff2.js","7514","static/chunks/7514-0d03d76516ca61ac.js","2598","static/chunks/2598-c7a02e45805db9d4.js","5476","static/chunks/5476-36316fe8d4b2e860.js","792","static/chunks/792-43d4f73b3948c428.js","3156","static/chunks/3156-6d4ba9b7d3b1cdf6.js","7177","static/chunks/app/layout-78c913dab68004b9.js"],"Providers"]
-4:I[28554,["5423","static/chunks/da606c37-058c5e832617f36a.js","3522","static/chunks/0eedbce9-fde743a4764954b7.js","1043","static/chunks/1043-31d02ee5ea62feb9.js","5694","static/chunks/5694-acf1de2f202cdff2.js","7514","static/chunks/7514-0d03d76516ca61ac.js","2598","static/chunks/2598-c7a02e45805db9d4.js","5476","static/chunks/5476-36316fe8d4b2e860.js","792","static/chunks/792-43d4f73b3948c428.js","3156","static/chunks/3156-6d4ba9b7d3b1cdf6.js","7177","static/chunks/app/layout-78c913dab68004b9.js"],"Header"]
-5:I[39135,[],""]
-6:I[4195,[],""]
-7:I[9434,[],"ClientPageRoot"]
-8:I[90616,["5423","static/chunks/da606c37-058c5e832617f36a.js","3522","static/chunks/0eedbce9-fde743a4764954b7.js","1043","static/chunks/1043-31d02ee5ea62feb9.js","5694","static/chunks/5694-acf1de2f202cdff2.js","2965","static/chunks/2965-40acf0b9b48dd541.js","792","static/chunks/792-43d4f73b3948c428.js","5641","static/chunks/app/draw/page-8c45b8d429467b6c.js"],"default"]
-b:I[24502,[],"OutletBoundary"]
-d:I[92075,[],"AsyncMetadataOutlet"]
-f:I[24502,[],"ViewportBoundary"]
-11:I[24502,[],"MetadataBoundary"]
+2:I[34543,["6740","static/chunks/6dd63033-94d17ee1b44906a4.js","3266","static/chunks/e7fabc54-99707a5ab65d1006.js","8953","static/chunks/8953-a285717e7a7bf6b1.js","9546","static/chunks/9546-124d714a43c61433.js","6585","static/chunks/6585-524950b70cae7adc.js","1390","static/chunks/1390-b9a2787cfe9c0446.js","4591","static/chunks/4591-36ed98e2a351c540.js","5678","static/chunks/5678-795a8ded27303033.js","97","static/chunks/97-199f2ef75c8b2745.js","7177","static/chunks/app/layout-44e3f682469488ee.js"],""]
+3:I[62270,["6740","static/chunks/6dd63033-94d17ee1b44906a4.js","3266","static/chunks/e7fabc54-99707a5ab65d1006.js","8953","static/chunks/8953-a285717e7a7bf6b1.js","9546","static/chunks/9546-124d714a43c61433.js","6585","static/chunks/6585-524950b70cae7adc.js","1390","static/chunks/1390-b9a2787cfe9c0446.js","4591","static/chunks/4591-36ed98e2a351c540.js","5678","static/chunks/5678-795a8ded27303033.js","97","static/chunks/97-199f2ef75c8b2745.js","7177","static/chunks/app/layout-44e3f682469488ee.js"],"Providers"]
+4:I[26564,["6740","static/chunks/6dd63033-94d17ee1b44906a4.js","3266","static/chunks/e7fabc54-99707a5ab65d1006.js","8953","static/chunks/8953-a285717e7a7bf6b1.js","9546","static/chunks/9546-124d714a43c61433.js","6585","static/chunks/6585-524950b70cae7adc.js","1390","static/chunks/1390-b9a2787cfe9c0446.js","4591","static/chunks/4591-36ed98e2a351c540.js","5678","static/chunks/5678-795a8ded27303033.js","97","static/chunks/97-199f2ef75c8b2745.js","7177","static/chunks/app/layout-44e3f682469488ee.js"],"Header"]
+5:I[56071,[],""]
+6:I[40315,[],""]
+7:I[38674,[],"ClientPageRoot"]
+8:I[90156,["6740","static/chunks/6dd63033-94d17ee1b44906a4.js","3266","static/chunks/e7fabc54-99707a5ab65d1006.js","8953","static/chunks/8953-a285717e7a7bf6b1.js","9546","static/chunks/9546-124d714a43c61433.js","8271","static/chunks/8271-73ceeafec552285d.js","5678","static/chunks/5678-795a8ded27303033.js","5641","static/chunks/app/draw/page-4264c39441fe78e6.js"],"default"]
+b:I[53902,[],"OutletBoundary"]
+d:I[96547,[],"AsyncMetadataOutlet"]
+f:I[53902,[],"ViewportBoundary"]
+11:I[53902,[],"MetadataBoundary"]
 12:"$Sreact.suspense"
-14:I[53029,[],""]
+14:I[58509,[],""]
 :HL["/_next/static/media/19b19945c700ed31-s.p.ttf","font",{"crossOrigin":"","type":"font/ttf"}]
 :HL["/_next/static/media/3a34dc355c90aaed-s.p.ttf","font",{"crossOrigin":"","type":"font/ttf"}]
 :HL["/_next/static/media/4f40d598744b068e-s.p.ttf","font",{"crossOrigin":"","type":"font/ttf"}]
@@ -25,6 +25,6 @@ f:I[24502,[],"ViewportBoundary"]
 a:"$0:f:0:1:2:children:2:children:1:props:children:0:props:params"
 10:[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1, maximum-scale=1"}],["$","meta","2",{"name":"theme-color","content":"#2548F4"}]]
 c:null
-15:I[40051,[],"IconMark"]
-e:{"metadata":[["$","title","0",{"children":"Kettigo — Savings with a chance to win"}],["$","meta","1",{"name":"description","content":"Your savings, with weekly prizes. 100% of your principal, always."}],["$","link","2",{"rel":"manifest","href":"/manifest.json","crossOrigin":"$undefined"}],["$","meta","3",{"name":"mobile-web-app-capable","content":"yes"}],["$","meta","4",{"name":"apple-mobile-web-app-title","content":"Kettigo"}],["$","meta","5",{"name":"apple-mobile-web-app-status-bar-style","content":"black-translucent"}],["$","link","6",{"rel":"icon","href":"/favicon.png"}],["$","link","7",{"rel":"apple-touch-icon","href":"/apple-touch-icon.png"}],["$","$L15","8",{}]],"error":null,"digest":"$undefined"}
+15:I[56155,[],"IconMark"]
+e:{"metadata":[["$","title","0",{"children":"Kettigo — Savings with a chance to win"}],["$","meta","1",{"name":"description","content":"Your savings, with weekly prizes. 100% of your principal, always."}],["$","link","2",{"rel":"manifest","href":"/manifest.json","crossOrigin":"$undefined"}],["$","meta","3",{"name":"mobile-web-app-capable","content":"yes"}],["$","meta","4",{"name":"apple-mobile-web-app-title","content":"Kettigo"}],["$","meta","5",{"name":"apple-mobile-web-app-status-bar-style","content":"black-translucent"}],["$","link","6",{"rel":"icon","href":"/kettigo-mark.svg"}],["$","link","7",{"rel":"apple-touch-icon","href":"/kettigo-mark.svg"}],["$","$L15","8",{}]],"error":null,"digest":"$undefined"}
 13:"$e:metadata"

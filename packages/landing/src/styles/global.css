@@ -11,7 +11,9 @@ img { display: block; max-width: 100%; }
 .site-header { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; min-height: 84px; width: min(calc(100% - 3rem), var(--content)); margin: 0 auto; }
 .site-header > .button { justify-self: end; }
 .brand { justify-self: start; display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-display); font-size: 1.8rem; font-weight: 700; letter-spacing: -0.06em; color: var(--color-paper); }
-.brand-mark { display: inline-grid; width: 34px; height: 34px; place-items: center; border: 2px solid var(--color-ink); border-radius: 12px; background: var(--color-citron); color: var(--color-ink); font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: -0.08em; transform: rotate(-7deg); }
+.brand-mark { display: block; width: 36px; height: 36px; border-radius: 10px; box-shadow: 3px 3px 0 var(--color-ink); transform: rotate(-5deg); }
+.footer-brand { display: inline-flex; align-items: center; gap: 0.55rem; font-family: var(--font-display); font-weight: 800; }
+.footer-brand img { width: 28px; height: 28px; border-radius: 8px; }
 .site-nav { display: flex; align-items: center; gap: 2rem; color: rgb(255 249 239 / 0.78); font-size: 0.92rem; }
 .site-nav a:hover { color: var(--color-citron); }
 .header-access { justify-self: end; }
