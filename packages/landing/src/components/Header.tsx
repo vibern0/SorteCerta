@@ -2,7 +2,7 @@ export function Header() {
   return (
     <header className="site-header">
       <a className="brand" href="#top" aria-label="Kettigo home">
-        <img className="brand-mark" src="/kettigo-mark.svg" alt="" aria-hidden="true" />
+        <img className="brand-mark" src="/kettigo-mark-header.svg" alt="" aria-hidden="true" />
         <span>Kettigo</span>
       </a>
       <nav className="site-nav" aria-label="Primary navigation">
