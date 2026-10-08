@@ -10,8 +10,8 @@ export function Hero() {
             your chances.
           </p>
           <div className="hero-actions" aria-label="Landing actions">
-            <a className="button button-primary" href="#waitlist">
-              Join the waitlist
+            <a className="button button-primary" href="https://kettigo.blvieira5.workers.dev/">
+              Open Kettigo
             </a>
             <a className="button button-secondary" href="#how-it-works">
               See how it works
@@ -28,7 +28,7 @@ export function Hero() {
           <dl className="prize-list">
             <div>
               <dt>Next draw</dt>
-              <dd>Access opens gradually</dd>
+              <dd>Open to everyone</dd>
             </div>
             <div>
               <dt>Your savings set your chances</dt>

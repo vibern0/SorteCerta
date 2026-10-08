@@ -9,8 +9,8 @@ export function Header() {
         <a href="#how-it-works">How it works</a>
         <a href="#why-kettigo">Why Kettigo</a>
       </nav>
-      <a className="button button-small" href="#waitlist">
-        Join the waitlist
+      <a className="button button-small" href="https://kettigo.blvieira5.workers.dev/">
+        Open Kettigo
       </a>
     </header>
   );

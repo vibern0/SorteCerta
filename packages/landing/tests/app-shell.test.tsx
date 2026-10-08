@@ -3,9 +3,13 @@ import { describe, expect, it } from "vitest";
 import App from "../src/App";
 
 describe("landing shell", () => {
-  it("renders one main region and the waitlist target", () => {
+  it("renders one main region and an open app link", () => {
     render(<App />);
     expect(screen.getByRole("main")).toBeInTheDocument();
-    expect(document.querySelector("#waitlist")).not.toBeNull();
+    expect(screen.getAllByRole("link", { name: /open kettigo/i })[0]).toHaveAttribute(
+      "href",
+      "https://kettigo.blvieira5.workers.dev/",
+    );
+    expect(document.querySelector("#waitlist")).toBeNull();
   });
 });

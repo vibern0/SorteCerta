@@ -1,7 +1,7 @@
 const trustItems = [
   {
-    title: "Privacy powered by Zama",
-    body: "Kettigo is built so personal balances and prize checks can stay personal while the draw remains verifiable.",
+    title: "Clear prize rules",
+    body: "Your balance sets your chances, and each draw explains exactly how eligibility is checked.",
   },
   {
     title: "Yield powered by Morpho",

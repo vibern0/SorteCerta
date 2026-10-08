@@ -3,7 +3,6 @@ import { Header } from "./components/Header";
 import { Hero } from "./components/Hero";
 import { HowItWorks } from "./components/HowItWorks";
 import { TrustSection } from "./components/TrustSection";
-import { WaitlistForm } from "./components/WaitlistForm";
 
 export default function App() {
   return (
@@ -13,19 +12,6 @@ export default function App() {
         <Hero />
         <HowItWorks />
         <TrustSection />
-        <section className="waitlist-section section-band" id="waitlist" aria-labelledby="waitlist-title">
-          <div className="section-inner waitlist-layout">
-            <div className="section-copy">
-              <p className="eyebrow">Early access</p>
-              <h2 id="waitlist-title">Join the waitlist</h2>
-              <p>
-                Reserve your spot with the email you plan to use for Kettigo. Once your access opens, that email is
-                what gets you into the app.
-              </p>
-            </div>
-            <WaitlistForm />
-          </div>
-        </section>
       </main>
       <Footer />
     </div>
