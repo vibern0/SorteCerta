@@ -55,9 +55,33 @@ const interphasesMono = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://kettigo.xyz"),
   title: "Kettigo — Savings with a chance to win",
   description:
     "Your savings, with weekly prizes. 100% of your principal, always.",
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Kettigo",
+    title: "Kettigo — Savings with a chance to win",
+    description:
+      "Your savings, with weekly prizes. 100% of your principal, always.",
+    images: [
+      {
+        url: "/kettigo-share.png",
+        width: 1734,
+        height: 907,
+        alt: "Kettigo — Save. Win. Keep it all.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Kettigo — Savings with a chance to win",
+    description:
+      "Your savings, with weekly prizes. 100% of your principal, always.",
+    images: ["/kettigo-share.png"],
+  },
   manifest: "/manifest.json",
   icons: {
     icon: "/kettigo-mark.svg",
