@@ -8,8 +8,8 @@ describe("landing metadata", () => {
       undefined,
     );
 
-    expect(html).toContain('href="https://kettigo.com"');
-    expect(html).toContain('content="https://kettigo.com/og-image.png"');
+    expect(html).toContain('href="https://kettigo.xyz"');
+    expect(html).toContain('content="https://kettigo.xyz/og-image.png"');
   });
 
   it("normalizes configured preview URLs before HTML transform", () => {

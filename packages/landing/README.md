@@ -80,19 +80,45 @@ dashboard Cron Trigger attached when `crons` is omitted.
 
 Approve remote emails with a targeted D1 update after reviewing the row.
 
-## Preview Deployment
+## Production deployment
 
-Deploy to a Worker preview URL before connecting any custom domain. The deploy
-script also applies the empty Cron Trigger list; this matters because uploading
-a new Worker version does not remove a Cron Trigger that is already attached to
-the Worker:
+The two Workers have separate deployment targets:
+
+| Site | Worker | Wrangler config |
+| --- | --- | --- |
+| `https://kettigo.xyz` | `kettigo-landing` | `packages/landing/wrangler.jsonc` |
+| `https://app.kettigo.xyz` | `kettigo` | `packages/web/wrangler.jsonc` |
+
+Use the repository's pinned `pnpm@10.11.1` from the repository root:
 
 ```bash
+pnpm install --frozen-lockfile
+pnpm --filter @kettigo/landing build
+pnpm exec wrangler deploy --config packages/landing/wrangler.jsonc --dry-run
 npm run landing:deploy
 ```
 
-Use the preview URL for smoke testing. Connect the custom domain only after the
-preview checks pass.
+The deploy script also applies the empty Cron Trigger list after uploading the
+Worker. Keep that step so stale keeper schedules are removed.
+
+The landing config owns the `kettigo.xyz` custom domain. The root
+`wrangler.toml` and `cf:build` script target the **app**, not the landing.
+Never run an unqualified `wrangler deploy` from the repository root for the
+landing Worker. Workers Builds can override the configured Worker name and
+upload the app to the landing Worker even when DNS is correct.
+
+Cloudflare Workers Builds settings for `kettigo-landing`:
+
+- Production branch: `main`
+- Root directory: `/`
+- Build command: `pnpm --version && pnpm install --frozen-lockfile && pnpm --filter @kettigo/landing build`
+- Deploy command: `pnpm exec wrangler deploy --config packages/landing/wrangler.jsonc && pnpm exec wrangler triggers deploy --config packages/landing/wrangler.jsonc`
+
+Keep the explicit config path in the hosted build settings. A manual landing
+deployment alone does not repair an incorrect automatic build trigger.
+After deploying, confirm the apex loads `/assets/` landing bundles and shows
+“Make your USDC feel lucky.”, while `app.kettigo.xyz` still loads the app's
+`/_next/` bundles. Recheck after an automatic build from `main`.
 
 ## Production Smoke Tests
 

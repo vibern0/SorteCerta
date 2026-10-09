@@ -10,7 +10,7 @@ export function Hero() {
             your chances.
           </p>
           <div className="hero-actions" aria-label="Landing actions">
-            <a className="button button-primary" href="https://kettigo.blvieira5.workers.dev/">
+            <a className="button button-primary" href="https://app.kettigo.xyz/">
               Open Kettigo
             </a>
             <a className="button button-secondary" href="#how-it-works">

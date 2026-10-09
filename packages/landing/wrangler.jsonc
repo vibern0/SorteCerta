@@ -4,6 +4,9 @@
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-25",
   "workers_dev": true,
+  "routes": [
+    { "pattern": "kettigo.xyz", "custom_domain": true }
+  ],
   "observability": { "enabled": true },
   "triggers": {
     "crons": []

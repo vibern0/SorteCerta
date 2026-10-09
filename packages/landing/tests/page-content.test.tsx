@@ -7,7 +7,7 @@ describe("marketing page", () => {
     render(<App />);
     expect(screen.getByRole("heading", { level: 1, name: "Make your USDC feel lucky." })).toBeInTheDocument();
     const links = screen.getAllByRole("link", { name: /open kettigo/i }) as HTMLAnchorElement[];
-    expect(links.every((link) => link.href === "https://kettigo.blvieira5.workers.dev/")).toBe(true);
+    expect(links.every((link) => link.href === "https://app.kettigo.xyz/")).toBe(true);
     expect(document.querySelector("#how-it-works")).not.toBeNull();
     expect(document.querySelector("#why-kettigo")).not.toBeNull();
   });
