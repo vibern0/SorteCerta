@@ -6,7 +6,6 @@ const nextConfig = {
     "@kettigo/protocol",
     "@safe-global/protocol-kit",
     "@safe-global/relay-kit",
-    "@web3auth/modal",
   ],
   generateBuildId: async () => "static",
   images: {

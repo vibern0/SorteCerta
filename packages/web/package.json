@@ -2,7 +2,7 @@
   "name": "@kettigo/web",
   "version": "0.1.0",
   "private": true,
-  "description": "Kettigo web app — mobile-first PWA, social login + AA + gasless.",
+  "description": "Kettigo web app — mobile-first PWA with passkey-owned Safe accounts.",
   "engines": {
     "node": ">=22"
   },
@@ -18,12 +18,10 @@
     "@safe-global/protocol-kit": "8.0.7",
     "@safe-global/relay-kit": "6.1.1",
     "@tanstack/react-query": "^5.59.0",
-    "@web3auth/modal": "^10.0.0",
     "@zama-fhe/sdk": "3.6.0",
     "clsx": "^2.1.1",
     "next": "15.5.26",
     "ox": "^0.8.0",
-    "permissionless": "^0.2.36",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^2.5.4",
