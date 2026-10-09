@@ -22,6 +22,15 @@ test("web Worker config binds the shared waitlist D1 database", () => {
   assert.match(webWrangler, /"database_id": "f6f8c304-fa39-495d-8307-d01f3899968a"/);
   assert.match(webWrangler, /"migrations_dir": "\.\.\/landing\/migrations"/);
   assert.match(webWrangler, /"previews"\s*:/);
+  assert.deepEqual(webConfig.assets.run_worker_first, [
+    "/",
+    "/draw",
+    "/draw/",
+    "/profile",
+    "/profile/",
+    "/savings",
+    "/savings/",
+  ]);
 });
 
 test("root app Worker config binds the shared waitlist D1 database", () => {
@@ -31,6 +40,7 @@ test("root app Worker config binds the shared waitlist D1 database", () => {
   assert.match(rootWrangler, /database_id = "f6f8c304-fa39-495d-8307-d01f3899968a"/);
   assert.match(rootWrangler, /migrations_dir = "packages\/landing\/migrations"/);
   assert.match(rootWrangler, /\[\[previews\.d1_databases\]\]/);
+  assert.match(rootWrangler, /run_worker_first = \["\/", "\/draw", "\/draw\/", "\/profile", "\/profile\/", "\/savings", "\/savings\/"\]/);
 });
 
 test("web Worker config preserves public runtime variables across deploys", () => {

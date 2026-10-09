@@ -13,6 +13,10 @@ import { normalizeKeeperMaxTransactions } from "./src/lib/morpho-keeper";
 import { sanitizeKeeperError } from "./src/lib/morpho-keeper";
 import { runMorphoKeeper } from "./netlify/functions/morpho-keeper";
 import { runWithdrawalKeeper } from "./netlify/functions/withdrawal-keeper";
+import {
+  runtimeConfigScript,
+  type PublicRuntimeEnv,
+} from "./worker/runtime-config-bootstrap";
 
 type D1StatementLike = {
   bind(...values: unknown[]): D1StatementLike;
@@ -20,7 +24,7 @@ type D1StatementLike = {
   run(): Promise<unknown>;
 };
 
-type Env = {
+type Env = PublicRuntimeEnv & {
   ASSETS: {
     fetch(request: Request): Promise<Response>;
   };
@@ -43,30 +47,13 @@ type Env = {
   SEPOLIA_RPC_URL?: string;
 };
 
-const PUBLIC_KEYS = [
-  "NEXT_PUBLIC_CHAIN_ID",
-  "NEXT_PUBLIC_CONFIDENTIAL_PRIZE_POOL_ADDRESS",
-  "NEXT_PUBLIC_CONFIDENTIAL_USDC_ADDRESS",
-  "NEXT_PUBLIC_PASSKEY_RP_ID",
-  "NEXT_PUBLIC_PASSKEY_RP_NAME",
-  "NEXT_PUBLIC_PIMLICO_API_KEY",
-  "NEXT_PUBLIC_RPC_URL",
-  "NEXT_PUBLIC_USDC_ADDRESS",
-] as const;
-
-function runtimeConfig(env: Env): Record<string, string> {
-  return Object.fromEntries(
-    PUBLIC_KEYS.map((key) => [key, env[key] ?? ""]),
-  );
-}
-
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname === "/config.js") {
       return new Response(
-        `window.__KETTIGO_CONFIG__ = ${JSON.stringify(runtimeConfig(env))};\n`,
+        runtimeConfigScript(env),
         {
           headers: {
             "content-type": "application/javascript; charset=utf-8",
@@ -96,7 +83,19 @@ export default {
       return json({ ok: false, status: "invalid_request" }, 404);
     }
 
-    return env.ASSETS.fetch(request);
+    const asset = await env.ASSETS.fetch(request);
+    if (!asset.headers.get("content-type")?.toLowerCase().includes("text/html")) {
+      return asset;
+    }
+
+    const bootstrap = runtimeConfigScript(env);
+    return new HTMLRewriter()
+      .on("head", {
+        element(element) {
+          element.prepend(`<script>${bootstrap}</script>`, { html: true });
+        },
+      })
+      .transform(asset);
   },
 
   scheduled(_controller: { cron: string }, env: Env, ctx: { waitUntil(promise: Promise<unknown>): void }) {
