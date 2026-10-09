@@ -31,6 +31,7 @@
     "lab:test": "npm run test --workspace @kettigo/morpho-lab --",
     "landing:dev": "npm run dev -w @kettigo/landing",
     "landing:build": "npm run build -w @kettigo/landing",
+    "landing:deploy": "npm run deploy -w @kettigo/landing",
     "landing:typecheck": "npm run typecheck -w @kettigo/landing",
     "landing:test": "npm run test -w @kettigo/landing",
     "web:dev": "npm run dev -w packages/web",

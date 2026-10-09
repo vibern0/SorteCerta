@@ -18,6 +18,7 @@ describe("landing operations README", () => {
     expect(markdown).toContain("npm run landing:typecheck");
     expect(markdown).toContain("npm run landing:test");
     expect(markdown).toContain("npm run landing:build");
+    expect(markdown).toContain("npm run landing:deploy");
     expect(markdown).toContain(
       "npm exec --workspace @kettigo/landing wrangler d1 migrations apply kettigo-landing-local --local",
     );
