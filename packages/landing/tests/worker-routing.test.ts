@@ -6,11 +6,13 @@ describe("Worker routing", () => {
   it("ignores accidental scheduled events without enqueueing work", () => {
     const waitUntil = vi.fn();
     const context = { waitUntil } as unknown as ExecutionContext;
-    const scheduledWorker = worker as typeof worker & {
-      scheduled(controller: ScheduledController, env: ReturnType<typeof makeEnv>, context: ExecutionContext): void;
-    };
+    const controller = {
+      cron: "* * * * *",
+      noRetry: vi.fn(),
+      scheduledTime: Date.UTC(2026, 9, 9, 12, 3),
+    } as unknown as ScheduledController;
 
-    scheduledWorker.scheduled({ cron: "* * * * *" } as ScheduledController, makeEnv(), context);
+    worker.scheduled(controller, makeEnv(), context);
 
     expect(waitUntil).not.toHaveBeenCalled();
   });
