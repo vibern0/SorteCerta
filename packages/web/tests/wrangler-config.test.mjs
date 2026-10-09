@@ -52,12 +52,10 @@ test("root app Worker config preserves public runtime variables across deploys",
 test("web Worker configs run the keeper every minute", () => {
   assert.match(webWrangler, /"triggers"\s*:/);
   assert.match(webWrangler, /"crons": \["\* \* \* \* \*"\]/);
-  assert.equal(webWrangler.split('"DRAW_KEEPER_MINIMUM_PRIZE": "1000000"').length, 3);
   assert.equal(webWrangler.split('"MORPHO_KEEPER_START_BLOCK": "11864127"').length, 3);
 
   assert.match(rootWrangler, /\[triggers\]/);
   assert.match(rootWrangler, /crons = \["\* \* \* \* \*"\]/);
-  assert.equal(rootWrangler.split('DRAW_KEEPER_MINIMUM_PRIZE = "1000000"').length, 3);
   assert.equal(rootWrangler.split('MORPHO_KEEPER_START_BLOCK = "11864127"').length, 3);
 });
 

@@ -36,7 +36,6 @@ type Env = {
   NEXT_PUBLIC_RPC_URL?: string;
   NEXT_PUBLIC_USDC_ADDRESS?: string;
   NEXT_PUBLIC_WEB3AUTH_CLIENT_ID?: string;
-  DRAW_KEEPER_MINIMUM_PRIZE?: string;
   DRAW_KEEPER_TRIGGER_TOKEN?: string;
   KEEPER_PRIVATE_KEY?: string;
   MORPHO_KEEPER_MAX_TXS?: string;
@@ -268,7 +267,6 @@ async function runDrawKeeperWithContext(
     participantCount,
     publicPrizeReserve,
     morphoAccruedYieldAssets,
-    minimumPrize: parseKeeperMinimumPrize(env.DRAW_KEEPER_MINIMUM_PRIZE),
   } satisfies DrawKeeperSnapshot;
 
   const action = chooseDrawKeeperAction(snapshot);
@@ -290,13 +288,6 @@ async function runDrawKeeperWithContext(
 function normalizePrivateKey(value: string | undefined): Hex | undefined {
   if (!value) return undefined;
   return (value.startsWith("0x") ? value : `0x${value}`) as Hex;
-}
-
-function parseKeeperMinimumPrize(value: string | undefined): bigint {
-  if (!value) return 1_000_000n;
-  const parsed = BigInt(value);
-  if (parsed < 0n) throw new Error("DRAW_KEEPER_MINIMUM_PRIZE must be non-negative");
-  return parsed;
 }
 
 function parseRequiredBigint(value: string | undefined, name: string): bigint {

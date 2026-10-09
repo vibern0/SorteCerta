@@ -9,7 +9,6 @@ const baseSnapshot = {
   participantCount: 1n,
   publicPrizeReserve: 1_000_000n,
   morphoAccruedYieldAssets: 0n,
-  minimumPrize: 1_000_000n,
 };
 
 test("closes a draw exactly at the deadline when participants and prize are ready", () => {
@@ -20,17 +19,15 @@ test("does not close before the deadline", () => {
   assert.equal(chooseDrawKeeperAction({ ...baseSnapshot, now: 999n }), undefined);
 });
 
-test("does not close empty or underfunded rounds", () => {
+test("does not close empty rounds", () => {
   assert.equal(chooseDrawKeeperAction({ ...baseSnapshot, participantCount: 0n }), undefined);
-  assert.equal(chooseDrawKeeperAction({ ...baseSnapshot, publicPrizeReserve: 999_999n }), undefined);
 });
 
-test("counts accrued Morpho yield toward the closing prize threshold", () => {
+test("closes an overdue draw even when its prize is below the former keeper threshold", () => {
   assert.equal(
     chooseDrawKeeperAction({
       ...baseSnapshot,
-      publicPrizeReserve: 0n,
-      morphoAccruedYieldAssets: 1_000_000n,
+      publicPrizeReserve: 335n,
     }),
     "close",
   );
