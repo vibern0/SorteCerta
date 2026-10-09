@@ -3,6 +3,18 @@ import { makeContext, makeEnv } from "./helpers";
 import worker from "../worker/index";
 
 describe("Worker routing", () => {
+  it("ignores accidental scheduled events without enqueueing work", () => {
+    const waitUntil = vi.fn();
+    const context = { waitUntil } as unknown as ExecutionContext;
+    const scheduledWorker = worker as typeof worker & {
+      scheduled(controller: ScheduledController, env: ReturnType<typeof makeEnv>, context: ExecutionContext): void;
+    };
+
+    scheduledWorker.scheduled({ cron: "* * * * *" } as ScheduledController, makeEnv(), context);
+
+    expect(waitUntil).not.toHaveBeenCalled();
+  });
+
   it("rejects cross-origin API submissions", async () => {
     const response = await worker.fetch(
       new Request("https://kettigo.com/api/waitlist", {

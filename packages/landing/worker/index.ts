@@ -23,6 +23,10 @@ export default {
     const response = await env.ASSETS.fetch(request);
     return withSecurityHeaders(response, "document");
   },
+
+  scheduled(_controller: ScheduledController, _env: Env, _context: ExecutionContext): void {
+    return;
+  },
 };
 
 async function handleApi(request: Request, env: Env, url: URL): Promise<Response> {

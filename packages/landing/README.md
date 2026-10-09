@@ -76,7 +76,9 @@ both Workers use the same `DB` binding and schema.
 The landing Worker explicitly sets an empty Cron Trigger list. Keep this in
 place: the app Worker owns scheduled keeper work, while the landing Worker
 only serves the site and waitlist. Wrangler otherwise leaves an existing
-dashboard Cron Trigger attached when `crons` is omitted.
+dashboard Cron Trigger attached when `crons` is omitted. Its no-op scheduled
+handler is only a rollout safeguard; it must not replace removing accidental
+triggers.
 
 Approve remote emails with a targeted D1 update after reviewing the row.
 
@@ -111,11 +113,12 @@ Cloudflare Workers Builds settings for `kettigo-landing`:
 
 - Production branch: `main`
 - Root directory: `/`
-- Build command: `pnpm --version && pnpm install --frozen-lockfile && pnpm --filter @kettigo/landing build`
-- Deploy command: `pnpm exec wrangler deploy --config packages/landing/wrangler.jsonc && pnpm exec wrangler triggers deploy --config packages/landing/wrangler.jsonc`
+- Build command: `pnpm run landing:build`
+- Deploy command: `pnpm run landing:deploy`
 
-Keep the explicit config path in the hosted build settings. A manual landing
-deployment alone does not repair an incorrect automatic build trigger.
+Keep these repository scripts in the hosted build settings; the landing deploy
+script supplies the explicit config path. A manual landing deployment alone
+does not repair an incorrect automatic build trigger.
 After deploying, confirm the apex loads `/assets/` landing bundles and shows
 “Make your USDC feel lucky.”, while `app.kettigo.xyz` still loads the app's
 `/_next/` bundles. Recheck after an automatic build from `main`.
