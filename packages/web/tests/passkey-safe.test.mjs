@@ -212,6 +212,37 @@ test("reconnects through the deployed Safe after the first mined action", async 
   assert.deepEqual(callCounts, [1, 1]);
 });
 
+test("returns a mined transaction and retries a failed relay refresh before the next action", async () => {
+  const storage = createStorage();
+  const deployedRelay = relay();
+  let initCount = 0;
+  let deployedCalls = 0;
+  deployedRelay.createTransaction = async () => {
+    deployedCalls += 1;
+    return { operation: true };
+  };
+  const session = await createPasskeyAccount(
+    { rpId: "app.kettigo.xyz", rpName: "Kettigo", storage },
+    dependencies({
+      async initRelay() {
+        initCount += 1;
+        if (initCount === 1) return relay();
+        if (initCount === 2) throw new Error("temporary RPC failure");
+        return deployedRelay;
+      },
+    }),
+  );
+  const calls = [{ to: SAFE_ADDRESS, data: "0x" }];
+
+  assert.equal(await session.sendTransaction(calls), `0x${"44".repeat(32)}`);
+  assert.equal(initCount, 1);
+  await assert.rejects(session.sendTransaction(calls), /temporary RPC failure/);
+  assert.equal(deployedCalls, 0);
+  assert.equal(await session.sendTransaction(calls), `0x${"44".repeat(32)}`);
+  assert.equal(initCount, 3);
+  assert.equal(deployedCalls, 1);
+});
+
 test("waits for a successful UserOperation receipt and returns the transaction hash", async () => {
   let attempts = 0;
   const result = await waitForUserOperationTransaction(

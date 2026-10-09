@@ -191,20 +191,33 @@ function createSession(
   counterfactual: boolean,
 ): PasskeySmartSession {
   let relay = initialRelay;
-  let refreshAfterSend = counterfactual;
+  let usingCounterfactualRelay = counterfactual;
+  let refreshRequired = false;
+
+  async function ensureDeployedRelay(): Promise<void> {
+    if (!refreshRequired) return;
+    const refreshedRelay = await deps.initRelay(relayOptions(
+      metadata,
+      { safeAddress: getAddress(metadata.safeAddress) },
+      rpId,
+      deps,
+    ));
+    relay = refreshedRelay;
+    refreshRequired = false;
+  }
+
   return {
     address: getAddress(metadata.safeAddress),
-    signTypedData: (typedData) => signSafeTypedData(relay.protocolKit, typedData),
+    signTypedData: async (typedData) => {
+      await ensureDeployedRelay();
+      return signSafeTypedData(relay.protocolKit, typedData);
+    },
     sendTransaction: async (calls) => {
+      await ensureDeployedRelay();
       const transactionHash = await sendCalls(relay, calls, deps);
-      if (refreshAfterSend) {
-        relay = await deps.initRelay(relayOptions(
-          metadata,
-          { safeAddress: getAddress(metadata.safeAddress) },
-          rpId,
-          deps,
-        ));
-        refreshAfterSend = false;
+      if (usingCounterfactualRelay) {
+        usingCounterfactualRelay = false;
+        refreshRequired = true;
       }
       return transactionHash;
     },

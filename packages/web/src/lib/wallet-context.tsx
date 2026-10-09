@@ -13,7 +13,7 @@ import {
 
 import { decryptConfidentialBalances } from "./confidential-balances";
 import { PIMLICO_API_KEY } from "./contracts";
-import { clearPasskeyMetadata, readPasskeyMetadata } from "./passkey-metadata";
+import { readPasskeyMetadata } from "./passkey-metadata";
 import { createPasskeyAccount, restorePasskeyAccount } from "./passkey-safe";
 import { isPasskeySupported } from "./passkey-webauthn";
 import { publicConfig } from "./runtime-config";
@@ -163,7 +163,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
 
     const replacingInvalidAccount = state.status === "invalid-metadata";
-    if (replacingInvalidAccount) clearPasskeyMetadata();
     const stored = replacingInvalidAccount ? { status: "missing" as const } : readPasskeyMetadata();
     setState((current) => ({ ...current, status: "creating", error: null }));
     try {

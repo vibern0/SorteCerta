@@ -52,11 +52,6 @@ export function writePasskeyMetadata(
   return metadata;
 }
 
-export function clearPasskeyMetadata(storage = getPasskeyStorage()): void {
-  if (!storage) return;
-  storage.removeItem(PASSKEY_METADATA_KEY);
-}
-
 function parsePasskeyMetadata(value: Record<string, unknown>): PasskeyMetadata | null {
   if (
     typeof value.rawId !== "string" ||

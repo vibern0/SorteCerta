@@ -48,9 +48,10 @@ test("sign-out clears in-memory balances without deleting passkey metadata", asy
   assert.doesNotMatch(disconnect, /removeItem|clearPasskey|forgetPasskey/);
 });
 
-test("the replacement action discards unusable metadata before creating a passkey", async () => {
+test("the replacement action preserves old metadata until the new passkey succeeds", async () => {
   const wallet = await source("src/lib/wallet-context.tsx");
   assert.match(wallet, /state\.status === "invalid-metadata"/);
-  assert.match(wallet, /clearPasskeyMetadata\(\)/);
+  assert.doesNotMatch(wallet, /clearPasskeyMetadata\(\)/);
+  assert.match(wallet, /replacingInvalidAccount \? \{ status: "missing" as const \}/);
   assert.match(wallet, /createPasskeyAccount\(passkeyConfig\(\)\)/);
 });
