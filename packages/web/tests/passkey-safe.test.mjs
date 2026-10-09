@@ -14,6 +14,7 @@ import {
 
 const SAFE_ADDRESS = getAddress("0x00000000000000000000000000000000000000bb");
 const VERIFIER_ADDRESS = getAddress("0x00000000000000000000000000000000000000aa");
+const SHARED_SIGNER_ADDRESS = getAddress("0x94a4F6affBd8975951142c3999aEAB7ecee555c2");
 const RAW_ID = "aabbccdd";
 const COORDINATES = {
   x: `0x${"11".repeat(32)}`,
@@ -104,6 +105,7 @@ test("creates a deterministic Safe 1.4.1 session and stores checksum metadata", 
   assert.equal(session.address, SAFE_ADDRESS);
   assert.equal(initOptions.safeModulesVersion, "0.3.0");
   assert.equal(initOptions.customContracts.entryPointAddress.toLowerCase(), "0x0000000071727de22e5e9d8baf0edac6f37da032");
+  assert.equal(initOptions.customContracts.safeWebAuthnSharedSignerAddress, SHARED_SIGNER_ADDRESS);
   assert.deepEqual(initOptions.options.owners, []);
   assert.equal(initOptions.options.threshold, 1);
   assert.equal(initOptions.options.safeVersion, "1.4.1");
@@ -115,7 +117,7 @@ test("creates a deterministic Safe 1.4.1 session and stores checksum metadata", 
   assert.equal("email" in persisted, false);
 });
 
-test("restores counterfactual and deployed Safes through the correct SDK option", async () => {
+test("derives account identity before restoring counterfactual and deployed Safes", async () => {
   const metadata = {
     rawId: RAW_ID,
     coordinates: COORDINATES,
@@ -124,7 +126,7 @@ test("restores counterfactual and deployed Safes through the correct SDK option"
   };
 
   for (const [code, expectedKey] of [["0x", "owners"], ["0x6000", "safeAddress"]]) {
-    let initOptions;
+    const initOptions = [];
     const session = await restorePasskeyAccount(
       { metadata, rpId: "app.kettigo.xyz" },
       dependencies({
@@ -132,18 +134,25 @@ test("restores counterfactual and deployed Safes through the correct SDK option"
           return code;
         },
         async initRelay(options) {
-          initOptions = options;
+          initOptions.push(options);
           return relay();
         },
       }),
     );
 
     assert.equal(session.address, SAFE_ADDRESS);
-    assert.equal(expectedKey in initOptions.options, true);
+    assert.equal("owners" in initOptions[0].options, true);
+    const restoredOptions = initOptions.at(-1);
+    assert.equal(expectedKey in restoredOptions.options, true);
+    assert.equal(
+      restoredOptions.customContracts.safeWebAuthnSharedSignerAddress,
+      SHARED_SIGNER_ADDRESS,
+    );
+    assert.equal(initOptions.length, code === "0x" ? 1 : 2);
   }
 });
 
-test("blocks a restored signer when Safe derivation no longer matches", async () => {
+test("blocks a deployed restored signer when independent Safe derivation no longer matches", async () => {
   const other = getAddress("0x00000000000000000000000000000000000000cc");
   await assert.rejects(
     restorePasskeyAccount(
@@ -157,13 +166,50 @@ test("blocks a restored signer when Safe derivation no longer matches", async ()
         rpId: "app.kettigo.xyz",
       },
       dependencies({
-        async initRelay() {
+        async getCode() {
+          return "0x6000";
+        },
+        async initRelay(options) {
+          assert.equal("owners" in options.options, true);
           return relay(other);
         },
       }),
     ),
     /does not match/i,
   );
+});
+
+test("reconnects through the deployed Safe after the first mined action", async () => {
+  const storage = createStorage();
+  const initOptions = [];
+  const callCounts = [0, 0];
+  const relays = [relay(), relay()];
+  for (const [index, instance] of relays.entries()) {
+    const original = instance.createTransaction;
+    instance.createTransaction = async (...args) => {
+      callCounts[index] += 1;
+      return original(...args);
+    };
+  }
+
+  const session = await createPasskeyAccount(
+    { rpId: "app.kettigo.xyz", rpName: "Kettigo", storage },
+    dependencies({
+      async initRelay(options) {
+        initOptions.push(options);
+        return relays[initOptions.length - 1];
+      },
+    }),
+  );
+
+  const calls = [{ to: SAFE_ADDRESS, data: "0x" }];
+  await session.sendTransaction(calls);
+  await session.sendTransaction(calls);
+
+  assert.equal(initOptions.length, 2);
+  assert.equal(initOptions[1].options.safeAddress, SAFE_ADDRESS);
+  assert.equal(initOptions[1].customContracts.safeWebAuthnSharedSignerAddress, SHARED_SIGNER_ADDRESS);
+  assert.deepEqual(callCounts, [1, 1]);
 });
 
 test("waits for a successful UserOperation receipt and returns the transaction hash", async () => {
@@ -196,6 +242,8 @@ test("waits for a successful UserOperation receipt and returns the transaction h
 test("encodes a canonical Safe signature over bigint EIP-712 data", async () => {
   const owner = getAddress("0x00000000000000000000000000000000000000dd");
   const signature = `0x${"11".repeat(64)}1b`;
+  const safeMessageHash = `0x${"22".repeat(32)}`;
+  let wrappedDigest;
   let signedHash;
   const typedData = {
     domain: { name: "Kettigo", version: "1", chainId: 11155111n, verifyingContract: SAFE_ADDRESS },
@@ -206,6 +254,10 @@ test("encodes a canonical Safe signature over bigint EIP-712 data", async () => 
 
   const encoded = await signSafeTypedData(
     {
+      async getSafeMessageHash(hash) {
+        wrappedDigest = hash;
+        return safeMessageHash;
+      },
       async signHash(hash) {
         signedHash = hash;
         return new EthSafeSignature(owner, signature);
@@ -214,7 +266,8 @@ test("encodes a canonical Safe signature over bigint EIP-712 data", async () => 
     typedData,
   );
 
-  assert.equal(signedHash, hashTypedData(typedData));
+  assert.equal(wrappedDigest, hashTypedData(typedData));
+  assert.equal(signedHash, safeMessageHash);
   assert.equal(encoded, signature);
 });
 

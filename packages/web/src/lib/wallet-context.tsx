@@ -13,7 +13,7 @@ import {
 
 import { decryptConfidentialBalances } from "./confidential-balances";
 import { PIMLICO_API_KEY } from "./contracts";
-import { readPasskeyMetadata } from "./passkey-metadata";
+import { clearPasskeyMetadata, readPasskeyMetadata } from "./passkey-metadata";
 import { createPasskeyAccount, restorePasskeyAccount } from "./passkey-safe";
 import { isPasskeySupported } from "./passkey-webauthn";
 import { publicConfig } from "./runtime-config";
@@ -162,7 +162,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const stored = readPasskeyMetadata();
+    const replacingInvalidAccount = state.status === "invalid-metadata";
+    if (replacingInvalidAccount) clearPasskeyMetadata();
+    const stored = replacingInvalidAccount ? { status: "missing" as const } : readPasskeyMetadata();
     setState((current) => ({ ...current, status: "creating", error: null }));
     try {
       let session: PasskeySmartSession;
@@ -183,7 +185,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         error: failure.message,
       }));
     }
-  }, []);
+  }, [state.status]);
 
   const disconnect = useCallback(async () => {
     balanceLoadId.current += 1;

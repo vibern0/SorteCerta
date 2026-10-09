@@ -7,6 +7,7 @@ import Safe, {
   type PasskeyArgType,
 } from "@safe-global/protocol-kit";
 import { Safe4337Pack } from "@safe-global/relay-kit";
+import { getSafeWebAuthnShareSignerDeployment } from "@safe-global/safe-modules-deployments";
 import {
   createPublicClient,
   getAddress,
@@ -32,17 +33,20 @@ import type { PasskeySmartSession, SmartAccountCall } from "./smart-session.ts";
 
 const SAFE_VERSION = "1.4.1" as const;
 const SAFE_MODULES_VERSION = "0.3.0";
+const SAFE_PASSKEY_MODULE_VERSION = "0.2.1";
 const DEFAULT_RECEIPT_TIMEOUT_MS = 120_000;
 const DEFAULT_RECEIPT_POLL_MS = 1_500;
 const RPC_URL = publicConfig("NEXT_PUBLIC_RPC_URL", process.env.NEXT_PUBLIC_RPC_URL);
 const PIMLICO_API_KEY = publicConfig("NEXT_PUBLIC_PIMLICO_API_KEY", process.env.NEXT_PUBLIC_PIMLICO_API_KEY);
 const PIMLICO_URL = `https://api.pimlico.io/v2/sepolia/rpc?apikey=${PIMLICO_API_KEY}`;
+const SHARED_SIGNER_ADDRESS = sharedSignerAddress();
 
 type PasskeyStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 type SafeSignature = Parameters<typeof buildSignatureBytes>[0][number];
 
 type ProtocolKitLike = {
   getAddress(): Promise<string>;
+  getSafeMessageHash(messageHash: string): Promise<string>;
   signHash(hash: string): Promise<SafeSignature>;
 };
 
@@ -105,7 +109,7 @@ export async function createPasskeyAccount(
   const relay = await deps.initRelay(relayOptions(metadata, predictedOptions(metadata.rawId), input.rpId, deps));
   const address = getAddress(await relay.protocolKit.getAddress());
   const stored = writePasskeyMetadata({ ...metadata, safeAddress: address }, input.storage);
-  return createSession(relay, stored.safeAddress, deps);
+  return createSession(relay, stored, input.rpId, deps, true);
 }
 
 export async function restorePasskeyAccount(
@@ -116,16 +120,22 @@ export async function restorePasskeyAccount(
     ...dependencies,
   });
   const expectedAddress = getAddress(input.metadata.safeAddress);
-  const code = await deps.getCode(expectedAddress);
-  const options = code && code !== "0x"
-    ? { safeAddress: expectedAddress }
-    : predictedOptions(input.metadata.rawId);
-  const relay = await deps.initRelay(relayOptions(input.metadata, options, input.rpId, deps));
-  const derivedAddress = getAddress(await relay.protocolKit.getAddress());
+  const predictedRelay = await deps.initRelay(relayOptions(
+    input.metadata,
+    predictedOptions(input.metadata.rawId),
+    input.rpId,
+    deps,
+  ));
+  const derivedAddress = getAddress(await predictedRelay.protocolKit.getAddress());
   if (derivedAddress !== expectedAddress) {
     throw new Error("The restored Safe address does not match the saved account.");
   }
-  return createSession(relay, derivedAddress, deps);
+  const code = await deps.getCode(expectedAddress);
+  const isDeployed = Boolean(code && code !== "0x");
+  const relay = isDeployed
+    ? await deps.initRelay(relayOptions(input.metadata, { safeAddress: expectedAddress }, input.rpId, deps))
+    : predictedRelay;
+  return createSession(relay, input.metadata, input.rpId, deps, !isDeployed);
 }
 
 export function buildPasskeySigner(
@@ -142,11 +152,12 @@ export function buildPasskeySigner(
 }
 
 export async function signSafeTypedData(
-  protocolKit: Pick<ProtocolKitLike, "signHash">,
+  protocolKit: Pick<ProtocolKitLike, "getSafeMessageHash" | "signHash">,
   typedData: unknown,
 ): Promise<Hex> {
   const digest = hashTypedData(typedData as Parameters<typeof hashTypedData>[0]);
-  const ownerSignature = await protocolKit.signHash(digest);
+  const safeMessageHash = await protocolKit.getSafeMessageHash(digest);
+  const ownerSignature = await protocolKit.signHash(safeMessageHash);
   return buildSignatureBytes([ownerSignature]) as Hex;
 }
 
@@ -173,14 +184,30 @@ export async function waitForUserOperationTransaction(
 }
 
 function createSession(
-  relay: RelayLike,
-  address: Address,
+  initialRelay: RelayLike,
+  metadata: PasskeyMetadata,
+  rpId: string,
   deps: PasskeySafeDependencies,
+  counterfactual: boolean,
 ): PasskeySmartSession {
+  let relay = initialRelay;
+  let refreshAfterSend = counterfactual;
   return {
-    address: getAddress(address),
+    address: getAddress(metadata.safeAddress),
     signTypedData: (typedData) => signSafeTypedData(relay.protocolKit, typedData),
-    sendTransaction: async (calls) => sendCalls(relay, calls, deps),
+    sendTransaction: async (calls) => {
+      const transactionHash = await sendCalls(relay, calls, deps);
+      if (refreshAfterSend) {
+        relay = await deps.initRelay(relayOptions(
+          metadata,
+          { safeAddress: getAddress(metadata.safeAddress) },
+          rpId,
+          deps,
+        ));
+        refreshAfterSend = false;
+      }
+      return transactionHash;
+    },
   };
 }
 
@@ -213,13 +240,28 @@ function relayOptions(
     signer,
     bundlerUrl: PIMLICO_URL,
     safeModulesVersion: SAFE_MODULES_VERSION,
-    customContracts: { entryPointAddress: entryPoint07Address },
+    customContracts: {
+      entryPointAddress: entryPoint07Address,
+      safeWebAuthnSharedSignerAddress: SHARED_SIGNER_ADDRESS,
+    },
     options,
     paymasterOptions: {
       isSponsored: true,
       paymasterUrl: PIMLICO_URL,
     },
   };
+}
+
+function sharedSignerAddress(): Address {
+  const deployment = getSafeWebAuthnShareSignerDeployment({
+    version: SAFE_PASSKEY_MODULE_VERSION,
+    released: true,
+    network: String(sepolia.id),
+  });
+  const address = Object.entries(deployment?.networkAddresses ?? {})
+    .find(([network]) => network === String(sepolia.id))?.[1];
+  if (!address) throw new Error("Safe passkey signer is unavailable on this network.");
+  return getAddress(address);
 }
 
 function predictedOptions(rawId: string): RelayInitOptions["options"] {

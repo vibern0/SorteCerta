@@ -39,7 +39,18 @@ test("wallet copy offers passkey onboarding without social-login fallbacks", asy
 
 test("sign-out clears in-memory balances without deleting passkey metadata", async () => {
   const wallet = await source("src/lib/wallet-context.tsx");
-  assert.match(wallet, /setConfidentialBalance\(undefined\)/);
-  assert.match(wallet, /setPrincipal\(undefined\)/);
-  assert.doesNotMatch(wallet, /removeItem|clearPasskey|forgetPasskey/);
+  const disconnect = wallet.slice(
+    wallet.indexOf("const disconnect = useCallback"),
+    wallet.indexOf("useEffect(() =>", wallet.indexOf("const disconnect = useCallback")),
+  );
+  assert.match(disconnect, /setConfidentialBalance\(undefined\)/);
+  assert.match(disconnect, /setPrincipal\(undefined\)/);
+  assert.doesNotMatch(disconnect, /removeItem|clearPasskey|forgetPasskey/);
+});
+
+test("the replacement action discards unusable metadata before creating a passkey", async () => {
+  const wallet = await source("src/lib/wallet-context.tsx");
+  assert.match(wallet, /state\.status === "invalid-metadata"/);
+  assert.match(wallet, /clearPasskeyMetadata\(\)/);
+  assert.match(wallet, /createPasskeyAccount\(passkeyConfig\(\)\)/);
 });
