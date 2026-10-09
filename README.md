@@ -30,8 +30,8 @@ official PoolTogether protocol.
   `ConfidentialPrizePool` and unwrap it back to USDC. The visible global prize
   is currently mocked by sponsor/admin funding until a real yield source is
   plugged in.
-- **Mobile-first PWA** — Next.js 14, Tailwind, dark theme, no crypto jargon in
-  the UI ("Save", "Tickets", "Draw", "Withdraw").
+- **Mobile-first PWA** — Next.js 14, Tailwind, and no crypto jargon in the UI
+  ("Save", "Tickets", "Draw", "Withdraw").
 
 ## Repo layout
 
