@@ -1,6 +1,4 @@
 import {
-  JOINED_MESSAGE,
-  claimApprovedAccess,
   isValidEmail,
   normalizeEmail,
   readAccessStatus,
@@ -80,10 +78,6 @@ export default {
       return handleWaitlist(request, env);
     }
 
-    if (url.pathname === "/api/access/claim" && request.method === "POST") {
-      return handleAccessClaim(request, env);
-    }
-
     if (url.pathname === "/api/access/status" && request.method === "POST") {
       return handleAccessStatus(request, env);
     }
@@ -128,19 +122,6 @@ async function handleAccessStatus(request: Request, env: Env): Promise<Response>
     const email = typeof body.email === "string" ? body.email : "";
     const result = await readAccessStatus(env.DB, email);
     return json(result, result.status === "invalid_request" ? 400 : 200);
-  } catch {
-    return json({ ok: false, status: "temporarily_unavailable" }, 503);
-  }
-}
-
-async function handleAccessClaim(request: Request, env: Env): Promise<Response> {
-  try {
-    const body = await readJsonBody(request);
-    const email = typeof body.email === "string" ? body.email : "";
-    const walletAddress = typeof body.walletAddress === "string" ? body.walletAddress : "";
-    const signature = typeof body.signature === "string" ? body.signature : "";
-    const result = await claimApprovedAccess(env.DB, email, walletAddress, signature);
-    return json({ ...result, message: JOINED_MESSAGE }, result.ok ? 200 : result.status === "invalid_request" ? 400 : 403);
   } catch {
     return json({ ok: false, status: "temporarily_unavailable" }, 503);
   }
