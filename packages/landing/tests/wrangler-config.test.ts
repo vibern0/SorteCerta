@@ -10,4 +10,13 @@ describe("landing Worker configuration", () => {
 
     expect(config.triggers?.crons).toEqual([]);
   });
+
+  it("applies trigger changes after uploading the Worker", () => {
+    const packageJson = JSON.parse(
+      readFileSync(join(process.cwd(), "package.json"), "utf8"),
+    ) as { scripts?: { deploy?: string } };
+
+    expect(packageJson.scripts?.deploy).toContain("wrangler deploy");
+    expect(packageJson.scripts?.deploy).toContain("wrangler triggers deploy");
+  });
 });

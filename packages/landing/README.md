@@ -82,10 +82,13 @@ Approve remote emails with a targeted D1 update after reviewing the row.
 
 ## Preview Deployment
 
-Deploy to a Worker preview URL before connecting any custom domain:
+Deploy to a Worker preview URL before connecting any custom domain. The deploy
+script also applies the empty Cron Trigger list; this matters because uploading
+a new Worker version does not remove a Cron Trigger that is already attached to
+the Worker:
 
 ```bash
-npm exec --workspace @kettigo/landing wrangler deploy
+npm run landing:deploy
 ```
 
 Use the preview URL for smoke testing. Connect the custom domain only after the
