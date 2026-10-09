@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import Script from "next/script";
 import { Providers } from "./providers";
 import { Header } from "@/components/Header";
 import "./globals.css";
@@ -106,7 +105,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${ramillas.variable} ${interphasesMono.variable}`}>
       <body className="font-sans">
-        <Script src="/config.js" strategy="beforeInteractive" />
         <Providers>
           <div className="app-shell flex flex-col">
             <Header />
