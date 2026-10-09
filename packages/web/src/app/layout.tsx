@@ -54,7 +54,7 @@ const interphasesMono = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://kettigo.xyz"),
+  metadataBase: new URL("https://app.kettigo.xyz"),
   title: "Kettigo — Savings with a chance to win",
   description:
     "Your savings, with weekly prizes. 100% of your principal, always.",
