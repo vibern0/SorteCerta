@@ -2,7 +2,12 @@
 const nextConfig = {
   output: "export",
   reactStrictMode: true,
-  transpilePackages: ["@kettigo/protocol", "@web3auth/modal"],
+  transpilePackages: [
+    "@kettigo/protocol",
+    "@safe-global/protocol-kit",
+    "@safe-global/relay-kit",
+    "@web3auth/modal",
+  ],
   generateBuildId: async () => "static",
   images: {
     unoptimized: true,
