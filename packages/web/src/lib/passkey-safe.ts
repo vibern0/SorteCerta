@@ -69,7 +69,7 @@ type PasskeySafeDependencies = {
   getVerifierAddress(chainId: string): string;
   initRelay(options: RelayInitOptions): Promise<RelayLike>;
   getCode(address: Address): Promise<Hex | undefined>;
-  getCredential(rawId: string, options?: CredentialRequestOptions): Promise<Credential>;
+  getCredential(rawId: string, rpId: string, options?: CredentialRequestOptions): Promise<Credential>;
   sleep(milliseconds: number): Promise<void>;
 };
 
@@ -90,7 +90,7 @@ const defaultDependencies: PasskeySafeDependencies = {
   getVerifierAddress: getP256VerifierAddress,
   initRelay: (options) => Safe4337Pack.init(options) as Promise<RelayLike>,
   getCode: (address) => publicClient.getCode({ address }),
-  getCredential: (rawId, options) => getKettigoCredential(rawId, { rpId: relyingPartyId() }, options),
+  getCredential: (rawId, rpId, options) => getKettigoCredential(rawId, { rpId }, options),
   sleep: (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds)),
 };
 
@@ -114,9 +114,6 @@ export async function restorePasskeyAccount(
 ): Promise<PasskeySmartSession> {
   const deps = withDependencies({
     ...dependencies,
-    getCredential:
-      dependencies.getCredential ??
-      ((rawId, options) => getKettigoCredential(rawId, { rpId: input.rpId }, options)),
   });
   const expectedAddress = getAddress(input.metadata.safeAddress);
   const code = await deps.getCode(expectedAddress);
@@ -133,14 +130,14 @@ export async function restorePasskeyAccount(
 
 export function buildPasskeySigner(
   metadata: Pick<PasskeyMetadata, "rawId" | "coordinates" | "verifierAddress">,
-  _rpId: string,
+  rpId: string,
   dependencies: Pick<PasskeySafeDependencies, "getCredential">,
 ): PasskeyArgType {
   return {
     rawId: metadata.rawId,
     coordinates: metadata.coordinates,
     verifierAddress: getAddress(metadata.verifierAddress),
-    getFn: (options) => dependencies.getCredential(metadata.rawId, options),
+    getFn: (options) => dependencies.getCredential(metadata.rawId, rpId, options),
   };
 }
 
@@ -254,9 +251,4 @@ function signerMetadata(
 
 function withDependencies(overrides: Partial<PasskeySafeDependencies>): PasskeySafeDependencies {
   return { ...defaultDependencies, ...overrides };
-}
-
-function relyingPartyId(): string {
-  if (typeof window === "undefined") return "app.kettigo.xyz";
-  return window.location.hostname;
 }

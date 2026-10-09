@@ -224,8 +224,9 @@ test("builds a passkey signer whose assertion callback is scoped to the stored c
     { rawId: RAW_ID, coordinates: COORDINATES, verifierAddress: VERIFIER_ADDRESS, safeAddress: SAFE_ADDRESS },
     "app.kettigo.xyz",
     {
-      async getCredential(rawId) {
+      async getCredential(rawId, rpId) {
         requestedRawId = rawId;
+        assert.equal(rpId, "app.kettigo.xyz");
         return { id: "credential" };
       },
     },
