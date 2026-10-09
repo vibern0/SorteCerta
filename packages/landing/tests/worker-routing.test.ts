@@ -3,6 +3,16 @@ import { makeContext, makeEnv } from "./helpers";
 import worker from "../worker/index";
 
 describe("Worker routing", () => {
+  it("safely ignores a stale scheduled invocation", () => {
+    const controller = {
+      cron: "* * * * *",
+      noRetry: vi.fn(),
+      scheduledTime: Date.UTC(2026, 9, 9, 12, 3),
+    } as unknown as ScheduledController;
+
+    expect(() => worker.scheduled(controller, makeEnv(), makeContext())).not.toThrow();
+  });
+
   it("rejects cross-origin API submissions", async () => {
     const response = await worker.fetch(
       new Request("https://kettigo.com/api/waitlist", {
